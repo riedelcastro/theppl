@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0     http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.riedelcastro.github.theppl</groupId>
+    <artifactId>thepll</artifactId>
+    <packaging>pom</packaging>
+
+    <version>1.0-SNAPSHOT</version>
+
+    <name>power 2 theppl</name>
+ 
+    <distributionManagement>
+	<repository>
+		<id>repo</id>
+		<url>https://github.com/riedelcastro/riedelcastro-maven-repo/raw/master/releases</url>
+	</repository>
+	<snapshotRepository>
+		<id>snapshot-repo</id>
+		<url>https://github.com/riedelcastro/riedelcastro-maven-repo/raw/master/snapshots</url>
+	</snapshotRepository>
+    </distributionManagement>
+ 
+    <modules>
+      <module>theppl-core</module>
+    </modules>
+    
+</project>
