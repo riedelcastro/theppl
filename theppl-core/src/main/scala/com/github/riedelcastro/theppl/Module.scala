@@ -44,20 +44,13 @@ trait Marginals extends Message {
   def marginals[V](variable:Var[_,V], value:V) = msg(variable,value)
 }
 
-class ParameterVector {
-  def dot(that:ParameterVector):Double = 0.0
-}
-
-class GlobalParameterVector {
-  def dot(that:GlobalParameterVector):Double = 0.0
-}
 
 trait LinearModule extends Module {
   type Factor <: LinearFactor
-  def weights:GlobalParameterVector
+  def weights:GlobalParameterVector = new GlobalParameterVector
   trait LinearFactor extends ModuleFactor {
-    def features:GlobalParameterVector
-    def score(state: State) = features dot weights
+    def features(state:State):GlobalParameterVector
+    def score(state: State) = features(state) dot weights
   }
 }
 
