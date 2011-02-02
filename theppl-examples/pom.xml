@@ -4,12 +4,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>thepll</artifactId>
+        <artifactId>theppl</artifactId>
         <groupId>com.github.riedelcastro.theppl</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <groupId>com.github.riedelcastro.theppl</groupId>
     <artifactId>theppl-examples</artifactId>
+    <name>theppl-examples</name>
     <version>1.0-SNAPSHOT</version>
     <inceptionYear>2008</inceptionYear>
     <build>
@@ -71,6 +72,11 @@
         <dependency>
             <groupId>com.github.riedelcastro.theppl</groupId>
             <artifactId>theppl-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.riedelcastro.theppl</groupId>
+            <artifactId>theppl-datasets</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>

@@ -7,7 +7,7 @@ package com.github.riedelcastro.theppl
 trait Module {
 
   type Context
-  type Variable <: Var[_,_]
+  type Var <: Variable[_]
   type Factor <: ModuleFactor
 
   /**
@@ -15,41 +15,34 @@ trait Module {
    * of variables.
    */
   trait ModuleFactor {
-    def context:Context
-    def variables:Iterable[Variable]
-    def score(state:State):Double
-    def argmax(penalties:Message):State
+    def context: Context
+    def variables: Iterable[Var]
+    def score(state: State): Double
+    def argmax(penalties: Message): State
   }
 
-  def factor(context:Context):Factor
+  def factor(context: Context): Factor
 }
 
-/**
- * A Variable with an id and domain.
- */
-case class Var[I,V](id:I, domain:Iterable[V]){
+trait Variable[V] {
+  def domain:Iterable[V]
 }
 
-trait Message {
-  def msg[V](variable:Var[_,V], value:V):Double
-}
+abstract class Var[V](val domain:Iterable[V]) extends Variable[V]
 
-trait State extends Message {
-  def get[V](variable:Var[_,V]) : Option[V] = {
-    variable.domain.find(value => msg(variable,value) == 1.0)
-  }
-}
 
-trait Marginals extends Message {
-  def marginals[V](variable:Var[_,V], value:V) = msg(variable,value)
-}
 
 
 trait LinearModule extends Module {
   type Factor <: LinearFactor
-  def weights:GlobalParameterVector = new GlobalParameterVector
+  def weights: GlobalParameterVector = new GlobalParameterVector
   trait LinearFactor extends ModuleFactor {
-    def features(state:State):GlobalParameterVector
+    def features(state: State): GlobalParameterVector
+    def featureDelta(gold:State, guess:State) = {
+      val result = features(gold)
+      result.add(features(guess),-1.0)
+      result
+    }
     def score(state: State) = features(state) dot weights
   }
 }
