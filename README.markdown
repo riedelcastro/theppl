@@ -38,8 +38,3 @@ For more details on how to run Scala code within maven, go the
 
 
 
-
-, and as such can be run however you prefer to run your
-Scala code
-
-
