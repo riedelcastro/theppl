@@ -1,12 +1,12 @@
-power 2 theppl
+theppl
 ==============
 
-theppl is a probabilistic programming language/platform.
+theppl is a (p)robabilistic (p)rogramming (l)anguage/platform.
 
 Install
 --------
 theppl uses maven for building and installation. If you don't have maven on your machine,
-get it [here] (http://maven.apache.org/). Then run:
+get it [here](http://maven.apache.org/). Then run:
 
     mvn install
 
