@@ -30,6 +30,7 @@
         <module>theppl-datasets</module>
         <module>theppl-examples</module>
     <module>theppl-archetype</module>
+    <module>theppl-manual</module>
   </modules>
 
     <properties>

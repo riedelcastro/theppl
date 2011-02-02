@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<project name="theppl-manual">
+
+    <property name="lyx" location="/Applications/LyX.app/Contents/MacOS/lyx"/>
+    <property name="lyxfile" location="src/main/lyx/theppl-manual.lyx"/>
+    <property name="texfile" location="src/main/lyx/theppl-manual.tex"/>
+
+    <target name="check-lyx">
+        <available file="${lyx}" property="lyx.present"/>
+    </target>
+
+    <target name="lyx" depends="check-lyx" if="lyx.present">
+
+        <echo message="compiling lyx file: ${lyxfile}"/>
+        <exec executable="${lyx}" spawn="false">
+            <arg value="-e"/>
+            <arg value="pdflatex"/>
+            <arg value="${lyxfile}"/>
+        </exec>
+
+        <move file="${texfile}" todir="target/"/>
+
+
+        <echo message="compile classpath: ${compile_classpath}"/>
+        <echo message="runtime classpath: ${runtime_classpath}"/>
+        <echo message="test classpath:    ${test_classpath}"/>
+        <echo message="plugin classpath:  ${plugin_classpath}"/>
+
+    </target>
+
+</project>
