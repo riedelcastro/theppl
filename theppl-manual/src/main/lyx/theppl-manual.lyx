@@ -2,7 +2,7 @@
 \lyxformat 345
 \begin_document
 \begin_header
-\textclass article
+\textclass book
 \use_default_options true
 \language english
 \inputencoding auto
@@ -17,7 +17,17 @@
 
 \graphics default
 \paperfontsize default
-\use_hyperref false
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
 \papersize default
 \use_geometry false
 \use_amsmath 1
@@ -36,6 +46,7 @@
 \tracking_changes false
 \output_changes false
 \author "" 
+\author "" 
 \end_header
 
 \begin_body
@@ -46,6 +57,170 @@
 theppl
 \noun default
  Manual
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Chapter
+Getting Started
+\end_layout
+
+\begin_layout Section
+Download
+\end_layout
+
+\begin_layout Standard
+Download here: 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+http://github.com/riedelcastro/theppl
+\end_layout
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Section
+Installation
+\end_layout
+
+\begin_layout LyX-Code
+mvn install
+\end_layout
+
+\begin_layout Section
+Create Project
+\end_layout
+
+\begin_layout LyX-Code
+mvn archetype:create                              
+\end_layout
+
+\begin_layout LyX-Code
+     -DarchetypeGroupId=com.github.riedelcastro.theppl
+\end_layout
+
+\begin_layout LyX-Code
+     -DarchetypeArtifactId=theppl-archetype
+\end_layout
+
+\begin_layout LyX-Code
+     -DarchetypeVersion=1.0-SNAPSHOT
+\end_layout
+
+\begin_layout LyX-Code
+     -DgroupId=<yourgroupid>
+\end_layout
+
+\begin_layout LyX-Code
+     -DartifactId=<yourprojectid>
+\end_layout
+
+\begin_layout Chapter
+Introduction
+\end_layout
+
+\begin_layout Section
+Modules and Models
+\end_layout
+
+\begin_layout Standard
+A 
+\emph on
+Model 
+\emph default
+is a scoring function that maps possible worlds/states to real values.
+ A 
+\emph on
+Module
+\emph default
+ is a parametrized model: it can create a model for a given 
+\emph on
+context
+\emph default
+.
+ 
+\end_layout
+
+\begin_layout LyX-Code
+trait Module {
+\end_layout
+
+\begin_layout LyX-Code
+  type Context
+\end_layout
+
+\begin_layout LyX-Code
+  trait Model {
+\end_layout
+
+\begin_layout LyX-Code
+    def score(state:State):Double
+\end_layout
+
+\begin_layout LyX-Code
+    def variables:Seq[Variable]
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout LyX-Code
+  def model(context:Context):Model
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+A simple context could be a nominal variable.
+ A module could take this variable, and create a simple uniform scoring
+ function over this variable:
+\end_layout
+
+\begin_layout LyX-Code
+class UniformModule {
+\end_layout
+
+\begin_layout LyX-Code
+  type Context = Variable
+\end_layout
+
+\begin_layout LyX-Code
+  class UniformModel(variable) extends Model {
+\end_layout
+
+\begin_layout LyX-Code
+    def score(state:State) = 1.0
+\end_layout
+
+\begin_layout LyX-Code
+    def variables = Seq(variable)
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout LyX-Code
+  def model(variable:Variable) = new UniformModel(variable)
+\end_layout
+
+\begin_layout LyX-Code
+}
 \end_layout
 
 \end_body

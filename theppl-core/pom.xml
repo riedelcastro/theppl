@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.github.riedelcastro.theppl</groupId>
     <artifactId>theppl-core</artifactId>
-    <name>theppl core classes</name>
+    <name>theppl-core</name>
     <version>1.0-SNAPSHOT</version>
     <inceptionYear>2008</inceptionYear>
     <build>

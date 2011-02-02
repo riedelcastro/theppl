@@ -11,9 +11,9 @@ trait OnlineLearner extends LinearModule {
     for (epoch <- 0 until epochs) {
       for (instance <- instances) {
         val gold = instance.state
-        val factor = this.factor(instance.context)
-        val guess = factor.argmax(null)
-        val delta = factor.featureDelta(gold,guess)
+        val model = this.model(instance.context)
+        val guess = model.argmax(null)
+        val delta = model.featureDelta(gold,guess)
         weights.add(delta, 1.0)
       }
     }

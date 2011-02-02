@@ -6,14 +6,14 @@ package com.github.riedelcastro.theppl
 trait LocalClassifier extends LinearModule {
   module =>
   type Label
-  type Factor = LocalFactor
+  type Model = LocalModel
   type Var <: Variable[Label]
   type Context <: Var
 
   def contextFeatures(context: Context): ParameterVector
   def labelFeatures(label: Label): ParameterVector
 
-  trait LocalFactor extends LinearFactor {
+  trait LocalModel extends LinearModel {
     val variable = context
     val variables = Seq(variable)
     def classify: Label = argmax(null).get(variable).get
@@ -24,11 +24,11 @@ trait LocalClassifier extends LinearModule {
     }
   }
 
-  def factor(c: Context): Factor = new LocalFactor {
+  def model(c: Context): Model = new LocalModel {
     val context = c
   }
 
-  def classify(context: Context): Label = factor(context).classify
+  def classify(context: Context): Label = model(context).classify
 
 }
 
