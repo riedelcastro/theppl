@@ -14,7 +14,7 @@
   <inceptionYear>2008</inceptionYear>
   <build>
     <sourceDirectory>src/main/scala</sourceDirectory>
-    <testSourceDirectory>src/test/scala</testSourceDirectory>
+    <!--<testSourceDirectory>src/test/scala</testSourceDirectory>-->
     <plugins>
       <plugin>
         <groupId>org.scala-tools</groupId>
@@ -96,7 +96,5 @@
       </plugin>
     </plugins>
   </reporting>
-  <properties>
-    <scala.version>2.7.0</scala.version>
-  </properties>
+
 </project>
