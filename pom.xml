@@ -19,6 +19,10 @@
 		<id>snapshot-repo</id>
 		<url>https://github.com/riedelcastro/riedelcastro-maven-repo/raw/master/snapshots</url>
 	</snapshotRepository>
+	<site>
+          <id>website</id>
+          <url>file:///Users/riedelcastro/projects/theppl-site</url>
+        </site>
     </distributionManagement>
  
     <modules>
