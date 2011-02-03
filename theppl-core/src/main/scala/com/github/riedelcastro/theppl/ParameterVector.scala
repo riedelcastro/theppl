@@ -62,7 +62,7 @@ class GlobalParameterVector {
   def params:Map[Path, ParameterVector] = _params
 
   def add(that:GlobalParameterVector, scale:Double) {
-    for ((path,vector) <- _params; thatVector <- that.params.get(path)) {
+    for ((path,thatVector) <- that.params; vector = _params.getOrElseUpdate(path, new ParameterVector)) {
       vector.add(thatVector, scale)
     }
   }
@@ -73,5 +73,12 @@ class GlobalParameterVector {
       result += vector dot thatVector
     }
     result
+  }
+  override def toString = {
+    val perPath = for ((path,vector) <- _params) yield {
+      path.toString +
+        vector.values.map({case (param,weight)=> "\t%-30s: %6.2f".format(param,weight)}).mkString("\n","\n","")
+    }
+    perPath.mkString("\n")
   }
 }

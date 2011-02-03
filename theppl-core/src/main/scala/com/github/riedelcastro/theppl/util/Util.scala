@@ -104,3 +104,22 @@ object Util extends HasLogger {
   }
 
 }
+
+object MathUtil {
+
+  /**
+   * Finds the argmax (plus max) of a scored set of elements.
+   */
+  def argmax[T](elements:Iterable[T], score:T=>Double):(T,Double) = {
+    var max = Double.NegativeInfinity
+    var result:T = null.asInstanceOf[T]
+    for (e <- elements){
+      val s = score(e)
+      if (s > max){
+        max = s
+        result = e
+      }
+    }
+    result -> max
+  }
+}

@@ -22,7 +22,10 @@ object ClassifierExample {
     val contextFeats = (token:Token) => new ParameterVector(Seq(token.tag, lifted(token.index-1).map(_.tag)))
     def labelFeats = (label:String) => new ParameterVector(Set(label) ++ label.split("-"))
     val classifier = new Classifier(contextFeats,labelFeats) with OnlineLearner
+    classifier.train(training)
     println(tokens.mkString("\n"))
+    println(classifier.weights)
+
   }
 
   def main2(args: Array[String]) {

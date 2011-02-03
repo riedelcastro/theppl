@@ -1,5 +1,7 @@
 package com.github.riedelcastro.theppl
 
+import util.MathUtil
+
 /**
  * @author sriedel
  */
@@ -17,7 +19,11 @@ trait LocalClassifier extends LinearModule {
     val variable = context
     val variables = Seq(variable)
     def classify: Label = argmax(null).get(variable).get
-    def argmax(penalties: Message): State = null
+    def argmax(penalties: Message): State = {
+      val states = variable.domain.map(new SingletonState(variable,_))
+      val (state,s) = MathUtil.argmax(states,(s:State) => score(s))
+      state
+    }
     def features(state: State) = {
       val feats = contextFeatures(context) conjoin labelFeatures(state.get(variable).get)
       new GlobalParameterVector(module, feats)
@@ -25,7 +31,7 @@ trait LocalClassifier extends LinearModule {
   }
 
   def model(c: Context): Model = new LocalModel {
-    val context = c
+    def context = c
   }
 
   def classify(context: Context): Label = model(context).classify

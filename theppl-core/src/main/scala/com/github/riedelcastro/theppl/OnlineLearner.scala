@@ -5,7 +5,7 @@ package com.github.riedelcastro.theppl
  */
 trait OnlineLearner extends LinearModule {
 
-  def epochs: Int = 10
+  def epochs: Int = 2
 
   def train[C](instances: Seq[TrainingInstance[Context]]) {
     for (epoch <- 0 until epochs) {

@@ -69,6 +69,12 @@ LatexCommand tableofcontents
 \end_layout
 
 \begin_layout Chapter
+Introducing 
+\noun on
+theppl
+\end_layout
+
+\begin_layout Chapter
 Getting Started
 \end_layout
 
@@ -125,6 +131,14 @@ mvn archetype:create
 
 \begin_layout LyX-Code
      -DartifactId=<yourprojectid>
+\end_layout
+
+\begin_layout Section
+Execute
+\end_layout
+
+\begin_layout LyX-Code
+mvn scala:run -DmainClass=org.example.MyClassifier 
 \end_layout
 
 \begin_layout Chapter

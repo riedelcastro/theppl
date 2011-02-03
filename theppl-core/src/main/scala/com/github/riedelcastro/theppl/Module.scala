@@ -1,5 +1,7 @@
 package com.github.riedelcastro.theppl
 
+import java.util.UUID
+
 /**
  * A module creates factors based on a context.
  * @author sriedel
@@ -11,7 +13,7 @@ trait Module {
   type Model <: ModuleModel
 
   /**
-   * A factor defines a potential/scoring function over a set
+   * A model defines a potential/scoring function over a set
    * of variables.
    */
   trait ModuleModel {
@@ -22,6 +24,10 @@ trait Module {
   }
 
   def model(context: Context): Model
+
+  val name:String = "Module(%s)".format(UUID.randomUUID.toString)
+
+  override def toString = name
 }
 
 trait Variable[V] {
@@ -35,7 +41,7 @@ abstract class Var[V](val domain:Iterable[V]) extends Variable[V]
 
 trait LinearModule extends Module {
   type Model <: LinearModel
-  def weights: GlobalParameterVector = new GlobalParameterVector
+  val weights: GlobalParameterVector = new GlobalParameterVector
   trait LinearModel extends ModuleModel {
     def features(state: State): GlobalParameterVector
     def featureDelta(gold:State, guess:State) = {
