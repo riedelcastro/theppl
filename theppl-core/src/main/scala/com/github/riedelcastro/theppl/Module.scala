@@ -3,7 +3,7 @@ package com.github.riedelcastro.theppl
 import java.util.UUID
 
 /**
- * A module creates factors based on a context.
+ * A module creates models based on a context.
  * @author sriedel
  */
 trait Module {

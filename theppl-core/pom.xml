@@ -6,13 +6,12 @@
     <parent>
         <artifactId>theppl</artifactId>
         <groupId>com.github.riedelcastro.theppl</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
     <groupId>com.github.riedelcastro.theppl</groupId>
     <artifactId>theppl-core</artifactId>
     <name>theppl-core</name>
-    <version>1.0-SNAPSHOT</version>
-    <inceptionYear>2008</inceptionYear>
+    <version>0.1.0-SNAPSHOT</version>
     <build>
         <sourceDirectory>src/main/scala</sourceDirectory>
         <!--<testSourceDirectory>src/test/scala</testSourceDirectory>-->
