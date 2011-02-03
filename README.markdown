@@ -1,7 +1,8 @@
 theppl
 ==============
 
-theppl is a (p)robabilistic (p)rogramming (l)anguage/platform.
+theppl is a (p)robabilistic (p)rogramming (l)anguage/platform. For further details please
+have a look at the [manual](https://github.com/riedelcastro/riedelcastro-maven-repo/raw/master/snapshots/com/github/riedelcastro/theppl/theppl-manual/0.1.0-SNAPSHOT/theppl-manual-0.1.0-SNAPSHOT.pdf).
 
 Install
 --------
