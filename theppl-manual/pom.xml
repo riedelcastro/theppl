@@ -35,6 +35,7 @@
                                 <property name="runtime_classpath" refid="maven.runtime.classpath"/>
                                 <property name="test_classpath" refid="maven.test.classpath"/>
                                 <property name="plugin_classpath" refid="maven.plugin.classpath"/>
+                                <property name="artifact_version" value="${version}"/>
 
                                 <ant antfile="${basedir}/build.xml">
                                     <target name="lyx"/>

@@ -1,15 +1,23 @@
 <?xml version="1.0"?>
 <project name="theppl-manual">
 
-    <property name="lyx" location="/Applications/LyX.app/Contents/MacOS/lyx"/>
+    <property environment="env"/>
+    <property name="lyx" value="${env.LYX}"/>
+    <property name="pdflatex" value="pdflatex"/>
     <property name="lyxfile" location="src/main/lyx/theppl-manual.lyx"/>
     <property name="texfile" location="src/main/lyx/theppl-manual.tex"/>
+    <property name="targettexfile" location="target/theppl-manual-${artifact_version}.tex"/>
+
 
     <target name="check-lyx">
         <available file="${lyx}" property="lyx.present"/>
     </target>
 
-    <target name="lyx" depends="check-lyx" if="lyx.present">
+    <target name="lyx" depends="lyx-if,lyx-else"/>
+
+    <target name="lyx-if" depends="check-lyx" if="lyx.present">
+
+        <echo message="Version: ${artifact_version}"/>
 
         <echo message="compiling lyx file: ${lyxfile}"/>
         <exec executable="${lyx}" spawn="false">
@@ -18,14 +26,26 @@
             <arg value="${lyxfile}"/>
         </exec>
 
-        <move file="${texfile}" todir="target/"/>
+        <exec executable="${lyx}" spawn="false">
+            <arg value="-e"/>
+            <arg value="pdflatex"/>
+            <arg value="${lyxfile}"/>
+        </exec>
 
+        <move file="${texfile}" tofile="${targettexfile}"/>
 
-        <echo message="compile classpath: ${compile_classpath}"/>
-        <echo message="runtime classpath: ${runtime_classpath}"/>
-        <echo message="test classpath:    ${test_classpath}"/>
-        <echo message="plugin classpath:  ${plugin_classpath}"/>
+        <exec executable="${pdflatex}" spawn="false">
+            <arg value="-output-directory"/>
+            <arg value="target"/>
+            <arg value="${targettexfile}"/>
+        </exec>
+
 
     </target>
+    <target name="lyx-else" depends="check-lyx" unless="lyx.present">
+        <echo message="Could not find LyX executable"/>
+        <echo message="Please set the LYX environment variable to point to a lyx executable"/>
+    </target>
+
 
 </project>
