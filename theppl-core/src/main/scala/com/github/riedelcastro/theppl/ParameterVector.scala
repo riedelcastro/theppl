@@ -1,29 +1,29 @@
 package com.github.riedelcastro.theppl
 
-import collection.mutable.HashMap
 import collection.Map
+import collection.mutable.{ArrayBuffer, HashMap}
 
 /**
  * @author sriedel
  */
 class ParameterVector {
 
-  def this(keys:Iterable[Any]) = {
+  def this(keys:Iterable[Feat]) = {
     this()
     for (key <- keys) _values(key) = 1.0
   }
 
-  private val _values = new HashMap[Any,Double] {
-    override def default(key: Any) = 0.0
+  private val _values = new HashMap[Feat,Double] {
+    override def default(key: Feat) = 0.0
   }
 
-  def values:Map[Any,Double] = _values
+  def values:Map[Feat,Double] = _values
 
-  def update(key:Any, value:Double) = {
+  def update(key:Feat, value:Double) = {
     _values(key) = value
   }
 
-  def apply(key:Any):Double = _values(key)
+  def apply(key:Feat):Double = _values(key)
 
   def add(that:ParameterVector, scale:Double) = {
     for ((key,value) <- that.values) {
@@ -41,12 +41,36 @@ class ParameterVector {
   def conjoin(that:ParameterVector):ParameterVector = {
     val result = new ParameterVector
     for ((key,value) <- this.values; (thatKey,thatValue) <- that.values){
-      result(key -> thatKey) = value * thatValue
+      result(key & thatKey) = value * thatValue
     }
     result
   }
 
+  def stringRep(prefix:String) = {
+    _values.map({case (key,value) => "%s%-30s: %6.2f".format(prefix,key,value)}).mkString("\n")
+  }
+
+
 }
+
+class Feat extends ArrayBuffer[Symbol] {
+  def &(that:Feat) = {
+    val feat = new Feat
+    feat ++= this
+    feat ++= that
+    feat
+  }
+  override def toString() = map(_.name).mkString(" ")
+}
+
+object Feat {
+  def apply(feats:Any*):Feat = {
+    val result = new Feat
+    for (feat <- feats) result += Symbol(feat.toString)
+    result
+  }
+}
+
 
 class GlobalParameterVector {
 
@@ -76,8 +100,7 @@ class GlobalParameterVector {
   }
   override def toString = {
     val perPath = for ((path,vector) <- _params) yield {
-      path.toString +
-        vector.values.map({case (param,weight)=> "\t%-30s: %6.2f".format(param,weight)}).mkString("\n","\n","")
+      path.toString + "\n" + vector.stringRep("\t")
     }
     perPath.mkString("\n")
   }

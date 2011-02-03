@@ -39,7 +39,9 @@ trait LocalClassifier extends LinearModule {
 }
 
 class Classifier[V <: Variable[L], L](contextFeats: V => ParameterVector,
-                                      labelFeats: L => ParameterVector = (l: L) => new ParameterVector(Seq(l))) extends LocalClassifier {
+                                      labelFeats: L => ParameterVector = (l: L) => new ParameterVector(Seq(Feat(l))))
+  extends LocalClassifier {
+
   type Label = L
   type Var = V
   type Context = V
