@@ -29,9 +29,30 @@ object ClassifierExample {
       def variable(context: Token) = context.chunkVar
       val domain = chunks
     }
+    println(Evaluator.evaluate(classifier, training))
     classifier.train(training)
     println(classifier.weights)
+    println(Evaluator.evaluate(classifier, training))
 
+  }
+
+}
+
+object Evaluator {
+
+  def evaluate[C](module: Module {type Context = C}, instances: Seq[Instance[C]]) = {
+    var totalLoss = 0.0
+    var count = 0
+    for (instance <- instances) {
+      val gold = instance.gold
+      val model = module.model(instance.context, instance.observation)
+      val guess = model.predict
+      for (hidden <- model.hidden) {
+        if (gold(hidden) != guess(hidden)) totalLoss += 1.0
+        count += 1
+      }
+    }
+    totalLoss / count
   }
 
 }

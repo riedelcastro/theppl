@@ -24,7 +24,13 @@ trait Model {
    * with added penalties on the variables.
    */
   def argmax(penalties: Message): State
+
+  /**
+   * Convenience method for when no incoming message is needed.
+   */
+  def predict:State = argmax(Message.emtpy)
 }
+
 
 /**
  * A module creates models based on a context and observation. Think of it as a parametrized
@@ -35,8 +41,8 @@ trait Module {
   self =>
 
   type Context
-  type Hidden <: Variable[_]
-  type Observed <: Variable[_]
+  type Hidden <: Variable[Any]
+  type Observed <: Variable[Any]
   type ModelType <: Model
 
   /**
@@ -77,6 +83,8 @@ trait SourceModule extends Module {
   }
 
 }
+
+
 
 /**
  * Additional convenience methods to mix into modules.

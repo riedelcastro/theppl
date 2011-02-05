@@ -31,6 +31,7 @@ object State {
 }
 
 trait State extends Message {
+  def apply[V](variable:Variable[V]):V = get(variable).get
   def get[V](variable: Variable[V]): Option[V]
   def msg[V](variable: Variable[V], value: V) = if (get(variable) == Some(value)) 1.0 else 0.0
 }
