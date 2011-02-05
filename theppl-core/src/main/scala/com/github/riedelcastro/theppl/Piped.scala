@@ -19,9 +19,10 @@ trait Piped extends Module {
   type ModelType <: PipedModel
 
   abstract class PipedModel(val model1: module1.ModelType, val model2: module2.ModelType, val argmax1: State) extends Model {
-    def context = model1.context
-    def variables = model2.variables
-    def observed = model1.observed
+    val context = model1.context
+    val hidden = model2.hidden
+    val observed = model1.observed
+    val observation = model1.observation
     lazy val score1 = model1.score(argmax1)
     def argmax(penalties: Message) = model2.argmax(penalties)
   }

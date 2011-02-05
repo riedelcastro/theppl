@@ -53,6 +53,17 @@ class ParameterVector {
 
 }
 
+object ParameterVector {
+  def fromFeats(feats:Iterable[Feat]) = {
+    new ParameterVector(feats)
+  }
+  def fromPairs(feats:(Any,Any)*) = {
+    new ParameterVector(feats.map({case(key,value) => Feat(key,value)}))
+  }
+}
+
+
+
 class Feat extends ArrayBuffer[Symbol] {
   def &(that:Feat) = {
     val feat = new Feat

@@ -3,7 +3,32 @@ package com.github.riedelcastro.theppl
 import java.util.UUID
 
 /**
- * A module creates models based on a context.
+ * A Model is a scoring function s(Y=y) over a set of variables Y.
+ */
+trait Model {
+  /**
+   * The type of hidden variables
+   */
+  type Hidden <: Variable[_]
+  /**
+   * The set of hidden variables
+   */
+  def hidden: Iterable[Hidden]
+  /**
+   * Returns a score s(y) for each assignment to the hidden variables of this model.
+   */
+  def score(state: State): Double
+
+  /**
+   * Returns the assignment to hidden variables of this model that maximizes the score,
+   * with added penalties on the variables.
+   */
+  def argmax(penalties: Message): State
+}
+
+/**
+ * A module creates models based on a context and observation. Think of it as a parametrized
+ * scoring function s_i(y_i;x_i) where i is the context, and x the observation.
  * @author sriedel
  */
 trait Module {
@@ -18,15 +43,46 @@ trait Module {
    * A model defines a potential/scoring function over a set
    * of variables.
    */
-  trait Model {
+  trait Model extends com.github.riedelcastro.theppl.Model {
+    type Hidden = self.Hidden
     def context: Context
-    def variables: Iterable[Hidden]
     def observed: Iterable[Observed]
-    def score(state: State): Double
-    def argmax(penalties: Message): State
+    def observation: State
   }
 
+  /**
+   * For a given context i, and observation x, this method creates
+   * a model s_i(y;x).
+   */
   def model(context: Context, observation: State): ModelType
+
+  /**
+   * The name of this module.
+   */
+  val name: String = "Module(%s)".format(UUID.randomUUID.toString)
+
+  override def toString = name
+}
+
+
+/**
+ * A module that does not take any observation into account.
+ */
+trait SourceModule extends Module {
+  type Observed = Variable[Nothing]
+  type ModelType <: SourceModel
+  trait SourceModel extends Model {
+    def observation = State.empty
+    def observed = Seq.empty
+  }
+
+}
+
+/**
+ * Additional convenience methods to mix into modules.
+ */
+trait ModuleExtras extends Module {
+  self =>
 
   type Pipeable = Module {
     type Context = self.Context
@@ -39,42 +95,10 @@ trait Module {
 
   def |(that: Pipeable) = new PipedSimple[Context, Hidden](this, that)
   def |(that: LinearPipeable) = new PipedLinear[Context, Hidden](this, that)
-  //def |(that: Pipeable) = pipe(that)
 
-  val name: String = "Module(%s)".format(UUID.randomUUID.toString)
 
-  override def toString = name
-}
-
-trait Variable[V] {
-  //def domain: Iterable[V]
-}
-
-case class Var[V, C](context: C) extends Variable[V]
-//abstract class Var[V](val domain: Iterable[V]) extends Variable[V]
-
-class Atom[A, V](val name: Symbol, val arg: A, val domain: Iterable[V]) extends Variable[V] {
-  override def equals(that: Any) = that match {
-    case a: Atom[_, _] => name == a.name && arg == a.arg
-    case _ => false
-  }
-  override val hashCode = 41 * (41 + name.hashCode) + arg.hashCode
 }
 
 
-trait LinearModule extends Module {
 
-  type ModelType <: LinearModel
-  val weights: GlobalParameterVector = new GlobalParameterVector
-  trait LinearModel extends Model {
-    def features(state: State): GlobalParameterVector
-    def featureDelta(gold: State, guess: State) = {
-      val result = features(gold)
-      result.add(features(guess), -1.0)
-      result
-    }
-    def score(state: State) = features(state) dot weights
-  }
-
-}
 

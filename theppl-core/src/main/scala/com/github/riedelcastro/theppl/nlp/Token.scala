@@ -16,6 +16,6 @@ class Document {
 
 }
 
-class Tag(token:Token, domain:Iterable[String]) extends Atom('tag,token,domain)
-class Chunk(token:Token, domain:Iterable[String]) extends Atom('chunk,token,domain)
-class NER(token:Token, domain:Iterable[String]) extends Atom('ner,token,domain)
+case class Tag(token:Token) extends Atom('tag,token)
+case class Chunk(token:Token) extends Atom('chunk,token)
+case class NER(token:Token) extends Atom('ner,token)

@@ -3,17 +3,17 @@ package com.github.riedelcastro.theppl
 /**
  * @author sriedel
  */
-trait OnlineLearner extends LinearModule {
+trait OnlineLearner extends LinearModule { self =>
 
-  def epochs: Int = 2
+  var epochs: Int = 2
 
-  def train[C](instances: Seq[TrainingInstance[Context]]) {
+  def train[C](instances: Seq[Instance[Context]]) {
     for (epoch <- 0 until epochs) {
       for (instance <- instances) {
-        val gold = instance.state
-        val model = this.model(instance.context, null)
+        val gold = instance.gold
+        val model = self.model(instance.context, instance.observation)
         val guess = model.argmax(null)
-        val delta = model.featureDelta(gold,guess)
+        val delta = model.featureDelta(gold, guess)
         weights.add(delta, 1.0)
       }
     }
@@ -21,24 +21,9 @@ trait OnlineLearner extends LinearModule {
 
 }
 
-class TrainingInstance[C](val context: C, val state: State) {
+class Corpus(val module:Module)
+
+class Instance[C](val context: C, val gold:State, val observation: State=State.empty) {
 
 }
 
-class OnlineLearner2(val module:LinearModule) {
-
-  var epochs: Int = 2
-
-  def train[C](instances: Seq[TrainingInstance[module.Context]]) {
-    for (epoch <- 0 until epochs) {
-      for (instance <- instances) {
-        val gold = instance.state
-        val model = module.model(instance.context, null)
-        val guess = model.argmax(null)
-        val delta = model.featureDelta(gold,guess)
-        module.weights.add(delta, 1.0)
-      }
-    }
-  }
-
-}
