@@ -21,6 +21,7 @@ class SingletonMessage[Value](val variable:Variable[Value], val value:Value, val
 class SingletonState[Value](val variable:Variable[Value], val state:Value) extends State {
   def get[V](variable: Variable[V]) =
     if (variable == this.variable) Some(state.asInstanceOf[V]) else None
+  override def toString = variable + " = " + state
 }
 
 object State {

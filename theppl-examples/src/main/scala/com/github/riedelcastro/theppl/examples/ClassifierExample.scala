@@ -12,16 +12,18 @@ object ClassifierExample {
 
   def main(args: Array[String]) {
 
+    val n = 50
+
     val chunks = Seq("O") ++ (for (bi <- Seq("B-", "I-"); t <- Seq("VP", "NP", "PP")) yield bi + t)
     case class Token(index: Int, word: String, tag: String, chunk: String) {
       val chunkVar = new Atom[Token, String]('chunk, this)
     }
     val stream = Util.getStreamFromClassPathOrFile("com/github/riedelcastro/theppl/datasets/conll2000/train.txt")
-    val indexedLines = Source.fromInputStream(stream).getLines.take(10).filter(_ != "").zipWithIndex
+    val indexedLines = Source.fromInputStream(stream).getLines.take(n).filter(_ != "").zipWithIndex
     val tokens = for ((line, index) <- indexedLines.toSeq; Array(word, tag, chunk) = line.split("\\s+")) yield
       Token(index, word, tag, chunk)
     val lifted = tokens.lift
-    val training = for (token <- tokens) yield new Instance(token, State.singleton(token.chunkVar, token.chunk))
+    val instances = for (token <- tokens) yield new Instance(token, State.singleton(token.chunkVar, token.chunk))
 
     val classifier = new Classifier[String, Token] with OnlineLearner {
       def labelFeatures(label: String) = fromFeats(Seq(Feat(label)) ++ label.split("-").map(Feat("split", _)))
@@ -29,10 +31,14 @@ object ClassifierExample {
       def variable(context: Token) = context.chunkVar
       val domain = chunks
     }
-    println(Evaluator.evaluate(classifier, training))
-    classifier.train(training)
+    val train = instances.take(instances.size / 2)
+    val test = instances.drop(instances.size / 2)
+    println(Evaluator.evaluate(classifier, train))
+    classifier.train(train)
+    println(Evaluator.evaluate(classifier, train))
+    println(Evaluator.evaluate(classifier, test))
+
     println(classifier.weights)
-    println(Evaluator.evaluate(classifier, training))
 
   }
 

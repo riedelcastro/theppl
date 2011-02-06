@@ -3,11 +3,11 @@ package com.github.riedelcastro.theppl
 /**
  * @author sriedel
  */
-trait OnlineLearner extends LinearModule { self =>
+trait OnlineLearner extends LinearModule with Learner { self =>
 
   var epochs: Int = 2
 
-  def train[C](instances: Seq[Instance[Context]]) {
+  def train(instances: Seq[Instance[Context]]) {
     for (epoch <- 0 until epochs) {
       for (instance <- instances) {
         val gold = instance.gold
@@ -19,6 +19,10 @@ trait OnlineLearner extends LinearModule { self =>
     }
   }
 
+}
+
+trait Learner extends Module {
+  def train(instances: Seq[Instance[Context]])
 }
 
 class Corpus(val module:Module)
