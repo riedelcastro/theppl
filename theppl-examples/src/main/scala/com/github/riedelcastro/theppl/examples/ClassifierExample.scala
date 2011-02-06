@@ -39,6 +39,7 @@ object ClassifierExample {
     println(Evaluator.evaluate(classifier, test))
 
     println(classifier.weights)
+    val decorated = new LinearModuleProxy with OnlineLearner {val self = classifier}
 
   }
 

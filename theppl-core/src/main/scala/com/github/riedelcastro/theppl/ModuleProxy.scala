@@ -3,13 +3,15 @@ package com.github.riedelcastro.theppl
 /**
  * @author sriedel
  */
-trait ModuleProxy extends Module {
+trait AbstractModuleProxy extends Module {
   module =>
-  val self: Module
-  type ModelType = ModelProxy
+  type Self <: Module
+  type ModelType <: ModelProxy
   type Observed = self.Observed
   type Hidden = self.Hidden
   type Context = self.Context
+  val self: Self
+
   trait ModelProxy extends com.github.riedelcastro.theppl.ModelProxy with Model {
     override type Hidden = module.Hidden
     val self: module.self.ModelType
@@ -17,6 +19,10 @@ trait ModuleProxy extends Module {
     def observed = self.observed
     def context = self.context
   }
+}
+
+trait ModuleProxy extends AbstractModuleProxy { module =>
+  type ModelType = ModelProxy
   def model(context: Context, observation: State): ModelType =
     new ModelProxy {
       val self = module.self.model(context, observation)

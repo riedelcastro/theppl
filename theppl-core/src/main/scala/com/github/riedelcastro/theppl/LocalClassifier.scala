@@ -11,6 +11,8 @@ trait LocalClassifier extends LinearModule {
   type ModelType <: LocalModel
   type Hidden <: Variable[Label]
 
+  val weights = new GlobalParameterVector
+
   trait LocalModel extends LinearModel {
     def labelFeatures(label: Label): ParameterVector
     def contextFeatures: ParameterVector
@@ -18,7 +20,7 @@ trait LocalClassifier extends LinearModule {
     val domain: Iterable[Label]
     def hidden = Seq(labelVariable)
     def observation: State
-    def classify: Label = argmax(null).get(labelVariable).get
+    def classify: Label = argmax(Message.emtpy).get(labelVariable).get
     def argmax(penalties: Message): State = {
       val states = domain.map(new SingletonState(labelVariable, _))
       val (state, s) = MathUtil.argmax(states, (s: State) => score(s))
