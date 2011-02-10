@@ -85,9 +85,40 @@ object Util extends HasLogger {
    * input stream at the given delimiter.
    */
   abstract class InputStreamIterator(source:InputStream, delimiter:String) extends Iterator[InputStream] {
-    val bytes = delimiter.getBytes
-    var reachedEnd = false
+    private val bytes = delimiter.getBytes
+    private val buffer = Array.ofDim[Int](bytes.length + 1)
+    private var current = 0
+    private var matched = 0
+    private var reachedEnd = false
+    private var reachedDelimiter = true
+    private var stream = new DelimitedInputStream
+
+    private def readIntoBuffer:Boolean = {
+      if (current >= buffer.size){
+        current = 0
+      }
+      val read = source.read
+      buffer(current) = read
+      if (read == -1) reachedEnd = true
+      true
+    }
+
     def hasNext = !reachedEnd
+
+
+    def next() = {
+      if (!reachedDelimiter) error("Cannot call next before current stream has reached delimiter")
+      stream
+    }
+
+
+    class DelimitedInputStream extends InputStream {
+      def read = {
+        val result = buffer.head
+        readIntoBuffer
+        if (reachedDelimiter) -1 else result
+      }
+    }
 
   }
 
