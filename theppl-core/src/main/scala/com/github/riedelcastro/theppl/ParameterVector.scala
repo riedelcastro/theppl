@@ -2,6 +2,8 @@ package com.github.riedelcastro.theppl
 
 import collection.Map
 import collection.mutable.{ArrayBuffer, HashMap}
+import java.io.{InputStream,OutputStream, PrintStream}
+import io.Source
 
 /**
  * @author sriedel
@@ -52,6 +54,19 @@ class ParameterVector {
     }).mkString("\n")
   }
 
+  def load(in:InputStream) {
+    for (line <- Source.fromInputStream(in).getLines) {
+      val split = line.split("\\t+")
+      update(new Feat(split.dropRight(1).map(Symbol(_))), split.last.toDouble)
+    }
+  }
+
+  def save(out:OutputStream) {
+    val ps = new PrintStream(out)
+    for ((feat,value) <- _values) {
+      ps.println(feat + "\t" + value)
+    }
+  }
 
 }
 
@@ -108,13 +123,17 @@ object ParameterVector {
 
 
 class Feat extends ArrayBuffer[Symbol] {
+  def this(seq:Seq[Symbol]) {
+    this()
+    this ++= seq
+  }
   def &(that: Feat) = {
     val feat = new Feat
     feat ++= this
     feat ++= that
     feat
   }
-  override def toString() = map(_.name).mkString(" ")
+  override def toString() = map(_.name).mkString("\t")
 }
 
 object Feat {

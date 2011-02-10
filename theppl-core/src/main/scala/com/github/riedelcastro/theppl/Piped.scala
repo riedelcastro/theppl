@@ -38,7 +38,8 @@ trait Piped extends Module {
 }
 
 class PipedSimple[C, I <: Variable[_]](mod1: Module {type Context = C; type Hidden = I},
-                                       mod2: Module {type Context = C; type Observed = I}) extends Piped {
+                                       mod2: Module {type Context = C; type Observed = I})
+  extends Piped with NoSerialization {
   type Context = C
   type Inner = I
   type Module1 = Module {type Context = C; type Hidden = I}
@@ -55,13 +56,15 @@ class PipedSimple[C, I <: Variable[_]](mod1: Module {type Context = C; type Hidd
 
 class PipedLinear[C, I <: Variable[_]](mod1: Module {type Context = C; type Hidden = I},
                                        mod2: LinearModule {type Context = C; type Observed = I})
-  extends Piped with LinearModule {
+  extends Piped with LinearModule with NoSerialization {
   type Context = C
   type Inner = I
   type Module1 = Module {type Context = C; type Hidden = I}
   type Module2 = LinearModule {type Context = C; type Observed = I}
   val module1 = mod1
   val module2 = mod2
+
+  def weights = module2.weights
   type ModelType = PipedLinearModel
   class PipedLinearModel(model1: module1.ModelType, model2: module2.ModelType, argmax1: State)
     extends PipedModel(model1, model2, argmax1) with LinearModel {

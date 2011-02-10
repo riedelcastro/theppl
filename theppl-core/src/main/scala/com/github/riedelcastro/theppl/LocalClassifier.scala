@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import util.MathUtil
+import java.io.{InputStream, OutputStream}
 
 /**
  * @author sriedel
@@ -33,7 +34,12 @@ trait LocalClassifier extends LinearModule {
   }
 
   def classify(context: Context, observation: State): Label = model(context, observation).classify
-
+  def load(in: InputStream) = {
+    weights.params(Seq(this)).load(in)
+  }
+  def save(out: OutputStream) = {
+    weights.params(Seq(this)).save(out)
+  }
 }
 
 trait Classifier[L, C] extends LocalClassifier with SourceModule {
@@ -74,7 +80,7 @@ trait PipeableClassifier extends LocalClassifier {
 
 
 class FeatureExtractor[C](val creator: C => Variable[ParameterVector],
-                          val extractor: C => ParameterVector) extends SourceModule {
+                          val extractor: C => ParameterVector) extends SourceModule with NoSerialization {
   type Hidden = Variable[ParameterVector]
   type Context = C
   type ModelType = ExtractorModel
@@ -89,4 +95,9 @@ class FeatureExtractor[C](val creator: C => Variable[ParameterVector],
 
   def model(c: Context, observed: State) = new ExtractorModel(c, creator(c)) {}
 
+}
+
+trait NoSerialization extends Module {
+  def load(in: InputStream) = {}
+  def save(out: OutputStream) = {}
 }

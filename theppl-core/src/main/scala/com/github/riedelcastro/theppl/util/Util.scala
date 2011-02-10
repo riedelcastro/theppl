@@ -80,6 +80,17 @@ object Util extends HasLogger {
     }
   }
 
+  /**
+   * Creates an iterator over input streams by splitting the source
+   * input stream at the given delimiter.
+   */
+  abstract class InputStreamIterator(source:InputStream, delimiter:String) extends Iterator[InputStream] {
+    val bytes = delimiter.getBytes
+    var reachedEnd = false
+    def hasNext = !reachedEnd
+
+  }
+
 
   /**
    * Bins a number and returns the bin. If number is negative,

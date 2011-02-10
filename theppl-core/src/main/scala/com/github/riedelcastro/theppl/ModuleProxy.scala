@@ -1,5 +1,7 @@
 package com.github.riedelcastro.theppl
 
+import java.io.{InputStream, OutputStream}
+
 /**
  * @author sriedel
  */
@@ -19,6 +21,8 @@ trait AbstractModuleProxy extends Module {
     def observed = self.observed
     def context = self.context
   }
+  def load(in: InputStream) = self.load(in)
+  def save(out: OutputStream) = self.save(out)
 }
 
 trait ModuleProxy extends AbstractModuleProxy { module =>

@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import java.util.UUID
+import java.io.{InputStream, OutputStream}
 
 /**
  * A Model is a scoring function s(Y=y) over a set of variables Y.
@@ -28,7 +29,7 @@ trait Model {
   /**
    * Convenience method for when no incoming message is needed.
    */
-  def predict:State = argmax(Message.emtpy)
+  def predict: State = argmax(Message.emtpy)
 }
 
 
@@ -67,7 +68,21 @@ trait Module {
    */
   val name: String = "Module(%s)".format(UUID.randomUUID.toString)
 
+  /**
+   * Returns the name of this module.
+   */
   override def toString = name
+
+  /**
+   * Serialize this module.
+   */
+  def save(out: OutputStream)
+
+  /**
+   * Deserialize this module.
+   */
+  def load(in: InputStream)
+
 }
 
 
@@ -83,7 +98,6 @@ trait SourceModule extends Module {
   }
 
 }
-
 
 
 /**
