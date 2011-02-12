@@ -48,7 +48,7 @@ class ParameterVector {
     result
   }
 
-  def stringRep(prefix: String) = {
+  def stringRep(prefix: String = "") = {
     _values.map({
       case (key, value) => "%s%-30s: %6.2f".format(prefix, key, value)
     }).mkString("\n")
