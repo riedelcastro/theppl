@@ -17,13 +17,14 @@ class OnlineLearnerSpec extends Spec with MustMatchers {
       val dom = tokens.map(_.tag).toSet.toSeq
       val tagVars = tokens.map(t => TagVar(t))
       val instances = tagVars.map(t => Instance(t,t -> t.token.tag))
-      val classifier = new Classifier[String, TagVar] with OnlineLearner with PerceptronUpdate {
+      val classifier = new Classifier[String, TagVar] {
         val domain = dom
         def labelFeatures(label: Label) = Feat(label)
         def contextFeatures(context: Context) = Feat(context.token.word)
         def variable(context: Context) = context
       }
-      classifier.train(instances)
+      val learner = new classifier.decorated with OnlineLearner with PerceptronUpdate
+      learner.train(instances)
     }
   }
 

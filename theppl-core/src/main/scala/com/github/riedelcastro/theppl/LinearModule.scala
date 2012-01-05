@@ -1,5 +1,7 @@
 package com.github.riedelcastro.theppl
 
+import java.io.{OutputStream, InputStream}
+
 /**
  * @author sriedel
  */
@@ -19,6 +21,24 @@ trait LinearModule extends Module { thisModule =>
   
   class Wrap extends LinearModuleProxy {
     val self = thisModule
+  }
+  
+  class decorated extends LinearModule {
+    type Context = thisModule.Context
+    type Hidden = thisModule.Hidden
+    type Observed = thisModule.Observed
+    type ModelType = LinearModel
+    def weights = thisModule.weights
+    def model(context: Context, observation: State) =
+      thisModule.model(context,observation).asInstanceOf[LinearModel]
+
+    def save(out: OutputStream) {
+      thisModule.save(out)
+    }
+
+    def load(in: InputStream) {
+      thisModule.load(in)
+    }
   }
 
 }
