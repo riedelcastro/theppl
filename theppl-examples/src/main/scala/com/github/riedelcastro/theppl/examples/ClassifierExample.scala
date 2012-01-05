@@ -19,7 +19,7 @@ object ClassifierExample {
       val chunkVar = new Atom[Token, String]('chunk, this)
     }
     val stream = Util.getStreamFromClassPathOrFile("com/github/riedelcastro/theppl/datasets/conll2000/train.txt")
-    val indexedLines = Source.fromInputStream(stream).getLines.take(n).filter(_ != "").zipWithIndex
+    val indexedLines = Source.fromInputStream(stream).getLines().take(n).filter(_ != "").zipWithIndex
     val tokens = for ((line, index) <- indexedLines.toSeq; Array(word, tag, chunk) = line.split("\\s+")) yield
       Token(index, word, tag, chunk)
     val lifted = tokens.lift

@@ -1,7 +1,7 @@
 name := "theppl-core"
 
 libraryDependencies ++= Seq(
-     "junit" % "junit" % "4.8.1",
+     "org.scalatest" %% "scalatest" % "1.6.1" % "test",
      "log4j" % "log4j" % "1.2.16"
 )
 
