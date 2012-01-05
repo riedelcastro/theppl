@@ -6,36 +6,11 @@ have a look at the [manual](https://github.com/riedelcastro/riedelcastro-maven-r
 
 Install
 --------
-theppl uses maven for building and installation. If you don't have maven on your machine,
-get it [here](http://maven.apache.org/). Then run:
+theppl uses sbt for building and installation. If you don't have maven on your machine,
+get it [here](https://github.com/harrah/xsbt). Then run:
 
-    mvn install
+    sbt publish-local
 
-Create Own Project
-------------------
-The easiest way is to create a theppl maven project through
-
-    mvn archetype:create                                   \
-     -DarchetypeGroupId=com.github.riedelcastro.theppl     \
-     -DarchetypeArtifactId=theppl-archetype                \
-     -DarchetypeVersion=1.0-SNAPSHOT                       \
-     -DgroupId=<yourgroupid>                               \
-     -DartifactId=<yourprojectid>
-
-This will create a simple example maven project you can extend. Note that you can use
-your favourite IDE to import the pom file, and then work within this IDE on
-your theppl project.
-
-Execute Own Project
--------------------
-Applications written in Scala (and thus in theppl) are compiled into Java bytecode, and can hence
-be executed just how you would execute Java code. If you are using maven (as described above),
-execution is even simpler. Assuming that you created a Scala class 'org.example.MyClassifier', just call
-
-    mvn scala:run -DmainClass=org.example.MyClassifier
-
-For more details on how to run Scala code within maven, go the
-[Maven Scala Plugin page](http://scala-tools.org/mvnsites/maven-scala-plugin/index.html).
-
+Now the theppl library is installed locally and can be used by adding dependency to your sbt/maven builds.
 
 
