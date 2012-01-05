@@ -54,7 +54,7 @@ trait Module {
   type Context
   type Hidden <: Variable[Any]
   type Observed <: Variable[Any]
-  type ModelType <: Model
+  type ModelType <: Module#Model
 
   /**
    * A model defines a potential/scoring function over a set
@@ -72,11 +72,18 @@ trait Module {
 
   /**
    * This class can be instantiated to create proxy objects which can
-   * have other traits mixed-in. Eg., you can write "new module.Wrap with Learner".
+   * have other traits mixed-in. Eg., you can write "new module.decorated with Learner".
    */
-  class Wrap extends ModuleProxy {
-    type Self = Module
-    val self = thisModule
+  class decorated extends Module {
+    type Context = thisModule.Context
+    type Hidden = thisModule.Hidden
+    type Observed = thisModule.Observed
+    type ModelType = thisModule.ModelType
+
+    def model(context: Context, observation: State) = thisModule.model(context,observation)
+
+    def save(out: OutputStream) {thisModule.save(out)}
+    def load(in: InputStream) {thisModule.load(in)}
   }
 
   /**
@@ -157,9 +164,9 @@ trait ModuleExtras extends Module {
     type Observed = self.Hidden
   }
 
-  def |(that: Pipeable) = new PipedSimple[Context, Hidden](this, that)
-
-  def |(that: LinearPipeable) = new PipedLinear[Context, Hidden](this, that)
+//  def |(that: Pipeable) = new PipedSimple[Context, Hidden](this, that)
+//
+//  def |(that: LinearPipeable) = new PipedLinear[Context, Hidden](this, that)
 
 
 }

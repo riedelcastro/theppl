@@ -39,7 +39,7 @@ object ClassifierExample {
     println(Evaluator.evaluate(classifier, test))
 
     println(classifier.weights)
-    val decorated = new classifier.Wrap with OnlineLearner with PerceptronUpdate
+//    val decorated = new classifier.Wrap with OnlineLearner with PerceptronUpdate
 
   }
 
