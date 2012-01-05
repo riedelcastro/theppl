@@ -72,7 +72,7 @@ object Util extends HasLogger {
     } else {
       val is: InputStream = getClass.getClassLoader.getResourceAsStream(name)
       if (is == null) {
-        error("Couldn't find resource %s on file system or class path".format(name))
+        sys.error("Couldn't find resource %s on file system or class path".format(name))
       } else {
         logger.info("Loaded resource %s from class path".format(name))
         is
@@ -107,7 +107,7 @@ object Util extends HasLogger {
 
 
     def next() = {
-      if (!reachedDelimiter) error("Cannot call next before current stream has reached delimiter")
+      if (!reachedDelimiter) sys.error("Cannot call next before current stream has reached delimiter")
       stream
     }
 

@@ -40,7 +40,7 @@ trait Model {
  * @author sriedel
  */
 trait Module {
-  self =>
+  thisModule =>
 
   /**
    * The context is an object that (a) parametrizes the scoring function, and (b)
@@ -61,13 +61,22 @@ trait Module {
    * of variables.
    */
   trait Model extends com.github.riedelcastro.theppl.Model {
-    type Hidden = self.Hidden
+    type Hidden = thisModule.Hidden
 
     def context: Context
 
     def observed: Iterable[Observed]
 
     def observation: State
+  }
+
+  /**
+   * This class can be instantiated to create proxy objects which can
+   * have other traits mixed-in. Eg., you can write "new module.Wrap with Learner".
+   */
+  class Wrap extends ModuleProxy {
+    type Self = Module
+    val self = thisModule
   }
 
   /**

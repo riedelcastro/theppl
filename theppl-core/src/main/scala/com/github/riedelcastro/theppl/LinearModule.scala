@@ -3,7 +3,7 @@ package com.github.riedelcastro.theppl
 /**
  * @author sriedel
  */
-trait LinearModule extends Module {
+trait LinearModule extends Module { thisModule =>
 
   type ModelType <: LinearModel
   def weights: GlobalParameterVector
@@ -15,6 +15,10 @@ trait LinearModule extends Module {
       result
     }
     def score(state: State) = features(state) dot weights
+  }
+  
+  class Wrap extends LinearModuleProxy {
+    val self = thisModule
   }
 
 }

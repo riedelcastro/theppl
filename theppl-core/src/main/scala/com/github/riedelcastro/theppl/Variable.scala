@@ -28,7 +28,7 @@ trait Variable[+V] {
  * A variable associated with an identifier. This identifier determines the identity of the variable.
  * That is, two Variable objects with same ID will be assigned to the same values by states.
  */
-case class Var[+V, ID](identifier: ID) extends Variable[V]
+class Var[+V, ID](val identifier: ID) extends Variable[V]
 
 /**
  * A variable that is identified by some predicate name and an argument to this predicate.
