@@ -15,6 +15,7 @@ trait Model {
    * The set of hidden variables
    */
   def hidden: Iterable[Hidden]
+
   /**
    * Returns a score s(y) for each assignment to the hidden variables of this model.
    */
@@ -41,6 +42,15 @@ trait Model {
 trait Module {
   self =>
 
+  /**
+   * The context is an object that (a) parametrizes the scoring function, and (b)
+   * determines which hidden (c) determines which hidden and observed
+   * variables the scoring function is defined over. For example, for
+   * a PoS tagger the context could be a sentence object, and this would define
+   * PoS tag variables as hidden and word form variables as observed variables.
+   * A crucial difference to observations is that contexts can be arbitrary
+   * application objects and don't have to be assignments to variables.
+   */
   type Context
   type Hidden <: Variable[Any]
   type Observed <: Variable[Any]
@@ -52,8 +62,11 @@ trait Module {
    */
   trait Model extends com.github.riedelcastro.theppl.Model {
     type Hidden = self.Hidden
+
     def context: Context
+
     def observed: Iterable[Observed]
+
     def observation: State
   }
 
@@ -85,6 +98,24 @@ trait Module {
 
 }
 
+/**
+ * A model that scores a single variable in isolation.
+ */
+trait LocalModule extends Module {
+  type Label
+  type Hidden <: Variable[Label]
+  type ModelType <: LocalModel
+
+  trait LocalModel extends Model {
+    def variable: Hidden
+
+    def hidden = Seq(variable)
+
+    def domain: Seq[Label]
+  }
+
+}
+
 
 /**
  * A module that does not take any observation into account.
@@ -92,8 +123,10 @@ trait Module {
 trait SourceModule extends Module {
   type Observed = Variable[Nothing]
   type ModelType <: SourceModel
+
   trait SourceModel extends Model {
     def observation = State.empty
+
     def observed = Seq.empty
   }
 
@@ -116,6 +149,7 @@ trait ModuleExtras extends Module {
   }
 
   def |(that: Pipeable) = new PipedSimple[Context, Hidden](this, that)
+
   def |(that: LinearPipeable) = new PipedLinear[Context, Hidden](this, that)
 
 
