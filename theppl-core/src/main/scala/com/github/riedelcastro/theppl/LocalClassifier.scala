@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl
 
 import util.MathUtil
 import java.io.{InputStream, OutputStream}
+import Imports._
 
 /**
  * @author sriedel
@@ -66,10 +67,20 @@ trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
 
 }
 
-case class Classifier[L,C,V](v:C=>Variable[L], dom:Seq[L],cf:C=>ParameterVector) extends ClassifierOld[L, C] {
-  import Imports._
+/**
+ * A Local Classifier.
+ *
+ * @param v mapping from contexts to a variable.
+ * @param dom the possible labels the variable can take on.
+ * @param cf feature function for the context.
+ * @param lf feature function for the label.
+ */
+case class Classifier[L,C,V](v:C=>Variable[L], 
+                             dom:Seq[L],
+                             cf:C=>ParameterVector,
+                             lf:L=>ParameterVector = (l:L) => Feat(l)) extends ClassifierOld[L, C] {
   val domain = dom
-  def labelFeatures(label: Label) = Feat(label)
+  def labelFeatures(label: Label) = lf(label)
   def contextFeatures(context: Context) = cf(context)
   def variable(context: Context) = v(context)
 }

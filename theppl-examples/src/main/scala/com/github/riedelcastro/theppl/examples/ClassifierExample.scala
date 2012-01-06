@@ -24,17 +24,14 @@ object ClassifierExample {
       Token(index, word, tag, chunk)
     val lifted = tokens.lift
     val instances = for (token <- tokens) yield new Instance(token, State.singleton(token.chunkVar, token.chunk))
-
-    val classifier = new ClassifierOld[String, Token] with OnlineLearner with PerceptronUpdate {
-      def labelFeatures(label: String) = fromFeats(Seq(Feat(label)) ++ label.split("-").map(Feat("split", _)))
-      def contextFeatures(token: Token) = fromPairs("t" -> token.tag, "t-1" -> lifted(token.index - 1).map(_.tag))
-      def variable(context: Token) = context.chunkVar
-      val domain = chunks
-    }
+    def labelFeatures(label:String) = fromFeats(Seq(Feat(label)) ++ label.split("-").map(Feat("split", _)))
+    def tokenFeatures(token:Token) = fromPairs("t" -> token.tag, "t-1" -> lifted(token.index - 1).map(_.tag))
+    val classifier = Classifier((t:Token) => t.chunkVar,chunks,(t:Token) => tokenFeatures(t),(l:String) => labelFeatures(l))
+    val learner = new classifier.decorated with OnlineLearner with PerceptronUpdate
     val train = instances.take(instances.size / 2)
     val test = instances.drop(instances.size / 2)
     println(Evaluator.evaluate(classifier, train))
-    classifier.train(train)
+    learner.train(train)
     println(Evaluator.evaluate(classifier, train))
     println(Evaluator.evaluate(classifier, test))
 

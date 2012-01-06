@@ -18,7 +18,7 @@ class OnlineLearnerSpec extends Spec with MustMatchers {
       val tokens = Seq(data1,data2)
       val instances = tokens.map(t => Instance(t, Label(t) -> t.y))
       val dom = tokens.map(_.y).toSet.toSeq
-      val classifier = Classifier((d:Data) => Label(d), dom, (d:Data) => vector(d.x))
+      val classifier = Classifier((d:Data) => Label(d), dom, (d:Data) => vector(d.x), (l:Boolean) => vector(l))
       val learner = new classifier.decorated with OnlineLearner with PerceptronUpdate
       learner.train(instances)
       classifier.model(data1).predict(Label(data1)) must be (data1.y)
