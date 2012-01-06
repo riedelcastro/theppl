@@ -17,4 +17,8 @@ trait Implicits {
 
 }
 
-object Implicits extends Implicits
+object Imports extends Implicits {
+  def vector(feats:Any*) = {
+    new ParameterVector(feats.map(f => Feat(f)))
+  }
+}

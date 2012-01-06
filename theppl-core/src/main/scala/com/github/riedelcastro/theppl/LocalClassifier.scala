@@ -42,7 +42,7 @@ trait LocalClassifier extends LinearModule {
   }
 }
 
-trait Classifier[L, C] extends LocalClassifier with SourceModule {
+trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
   self =>
 
   type Label = L
@@ -66,8 +66,8 @@ trait Classifier[L, C] extends LocalClassifier with SourceModule {
 
 }
 
-case class C[L,C,V](v:C=>Variable[L], dom:Seq[L],cf:C=>ParameterVector) extends Classifier[L, C] {
-  import Implicits._
+case class Classifier[L,C,V](v:C=>Variable[L], dom:Seq[L],cf:C=>ParameterVector) extends ClassifierOld[L, C] {
+  import Imports._
   val domain = dom
   def labelFeatures(label: Label) = Feat(label)
   def contextFeatures(context: Context) = cf(context)

@@ -90,7 +90,7 @@ trait Module {
    * For a given context i, and observation x, this method creates
    * a model s_i(y;x).
    */
-  def model(context: Context, observation: State): ModelType
+  def model(context: Context, observation: State = State.empty): ModelType
 
   /**
    * The name of this module.

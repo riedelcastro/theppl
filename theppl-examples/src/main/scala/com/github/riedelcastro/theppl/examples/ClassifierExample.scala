@@ -25,7 +25,7 @@ object ClassifierExample {
     val lifted = tokens.lift
     val instances = for (token <- tokens) yield new Instance(token, State.singleton(token.chunkVar, token.chunk))
 
-    val classifier = new Classifier[String, Token] with OnlineLearner with PerceptronUpdate {
+    val classifier = new ClassifierOld[String, Token] with OnlineLearner with PerceptronUpdate {
       def labelFeatures(label: String) = fromFeats(Seq(Feat(label)) ++ label.split("-").map(Feat("split", _)))
       def contextFeatures(token: Token) = fromPairs("t" -> token.tag, "t-1" -> lifted(token.index - 1).map(_.tag))
       def variable(context: Token) = context.chunkVar
