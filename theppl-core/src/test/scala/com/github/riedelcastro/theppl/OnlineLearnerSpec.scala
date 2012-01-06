@@ -11,17 +11,18 @@ class OnlineLearnerSpec extends Spec with MustMatchers {
 
   describe("An OnlineLearner") {
     it("should separate separable data with the Perceptron update rule") {
-      case class Token(word:String, tag:String)
-      case class TagVar(token:Token) extends Var[String,Token](token)
-      val tokens = Seq(Token("Separable","ADJ"), Token("data","NN"))
-      val dom = tokens.map(_.tag).toSet.toSeq
-      val tagVars = tokens.map(t => TagVar(t))
-      val instances = tagVars.map(t => Instance(t,t -> t.token.tag))
-      val classifier = new Classifier[String, TagVar] {
+      case class Data(x: Int, y: Boolean)
+      case class Label(data: Data) extends Variable[Boolean]
+
+      val tokens = Seq(Data(0, true), Data(1, false))
+      val instances = tokens.map(t => Instance(t, Label(t) -> t.y))
+      val dom = tokens.map(_.y).toSet.toSeq
+
+      val classifier = new Classifier[Boolean, Data] {
         val domain = dom
         def labelFeatures(label: Label) = Feat(label)
-        def contextFeatures(context: Context) = Feat(context.token.word)
-        def variable(context: Context) = context
+        def contextFeatures(context: Context) = Feat(context.x)
+        def variable(context: Context) = Label(context)
       }
       val learner = new classifier.decorated with OnlineLearner with PerceptronUpdate
       learner.train(instances)

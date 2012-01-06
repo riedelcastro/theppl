@@ -66,6 +66,14 @@ trait Classifier[L, C] extends LocalClassifier with SourceModule {
 
 }
 
+case class C[L,C,V](v:C=>Variable[L], dom:Seq[L],cf:C=>ParameterVector) extends Classifier[L, C] {
+  import Implicits._
+  val domain = dom
+  def labelFeatures(label: Label) = Feat(label)
+  def contextFeatures(context: Context) = cf(context)
+  def variable(context: Context) = v(context)
+}
+
 
 trait PipeableClassifier extends LocalClassifier {
   type Observed = Variable[ParameterVector]
