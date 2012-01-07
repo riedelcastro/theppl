@@ -5,6 +5,7 @@ import com.github.riedelcastro.theppl.util.Util
 import io.Source
 import ParameterVector._
 import Imports._
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
 /**
  * @author sriedel
@@ -41,6 +42,16 @@ object ClassifierExample {
     println(Evaluator.evaluate(classifier, test))
 
     println(classifier.weights)
+
+    val out = new ByteArrayOutputStream(1000)
+    classifier.save(out)
+
+    val in = new ByteArrayInputStream(out.toByteArray)
+    val copy = Classifier[String, Token, ChunkVar](ChunkVar(_), domain, tokenFeatures(_), labelFeatures(_))
+//    copy.load(in)
+//    println(Evaluator.evaluate(copy, test))
+
+
     //    val decorated = new classifier.Wrap with OnlineLearner with PerceptronUpdate
 
   }

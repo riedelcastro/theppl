@@ -22,6 +22,5 @@ trait LinearModule extends Module { thisModule =>
   class decorated extends super.decorated with LinearModule {
     def weights = thisModule.weights
   }
-
 }
 

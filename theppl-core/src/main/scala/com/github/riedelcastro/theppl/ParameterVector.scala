@@ -145,6 +145,10 @@ object Feat {
 }
 
 
+/**
+ * A GlobalParameterVector can store parameter vectors for a module and all its
+ * sub-modules. It does so by maintaining a mapping from module-paths to parameter vectors.
+ */
 class GlobalParameterVector {
 
   type Path = Seq[Module]

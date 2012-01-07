@@ -80,10 +80,8 @@ trait Module {
     type Observed = thisModule.Observed
     type ModelType = thisModule.ModelType
 
-    def model(context: Context, observation: State) = thisModule.model(context,observation)
+    def model(context: Context, observation: State) = thisModule.model(context, observation)
 
-    def save(out: OutputStream) {thisModule.save(out)}
-    def load(in: InputStream) {thisModule.load(in)}
   }
 
   /**
@@ -102,6 +100,13 @@ trait Module {
    */
   override def toString = name
 
+
+}
+
+/**
+ * A module that can be stored to and loaded from output and input streams, respectively.
+ */
+trait SerializableModule extends Module {
   /**
    * Serialize this module.
    */
@@ -124,9 +129,7 @@ trait LocalModule extends Module {
 
   trait LocalModel extends Model {
     def variable: Hidden
-
     def hidden = Seq(variable)
-
     def domain: Seq[Label]
   }
 
@@ -164,9 +167,9 @@ trait ModuleExtras extends Module {
     type Observed = self.Hidden
   }
 
-//  def |(that: Pipeable) = new PipedSimple[Context, Hidden](this, that)
-//
-//  def |(that: LinearPipeable) = new PipedLinear[Context, Hidden](this, that)
+  //  def |(that: Pipeable) = new PipedSimple[Context, Hidden](this, that)
+  //
+  //  def |(that: LinearPipeable) = new PipedLinear[Context, Hidden](this, that)
 
 
 }

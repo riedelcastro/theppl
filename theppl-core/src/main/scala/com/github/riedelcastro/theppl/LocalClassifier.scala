@@ -7,7 +7,7 @@ import Imports._
 /**
  * @author sriedel
  */
-trait LocalClassifier extends LinearModule {
+trait LocalClassifier extends LinearModule  with SerializableModule{
   module =>
   type Label
   type ModelType <: LocalModel
@@ -19,7 +19,7 @@ trait LocalClassifier extends LinearModule {
     def labelFeatures(label: Label): ParameterVector
     def contextFeatures: ParameterVector
     def labelVariable: Hidden
-    val domain: Iterable[Label]
+    def domain: Iterable[Label]
     def hidden = Seq(labelVariable)
     def observation: State
     def classify: Label = argmax(Message.emtpy).get(labelVariable).get
@@ -35,10 +35,10 @@ trait LocalClassifier extends LinearModule {
   }
 
   def classify(context: Context, observation: State): Label = model(context, observation).classify
-  def load(in: InputStream) = {
+  def load(in: InputStream) {
     weights.params(Seq(this)).load(in)
   }
-  def save(out: OutputStream) = {
+  def save(out: OutputStream) {
     weights.params(Seq(this)).save(out)
   }
 }
