@@ -7,7 +7,7 @@ import Imports._
 /**
  * @author sriedel
  */
-trait LocalClassifier extends LinearModule with SerializableModule {
+trait LocalClassifier extends LinearLeafModule {
   module =>
   type Label
   type ModelType <: LocalModel
@@ -35,13 +35,7 @@ trait LocalClassifier extends LinearModule with SerializableModule {
   }
 
   def classify(context: Context, observation: State): Label = model(context, observation).classify
-  def load(in: InputStream) {
-    weights(Seq.empty) = new ParameterVector()
-    weights.params(Seq.empty).load(in)
-  }
-  def save(out: OutputStream) {
-    weights.params(Seq.empty).save(out)
-  }
+
 }
 
 trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
