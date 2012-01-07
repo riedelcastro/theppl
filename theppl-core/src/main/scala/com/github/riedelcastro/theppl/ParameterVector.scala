@@ -21,6 +21,8 @@ class ParameterVector {
 
   def values: Map[Feat, Double] = _values
 
+  def size = values.size
+
   def update(key: Feat, value: Double) = {
     _values(key) = value
   }
@@ -160,6 +162,10 @@ class GlobalParameterVector {
 
   private val _params = new HashMap[Path, ParameterVector]
 
+  def update(key:Path = Seq.empty,value:ParameterVector) {
+    _params(key) = value
+  }
+  
   def params: Map[Path, ParameterVector] = _params
 
   def add(that: GlobalParameterVector, scale: Double) {

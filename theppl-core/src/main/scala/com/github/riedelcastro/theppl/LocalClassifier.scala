@@ -7,7 +7,7 @@ import Imports._
 /**
  * @author sriedel
  */
-trait LocalClassifier extends LinearModule  with SerializableModule{
+trait LocalClassifier extends LinearModule with SerializableModule {
   module =>
   type Label
   type ModelType <: LocalModel
@@ -36,10 +36,11 @@ trait LocalClassifier extends LinearModule  with SerializableModule{
 
   def classify(context: Context, observation: State): Label = model(context, observation).classify
   def load(in: InputStream) {
-    weights.params(Seq(this)).load(in)
+    weights(Seq.empty) = new ParameterVector()
+    weights.params(Seq.empty).load(in)
   }
   def save(out: OutputStream) {
-    weights.params(Seq(this)).save(out)
+    weights.params(Seq.empty).save(out)
   }
 }
 
@@ -75,10 +76,10 @@ trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
  * @param cf feature function for the context.
  * @param lf feature function for the label.
  */
-case class Classifier[L,C,V](v:C=>Variable[L], 
-                             dom:Seq[L],
-                             cf:C=>ParameterVector,
-                             lf:L=>ParameterVector = (l:L) => Feat(l)) extends ClassifierOld[L, C] {
+case class Classifier[L, C, V](v: C => Variable[L],
+                               dom: Seq[L],
+                               cf: C => ParameterVector,
+                               lf: L => ParameterVector = (l: L) => Feat(l)) extends ClassifierOld[L, C] {
   val domain = dom
   def labelFeatures(label: Label) = lf(label)
   def contextFeatures(context: Context) = cf(context)
