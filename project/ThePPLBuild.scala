@@ -1,5 +1,4 @@
 import sbt._
-import Keys._
 
 object ThePPLBuild extends Build {
   lazy val root = Project(id = "theppl",

@@ -11,14 +11,13 @@ trait LocalClassifier extends LinearLeafModule {
   module =>
   type Label
   type ModelType <: LocalModel
-  type Hidden <: Variable[Label]
 
   val weights = new GlobalParameterVector
 
   trait LocalModel extends LinearModel {
     def labelFeatures(label: Label): ParameterVector
     def contextFeatures: ParameterVector
-    def labelVariable: Hidden
+    def labelVariable: Variable[Label]
     def domain: Iterable[Label]
     def hidden = Seq(labelVariable)
     def observation: State
@@ -70,7 +69,7 @@ trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
  * @param cf feature function for the context.
  * @param lf feature function for the label.
  */
-case class Classifier[L, C, V](v: C => Variable[L],
+case class Classifier[L, C](v: C => Variable[L],
                                dom: Seq[L],
                                cf: C => ParameterVector,
                                lf: L => ParameterVector = (l: L) => Feat(l)) extends ClassifierOld[L, C] {

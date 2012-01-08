@@ -13,8 +13,8 @@ class ClassifierSpec extends Spec with MustMatchers {
   describe("A Classifier") {
     it("should store and load its weights") {
       case class Var(index: Int) extends Variable[Int]
-      val classifier = Classifier[Int, Int, Var](Var(_), Seq(1, 2), vector(_), vector(_))
-      val copy = Classifier[Int, Int, Var](Var(_), Seq(1, 2), vector(_), vector(_))
+      val classifier = Classifier[Int, Int](Var(_), Seq(1, 2), vector(_), vector(_))
+      val copy = Classifier[Int, Int](Var(_), Seq(1, 2), vector(_), vector(_))
       classifier.weights(Seq.empty) = new ParameterVector(Seq(Feat(1,1)))
 
       val out = new ByteArrayOutputStream(1000)

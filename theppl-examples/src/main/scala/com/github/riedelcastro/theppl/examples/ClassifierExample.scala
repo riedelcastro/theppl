@@ -29,7 +29,7 @@ object ClassifierExample {
     def labelFeatures(label: String) = fromFeats(Seq(Feat(label)) ++ label.split("-").map(Feat("split", _)))
     def tokenFeatures(token: Token) = fromPairs("t" -> token.tag, "t-1" -> lifted(token.index - 1).map(_.tag))
 
-    val classifier = Classifier[String, Token, ChunkVar](ChunkVar(_), domain, tokenFeatures(_), labelFeatures(_))
+    val classifier = Classifier[String, Token](ChunkVar(_), domain, tokenFeatures(_), labelFeatures(_))
     val learner = new classifier.decorated with OnlineLearner with PerceptronUpdate
 
     val instances = for (token <- tokens) yield new Instance(token, ChunkVar(token) -> token.chunk)
@@ -47,7 +47,7 @@ object ClassifierExample {
     classifier.save(out)
 
     val in = new ByteArrayInputStream(out.toByteArray)
-    val copy = Classifier[String, Token, ChunkVar](ChunkVar(_), domain, tokenFeatures(_), labelFeatures(_))
+    val copy = Classifier[String, Token](ChunkVar(_), domain, tokenFeatures(_), labelFeatures(_))
 //    copy.load(in)
 //    println(Evaluator.evaluate(copy, test))
 
