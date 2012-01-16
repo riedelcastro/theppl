@@ -10,7 +10,7 @@ object ThePPLBuild extends Build {
   lazy val datasets = Project(id = "theppl-datasets",
     base = file("theppl-datasets"))
 
-  lazy val examples = Project(id = "theppl-examples",
-    base = file("theppl-examples")) dependsOn(core, datasets)
+  lazy val examples = Project(id = "theppl-apps",
+    base = file("theppl-apps")) dependsOn(core, datasets)
 
 }
