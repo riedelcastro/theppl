@@ -3,6 +3,7 @@ package com.github.riedelcastro.theppl.util
 import java.io.{FileInputStream, InputStream, File}
 import io.Source
 import collection.mutable.ArrayBuffer
+import annotation.tailrec
 
 /**
  * @author sriedel
@@ -166,3 +167,13 @@ object MathUtil {
   }
 }
 
+object StreamUtil {
+  @tailrec
+  def allSubSequences[T](items:Seq[T], tail:Stream[Seq[T]] = Stream(Seq.empty)):Stream[Seq[T]] = {
+    if (items.size == 0) tail else {
+      val head = items.head
+      val sequences = tail ++ tail.map(_ :+ head)
+      allSubSequences(items.drop(1),sequences)
+    }
+  } 
+}
