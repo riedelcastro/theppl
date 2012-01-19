@@ -7,7 +7,17 @@ package com.github.riedelcastro.theppl
  */
 trait Message {
   def msg[V](variable: Variable[V], value: V): Double
-  def apply[V](variable: Variable[V], value: V) = msg(variable,value)
+  def apply[V](variable: Variable[V], value: V) = msg(variable, value)
+}
+
+/**
+ * A message backed by an indexing scheme that allows for array representation.
+ */
+trait IndexedMessage extends Message {
+  def indexScheme: IndexScheme
+  def variables: Seq[Variable[Any]]
+  val var2array = variables.map(v => v -> Array.ofDim[Double](indexScheme.index(v).size)).toMap
+  def msg[V](variable: Variable[V], value: V) = var2array(variable)(indexScheme.index(variable).indexOf(value))
 }
 
 /**
@@ -19,11 +29,11 @@ object Message {
   val empty = new Message {
     def msg[V](variable: Variable[V], value: V) = 0.0
   }
-  def fromFunction(f:(Variable[Any],Any) =>Double) = new Message {
-    def msg[V](variable: Variable[V], value: V) = f(variable,value)
+  def fromFunction(f: (Variable[Any], Any) => Double) = new Message {
+    def msg[V](variable: Variable[V], value: V) = f(variable, value)
   }
-  def fromMap(f:scala.collection.Map[(Variable[Any],Any),Double]) = new Message {
-    def msg[V](variable: Variable[V], value: V) = f(variable,value)
+  def fromMap(f: scala.collection.Map[(Variable[Any], Any), Double]) = new Message {
+    def msg[V](variable: Variable[V], value: V) = f(variable, value)
   }
 
 }

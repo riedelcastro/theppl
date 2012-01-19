@@ -2,8 +2,9 @@ package com.github.riedelcastro.theppl
 
 import collection.Map
 import collection.mutable.{ArrayBuffer, HashMap}
-import java.io.{InputStream,OutputStream, PrintStream}
+import java.io.{InputStream, OutputStream, PrintStream}
 import io.Source
+import annotation.tailrec
 
 /**
  * @author sriedel
@@ -63,16 +64,16 @@ class ParameterVector {
     }).mkString("\n")
   }
 
-  def load(in:InputStream) {
+  def load(in: InputStream) {
     for (line <- Source.fromInputStream(in).getLines()) {
       val split = line.split("\\t+")
       update(new Feat(split.dropRight(1).map(Symbol(_))), split.last.toDouble)
     }
   }
 
-  def save(out:OutputStream) {
+  def save(out: OutputStream) {
     val ps = new PrintStream(out)
-    for ((feat,value) <- _values) {
+    for ((feat, value) <- _values) {
       ps.println(feat + "\t" + value)
     }
   }
@@ -139,8 +140,8 @@ object ParameterVector {
 
 
 class Feat extends ArrayBuffer[Symbol] {
-  def this(seq:Seq[Symbol]) {
-    this()
+  def this(seq: Seq[Symbol]) {
+    this ()
     this ++= seq
   }
   def &(that: Feat) = {
@@ -183,17 +184,17 @@ class HierarchicalParameterVector {
 
   private val _params = new HashMap[Path, ParameterVector]
 
-  def update(key:Path = Seq.empty,value:ParameterVector) {
+  def update(key: Path = Seq.empty, value: ParameterVector) {
     _params(key) = value
   }
 
-  def update(key:Path, feat:Feat, value:Double) {
-    _params.getOrElseUpdate(key,new ParameterVector())(feat) = value
+  def update(key: Path, feat: Feat, value: Double) {
+    _params.getOrElseUpdate(key, new ParameterVector())(feat) = value
   }
-  
-  def apply(path:Path = Seq.empty) = _params(path)
 
-  def apply(path:Path, feat:Feat)  = _params(path)(feat)
+  def apply(path: Path = Seq.empty) = _params(path)
+
+  def apply(path: Path, feat: Feat) = _params(path)(feat)
 
   def params: Map[Path, ParameterVector] = _params
 
@@ -204,7 +205,7 @@ class HierarchicalParameterVector {
   }
 
   def scale(scale: Double) {
-    for ((_,vector) <- params) {
+    for ((_, vector) <- params) {
       vector.scale(scale)
     }
   }
@@ -222,5 +223,28 @@ class HierarchicalParameterVector {
       path.toString + "\n" + vector.stringRep("\t")
     }
     perPath.mkString("\n")
+  }
+}
+
+trait Params extends Map[(Seq[Any], Feat), Double] { self =>
+  def children: Map[Any, Params]
+  def vector: ParameterVector
+  def get(key: (Seq[Any], Feat)) = {
+    val path = key._1
+    val feat = key._2
+    if (path.isEmpty) vector.values.get(feat)
+    else children.get(path.head).flatMap(_.get(path.drop(1) -> feat))
+  }
+  def iterator: Iterator[((Seq[Any], Feat), Double)] = {
+    val previous = for ((key, child) <- children.iterator;
+                        ((path, feat), value) <- child.iterator) yield (key +: path, feat) -> value
+    val local = for ((feat, value) <- vector.values.iterator) yield (Seq.empty, feat) -> value
+    local ++ previous
+  }
+  def +[B1 >: Double](kv: ((Seq[Any], Feat), B1)) = {
+    sys.error("not supported")
+  }
+  def -(key: (Seq[Any], Feat)) = {
+    sys.error("not supported")
   }
 }

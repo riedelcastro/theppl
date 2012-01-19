@@ -1,16 +1,72 @@
+import java.io.IOException
 import sbt._
+import Keys._
+
+
+object BuildSettings {
+  val buildOrganization = "org.riedelcastro.theppl"
+  val buildVersion = "0.1-SNAPSHOT"
+  val buildScalaVersion = "2.9.1"
+
+  val buildSettings = Defaults.defaultSettings ++ Seq(
+    organization := buildOrganization,
+    version := buildVersion,
+    scalaVersion := buildScalaVersion,
+    shellPrompt := ShellPrompt.buildShellPrompt
+  )
+}
+
+object ShellPrompt {
+  object devnull extends ProcessLogger {
+    def info (s: => String) {}
+    def error (s: => String) { }
+    def buffer[T] (f: => T): T = f
+  }
+  def currBranch = {
+    try {
+    (
+      ("git status -sb" lines_! devnull headOption)
+        getOrElse "-" stripPrefix "## "
+      )
+    } catch {
+      case ex:IOException => "?"
+    }
+  }
+
+  val buildShellPrompt = {
+    (state: State) => {
+      val currProject = Project.extract (state).currentProject.id
+      "%s:%s:%s> ".format (
+        currProject, currBranch, BuildSettings.buildVersion
+      )
+    }
+  }
+}
+
 
 object ThePPLBuild extends Build {
+
+  import BuildSettings._
+
   lazy val root = Project(id = "theppl",
-    base = file(".")) aggregate(core, datasets, examples)
+    base = file("."),
+    settings = buildSettings
+  ).aggregate(core, datasets, examples)
+
 
   lazy val core = Project(id = "theppl-core",
-    base = file("theppl-core"))
+    base = file("theppl-core"),
+    settings = buildSettings
+  )
 
   lazy val datasets = Project(id = "theppl-datasets",
-    base = file("theppl-datasets"))
+    base = file("theppl-datasets"),
+    settings = buildSettings
+  )
 
   lazy val examples = Project(id = "theppl-apps",
-    base = file("theppl-apps")) dependsOn(core, datasets)
+    base = file("theppl-apps"),
+    settings = buildSettings
+  ) dependsOn(core, datasets)
 
 }
