@@ -21,7 +21,7 @@ trait LocalClassifier extends LinearLeafModule {
     def domain: Iterable[Label]
     def restrictions = Seq(Restriction(labelVariable,domain))
     def observation: State
-    def classify: Label = argmax(Message.emtpy).state.get(labelVariable).get
+    def classify: Label = argmax(Message.empty).state.get(labelVariable).get
     def argmax(penalties: Message) = {
       val states = domain.map(new SingletonState(labelVariable, _))
       val (st, sc) = MathUtil.argmax(states, (s: State) => score(s))
@@ -53,12 +53,12 @@ trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
   def variable(context: Context): Hidden
   def domain: Iterable[L]
 
-  class DefaultLocalModel(val context: Context) extends LocalModel with SourceModel {
+  class DefaultLocalModel(val context: Context)
+    extends LocalModel with SourceModel with BruteForceExpectationCalculator{
     val labelVariable = self.variable(context)
     val contextFeatures = self.contextFeatures(context)
     def labelFeatures(label: Label) = self.labelFeatures(label)
     val domain = self.domain
-    def expectations(penalties: Message) = null
   }
 
   def model(c: Context, observed: State): ModelType = new DefaultLocalModel(c)

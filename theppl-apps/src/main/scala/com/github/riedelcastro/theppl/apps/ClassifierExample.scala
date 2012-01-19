@@ -1,8 +1,9 @@
-package com.github.riedelcastro.theppl.examples
+package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.util.Util
 import io.Source
+import learn.{Instance, PerceptronUpdate, OnlineLearner}
 import ParameterVector._
 import Imports._
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}

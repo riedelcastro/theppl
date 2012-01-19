@@ -9,5 +9,7 @@ import org.scalatest.matchers.MustMatchers
 trait ThePPLSpec extends Spec with MustMatchers {
 
   def eps = 0.0000001
+  def epsLarge = 0.001
+
 
 }

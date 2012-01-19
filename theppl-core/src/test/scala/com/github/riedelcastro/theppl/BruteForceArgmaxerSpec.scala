@@ -73,7 +73,7 @@ class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
       val message = exampleMessage(1, -1)
       val result = model.marginalize(message)
 
-      result.partitionFunction must be(4.0 plusOrMinus eps)
+      result.logZ must be(log(4.0) plusOrMinus eps)
 
       for (Restriction(v, d) <- model.restrictions;
            value <- d)
@@ -92,7 +92,7 @@ class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExampleModels 
       val result = model.expectations(message)
       val Z = exp(1) + exp(1) + exp(-1) + exp(-1)
 
-      result.partitionFunction must be(Z plusOrMinus eps)
+      result.logZ must be(log(Z) plusOrMinus eps)
 
       val expectations = result.featureExpectations()
       expectations(Feat(V(0), 0)) must be((exp(1) + exp(1)) / Z plusOrMinus eps)

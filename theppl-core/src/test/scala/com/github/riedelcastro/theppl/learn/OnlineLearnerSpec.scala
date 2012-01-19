@@ -1,7 +1,8 @@
-package com.github.riedelcastro.theppl
+package com.github.riedelcastro.theppl.learn
 
 import org.scalatest.Spec
 import org.scalatest.matchers.MustMatchers
+import com.github.riedelcastro.theppl.{Classifier, Variable, Imports}
 import Imports._
 
 /**

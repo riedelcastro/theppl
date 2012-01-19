@@ -34,7 +34,7 @@ trait Model {
   /**
    * Convenience method for when no incoming message is needed.
    */
-  def predict: State = argmax(Message.emtpy).state
+  def predict: State = argmax(Message.empty).state
 
   /**
    * Convenience method to score a state with added penalties.
@@ -68,7 +68,7 @@ trait ArgmaxResult {
  */
 trait MarginalizeResult {
   def marginals: Message
-  def partitionFunction: Double
+  def logZ: Double
 }
 
 

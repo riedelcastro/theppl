@@ -62,7 +62,7 @@ trait BruteForceMarginalizer extends FiniteSupportModel {
     }
     new MarginalizeResult {
       lazy val marginals = Message.fromMap(masses.map(x => x._1 -> (x._2 /total)))
-      lazy val partitionFunction = total
+      lazy val logZ = math.log(total)
     }
     
   }

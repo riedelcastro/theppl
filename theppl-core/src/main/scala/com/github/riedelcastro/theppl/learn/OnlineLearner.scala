@@ -1,4 +1,7 @@
-package com.github.riedelcastro.theppl
+package com.github.riedelcastro.theppl.learn
+
+import com.github.riedelcastro.theppl.{State, Module, LinearModule}
+
 
 /**
  * An OnlineLearner iterates over the training set and updates

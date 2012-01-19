@@ -16,7 +16,7 @@ trait Message {
 case class Scored[T](value: T, score: Double)
 
 object Message {
-  val emtpy = new Message {
+  val empty = new Message {
     def msg[V](variable: Variable[V], value: V) = 0.0
   }
   def fromFunction(f:(Variable[Any],Any) =>Double) = new Message {

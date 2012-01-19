@@ -187,8 +187,14 @@ class HierarchicalParameterVector {
     _params(key) = value
   }
 
-  def apply(path:Path = Seq.empty) = _params(path)
+  def update(key:Path, feat:Feat, value:Double) {
+    _params.getOrElseUpdate(key,new ParameterVector())(feat) = value
+  }
   
+  def apply(path:Path = Seq.empty) = _params(path)
+
+  def apply(path:Path, feat:Feat)  = _params(path)(feat)
+
   def params: Map[Path, ParameterVector] = _params
 
   def add(that: HierarchicalParameterVector, scale: Double) {
