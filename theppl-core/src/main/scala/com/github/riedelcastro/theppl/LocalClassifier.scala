@@ -14,18 +14,21 @@ trait LocalClassifier extends LinearLeafModule {
 
   val weights = new GlobalParameterVector
 
-  trait LocalModel extends LinearModel {
+  trait LocalModel extends LinearModel with FiniteSupportModel with BruteForceMarginalizer {
     def labelFeatures(label: Label): ParameterVector
     def contextFeatures: ParameterVector
     def labelVariable: Variable[Label]
     def domain: Iterable[Label]
-    def hidden = Seq(labelVariable)
+    def restrictions = Seq(Restriction(labelVariable,domain))
     def observation: State
-    def classify: Label = argmax(Message.emtpy).get(labelVariable).get
-    def argmax(penalties: Message): State = {
+    def classify: Label = argmax(Message.emtpy).state.get(labelVariable).get
+    def argmax(penalties: Message) = {
       val states = domain.map(new SingletonState(labelVariable, _))
-      val (state, s) = MathUtil.argmax(states, (s: State) => score(s))
-      state
+      val (st, sc) = MathUtil.argmax(states, (s: State) => score(s))
+      new ArgmaxResult {
+        def score = sc
+        def state = st
+      }
     }
     def features(state: State) = {
       val feats = contextFeatures conjoin labelFeatures(state.get(labelVariable).get)
@@ -91,24 +94,6 @@ trait PipeableClassifier extends LocalClassifier {
   }
 }
 
-
-class FeatureExtractor[C](val creator: C => Variable[ParameterVector],
-                          val extractor: C => ParameterVector) extends SourceModule with NoSerialization {
-  type Hidden = Variable[ParameterVector]
-  type Context = C
-  type ModelType = ExtractorModel
-
-  class ExtractorModel(val context: Context, val variable: Variable[ParameterVector]) extends SourceModel {
-    lazy val cachedFeats = extractor(context)
-    lazy val cachedArgmax = new SingletonState(variable, cachedFeats)
-    def argmax(penalties: Message) = cachedArgmax
-    def score(state: State) = if (state.get(variable).get == cachedFeats) 0.0 else Double.NegativeInfinity
-    def hidden = Seq(variable)
-  }
-
-  def model(c: Context, observed: State) = new ExtractorModel(c, creator(c)) {}
-
-}
 
 trait NoSerialization extends Module {
   def load(in: InputStream) = {}

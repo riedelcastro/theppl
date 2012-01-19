@@ -7,6 +7,7 @@ package com.github.riedelcastro.theppl
  */
 trait Message {
   def msg[V](variable: Variable[V], value: V): Double
+  def apply[V](variable: Variable[V], value: V) = msg(variable,value)
 }
 
 /**
@@ -18,9 +19,13 @@ object Message {
   val emtpy = new Message {
     def msg[V](variable: Variable[V], value: V) = 0.0
   }
-  def apply(f:(Variable[Any],Any) =>Double) = new Message {
+  def fromFunction(f:(Variable[Any],Any) =>Double) = new Message {
     def msg[V](variable: Variable[V], value: V) = f(variable,value)
   }
+  def fromMap(f:scala.collection.Map[(Variable[Any],Any),Double]) = new Message {
+    def msg[V](variable: Variable[V], value: V) = f(variable,value)
+  }
+
 }
 
 class SingletonMessage[Value](val variable: Variable[Value], val value: Value, val msg: Double) extends Message {

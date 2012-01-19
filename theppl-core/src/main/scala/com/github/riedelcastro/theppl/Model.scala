@@ -23,12 +23,25 @@ trait Model {
    * Returns the assignment to hidden variables of this model that maximizes the score,
    * with added penalties on the variables.
    */
-  def argmax(penalties: Message): State
+  def argmax(penalties: Message): ArgmaxResult
+
+  /**
+   * Returns marginal probabilities of all hidden variables, with penalties
+   * added as local factors.
+   */
+  def marginalize(penalties: Message): MarginalizeResult
 
   /**
    * Convenience method for when no incoming message is needed.
    */
-  def predict: State = argmax(Message.emtpy)
+  def predict: State = argmax(Message.emtpy).state
+
+  /**
+   * Convenience method to score a state with added penalties.
+   */
+  def penalizedScore(penalties: Message, state: State) = {
+    score(state) + hidden.map(v => penalties.msg(v, state(v))).sum
+  }
 
   /**
    * Proxy class for decoration.
@@ -37,43 +50,25 @@ trait Model {
     def hidden = thisModel.hidden
     def score(state: State) = thisModel.score(state)
     def argmax(penalties: Message) = thisModel.argmax(penalties)
+    def marginalize(penalties: Message) = thisModel.marginalize(penalties)
     def self = thisModel
   }
 }
 
 /**
- * A model for which the set of states with
- * score > NEGINF is finite. In this case we can
- * perform inference automatically (although
- * generally not very efficiently).
+ * The result of an argmax call. Has the argmaxing state and its score.
  */
-trait FiniteSupportModel extends Model {
-
-  /**
-   * The variables of this model together with their supported range.
-   */
-  def restrictions: Iterable[Restriction[Any]]
-
-  def hidden = restrictions.map(_.variable)
+trait ArgmaxResult {
+  def state: State
+  def score: Double
 }
 
 /**
- * This model does inference by exhaustively iterating over all states.
- * Generally very slow!
+ * The result of an marginalize call.
  */
-trait BruteForceModel extends FiniteSupportModel {
-  def argmax(penalties: Message) = {
-    val variables = restrictions.map(_.variable).toSeq
-    val domains = restrictions.map(_.domain).toSeq
-    val tuples = StreamUtil.allTuples(domains)
-    val states = tuples.map(State(variables,_))
-    def penalizedScore(state:State) = {
-      score(state) + variables.map(v => penalties.msg(v,state(v))).sum
-    }
-    def scored = states.map(state => Scored(state,penalizedScore(state)))
-    scored.maxBy(_.score).value
-  }
+trait MarginalizeResult {
+  def marginals: Message
+  def partitionFunction: Double
 }
-
 
 

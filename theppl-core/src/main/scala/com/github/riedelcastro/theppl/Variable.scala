@@ -28,7 +28,7 @@ trait Variable[+V] {
  * The natural domain of a variable is always all possible values of the
  * given scala type. A restriction limits this set to some subset.
  */
-case class Restriction[+T](variable: Variable[T], domain: Seq[T])
+case class Restriction[+T](variable: Variable[T], domain: Iterable[T])
 
 /**
  * A variable associated with an identifier. This identifier determines the identity of the variable.

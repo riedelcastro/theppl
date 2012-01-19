@@ -195,7 +195,7 @@ object StreamUtil {
   } 
   
   @tailrec
-  def allTuples[T](domains:Seq[Seq[T]], tail:Stream[Seq[T]] = Stream(Seq.empty)): Stream[Seq[T]] = {
+  def allTuples[T](domains:Seq[Iterable[T]], tail:Stream[Seq[T]] = Stream(Seq.empty)): Stream[Seq[T]] = {
     if (domains.size == 0) tail else {
       val domain = domains.head
       val tuples = tail flatMap (prefix => domain map (prefix :+ _))
