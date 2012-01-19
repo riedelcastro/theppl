@@ -8,11 +8,18 @@ object BuildSettings {
   val buildVersion = "0.1-SNAPSHOT"
   val buildScalaVersion = "2.9.1"
 
+  val ieslCredentials = Credentials(Path.userHome / ".ivy2" / ".credentials")
   val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := buildOrganization,
     version := buildVersion,
     scalaVersion := buildScalaVersion,
-    shellPrompt := ShellPrompt.buildShellPrompt
+    shellPrompt := ShellPrompt.buildShellPrompt,
+    credentials += ieslCredentials,
+    publishTo <<= (version) { version: String =>
+      val iesl = "http://iesl.cs.umass.edu:8081/nexus/content/repositories/"
+      if (version.trim.endsWith("SNAPSHOT")) Some("snapshots" at iesl + "snapshots/")
+      else                                   Some("releases"  at iesl + "releases/")
+    }
   )
 }
 
