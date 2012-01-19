@@ -45,6 +45,23 @@ object Util extends HasLogger {
   }
 
   /**
+   * Execute f on each index in 0..n
+   */
+  def forIndex(n:Int)(f:Int=>Unit) {
+    var i = 0
+    while (i < n) { f(i); i += 1 }
+  }
+
+  /**
+   * Execute f on n..0
+   */
+  def forReverseIndex(n:Int)(f:Int=>Unit) {
+    var i = n - 1
+    while (i >= 0) { f(i); i -= 1 }
+  }
+
+
+  /**
    * Loads a resource as stream. This returns either a resource in the classpath,
    * or in case no such named resource exists, from the file system.
    */
@@ -176,4 +193,14 @@ object StreamUtil {
       allSubSequences(items.drop(1),sequences)
     }
   } 
+  
+  @tailrec
+  def allTuples[T](domains:Seq[Seq[T]], tail:Stream[Seq[T]] = Stream(Seq.empty)): Stream[Seq[T]] = {
+    if (domains.size == 0) tail else {
+      val domain = domains.head
+      val tuples = tail flatMap (prefix => domain map (prefix :+ _))
+      allTuples(domains.drop(1),tuples)
+    }
+  }
+  
 }

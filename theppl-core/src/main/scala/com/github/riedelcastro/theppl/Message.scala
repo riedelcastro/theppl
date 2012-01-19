@@ -9,9 +9,17 @@ trait Message {
   def msg[V](variable: Variable[V], value: V): Double
 }
 
+/**
+ * An object with a score.
+ */
+case class Scored[T](value: T, score: Double)
+
 object Message {
   val emtpy = new Message {
     def msg[V](variable: Variable[V], value: V) = 0.0
+  }
+  def apply(f:(Variable[Any],Any) =>Double) = new Message {
+    def msg[V](variable: Variable[V], value: V) = f(variable,value)
   }
 }
 
@@ -33,6 +41,21 @@ object State {
   }
 
   def singleton[Value](variable: Variable[Value], state: Value) = new SingletonState(variable, state)
+
+  def apply(map: Map[Variable[Any], Any]): State = new State {
+    def get[V](variable: Variable[V]) = map.get(variable).asInstanceOf[Option[V]]
+  }
+
+  def fromFunction(pf: PartialFunction[Variable[Any], Any]): State = new State {
+    def get[V](variable: Variable[V]) = pf.lift(variable).asInstanceOf[Option[V]]
+  }
+
+
+  def apply(variables: Seq[Variable[Any]], tuple: Seq[Any]): State = {
+    val map = variables.indices.map(i => variables(i) -> tuple(i)).toMap
+    apply(map)
+  }
+
 }
 
 /**
@@ -46,6 +69,7 @@ trait State extends Message {
 
   def msg[V](variable: Variable[V], value: V) = if (get(variable) == Some(value)) 1.0 else 0.0
 }
+
 
 trait Marginals extends Message {
   def marginals[V](variable: Variable[V], value: V) = msg(variable, value)

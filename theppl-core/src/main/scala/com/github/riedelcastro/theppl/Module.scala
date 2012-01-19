@@ -4,44 +4,6 @@ import java.util.UUID
 import java.io.{InputStream, OutputStream}
 
 /**
- * A Model is a scoring function s(Y=y) over a set of variables Y.
- */
-trait Model { thisModel =>
-
-  /**
-   * The set of hidden variables
-   */
-  def hidden: Iterable[Variable[Any]]
-
-  /**
-   * Returns a score s(y) for each assignment to the hidden variables of this model.
-   */
-  def score(state: State): Double
-
-  /**
-   * Returns the assignment to hidden variables of this model that maximizes the score,
-   * with added penalties on the variables.
-   */
-  def argmax(penalties: Message): State
-
-  /**
-   * Convenience method for when no incoming message is needed.
-   */
-  def predict: State = argmax(Message.emtpy)
-
-  /**
-   * Proxy class for decoration.
-   */
-  class decorated extends Proxy.Typed[Model] with Model {
-    def hidden = thisModel.hidden
-    def score(state: State) = thisModel.score(state)
-    def argmax(penalties: Message) = thisModel.argmax(penalties)
-    def self = thisModel
-  }
-}
-
-
-/**
  * A module creates models based on a context and observation. Think of it as a parametrized
  * scoring function s_i(y_i;x_i) where i is the context, and x the observation.
  * @author sriedel

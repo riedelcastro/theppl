@@ -25,6 +25,12 @@ trait Variable[+V] {
 }
 
 /**
+ * The natural domain of a variable is always all possible values of the
+ * given scala type. A restriction limits this set to some subset.
+ */
+case class Restriction[+T](variable: Variable[T], domain: Seq[T])
+
+/**
  * A variable associated with an identifier. This identifier determines the identity of the variable.
  * That is, two Variable objects with same ID will be assigned to the same values by states.
  */
