@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import java.io.{OutputStream, InputStream}
+import collection.mutable.HashMap
 
 /**
  * A LinearModule calculates its score by a dot product of
@@ -13,7 +14,7 @@ trait LinearModule extends Module {
 
   type ModelType <: LinearModule#LinearModel
 
-  def weights: GlobalParameterVector
+  def weights: HierarchicalParameterVector
 
   trait LinearModel extends com.github.riedelcastro.theppl.LinearModel with Model {
     def weights = thisModule.weights
@@ -29,16 +30,49 @@ trait LinearModule extends Module {
  * taking the dot product of a weight vector and a feature representation of the state.
  */
 trait LinearModel extends Model {
-  def weights: GlobalParameterVector
-  def features(state: State): GlobalParameterVector
+  def weights: HierarchicalParameterVector
+  def features(state: State): HierarchicalParameterVector
   def featureDelta(gold: State, guess: State) = {
     val result = features(gold)
     result.add(features(guess), -1.0)
     result
   }
   def score(state: State) = features(state) dot weights
-
+  def expectations(penalties: Message):Expectations
 }
+
+/**
+ * The result of marginalizing a linear model also contains expectations of the features/sufficient statistics.
+ */
+trait Expectations extends MarginalizeResult {
+  def featureExpectations:HierarchicalParameterVector
+}
+
+trait BruteForceExpectationCalculator extends FiniteSupportModel with LinearModel {
+  def expectations(penalties: Message) = {
+
+    val masses = new HashMap[(Variable[Any],Any),Double] {
+      override def default(key: (Variable[Any], Any)) = 0.0
+    }
+    val featExp = new HierarchicalParameterVector()
+    var total = 0.0
+    for (state <- allStates) {
+      val mass = math.exp(penalizedScore(penalties,state))
+      for (v <- hidden) masses(v -> state(v)) = masses(v -> state(v)) + mass
+      total += mass
+      featExp.add(features(state), mass)
+    }
+    featExp.scale( 1.0 / total)
+    new Expectations {
+      lazy val marginals = Message.fromMap(masses.map(x => x._1 -> (x._2 /total)))
+      lazy val partitionFunction = total
+      lazy val featureExpectations = featExp
+    }
+
+  }
+}
+
+
 
 /**
  * A LinearModule that has no child modules.

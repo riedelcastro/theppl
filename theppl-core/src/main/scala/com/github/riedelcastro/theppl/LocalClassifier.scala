@@ -12,7 +12,7 @@ trait LocalClassifier extends LinearLeafModule {
   type Label
   type ModelType <: LocalModel
 
-  val weights = new GlobalParameterVector
+  val weights = new HierarchicalParameterVector
 
   trait LocalModel extends LinearModel with FiniteSupportModel with BruteForceMarginalizer {
     def labelFeatures(label: Label): ParameterVector
@@ -32,7 +32,7 @@ trait LocalClassifier extends LinearLeafModule {
     }
     def features(state: State) = {
       val feats = contextFeatures conjoin labelFeatures(state.get(labelVariable).get)
-      new GlobalParameterVector(module, feats)
+      new HierarchicalParameterVector(module, feats)
     }
   }
 
@@ -58,6 +58,7 @@ trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
     val contextFeatures = self.contextFeatures(context)
     def labelFeatures(label: Label) = self.labelFeatures(label)
     val domain = self.domain
+    def expectations(penalties: Message) = null
   }
 
   def model(c: Context, observed: State): ModelType = new DefaultLocalModel(c)

@@ -34,6 +34,13 @@ class ParameterVector {
       _values(key) = _values(key) + scale * value
     }
   }
+  def scale(scale: Double) = {
+    for ((key, value) <- values) {
+      _values(key) = _values(key) * scale
+    }
+  }
+
+
   def dot(that: ParameterVector): Double = {
     var result = 0.0
     for ((key, value) <- values) {
@@ -57,7 +64,7 @@ class ParameterVector {
   }
 
   def load(in:InputStream) {
-    for (line <- Source.fromInputStream(in).getLines) {
+    for (line <- Source.fromInputStream(in).getLines()) {
       val split = line.split("\\t+")
       update(new Feat(split.dropRight(1).map(Symbol(_))), split.last.toDouble)
     }
@@ -121,6 +128,13 @@ object ParameterVector {
       case (key, value) => Feat(key, value)
     }))
   }
+  def fromPairIterable(feats: Iterable[(Any, Any)]) = {
+    new ParameterVector(feats.map({
+      case (key, value) => Feat(key, value)
+    }))
+  }
+
+
 }
 
 
@@ -148,33 +162,49 @@ object Feat {
 
 
 /**
- * A GlobalParameterVector can store parameter vectors for a module and all its
- * sub-modules. It does so by maintaining a mapping from module-paths to parameter vectors.
+ * A HierarchicalParameterVector can store parameter vectors for a hierarchy
+ * of objects.
  */
-class GlobalParameterVector {
+class HierarchicalParameterVector {
 
-  type Path = Seq[Module]
+  type Name = Any
 
-  def this(module: Module, params: ParameterVector) {
+  type Path = Seq[Name]
+
+  def this(name: Any, params: ParameterVector) {
     this ()
-    _params(Seq(module)) = params
+    _params(Seq(name)) = params
   }
+  def this(params: ParameterVector) {
+    this ()
+    _params(Seq.empty) = params
+  }
+
 
   private val _params = new HashMap[Path, ParameterVector]
 
   def update(key:Path = Seq.empty,value:ParameterVector) {
     _params(key) = value
   }
+
+  def apply(path:Path = Seq.empty) = _params(path)
   
   def params: Map[Path, ParameterVector] = _params
 
-  def add(that: GlobalParameterVector, scale: Double) {
+  def add(that: HierarchicalParameterVector, scale: Double) {
     for ((path, thatVector) <- that.params; vector = _params.getOrElseUpdate(path, new ParameterVector)) {
       vector.add(thatVector, scale)
     }
   }
 
-  def dot(that: GlobalParameterVector): Double = {
+  def scale(scale: Double) {
+    for ((_,vector) <- params) {
+      vector.scale(scale)
+    }
+  }
+
+
+  def dot(that: HierarchicalParameterVector): Double = {
     var result = 0.0
     for ((path, vector) <- _params; thatVector <- that.params.get(path)) {
       result += vector dot thatVector
