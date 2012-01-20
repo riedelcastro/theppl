@@ -43,18 +43,6 @@ trait Module {
   }
 
   /**
-   * This class can be instantiated to create proxy objects which can
-   * have other traits mixed-in. Eg., you can write "new module.decorated with Learner".
-   */
-  class decorated extends Module {
-    type Context = thisModule.Context
-    type ModelType = thisModule.ModelType
-
-    def model(context: Context, observation: State) = thisModule.model(context, observation)
-
-  }
-
-  /**
    * For a given context i, and observation x, this method creates
    * a model s_i(y;x).
    */
@@ -69,6 +57,19 @@ trait Module {
    * Returns the name of this module.
    */
   override def toString = name
+
+  /**
+   * This class can be instantiated to create proxy objects which can
+   * have other traits mixed-in. Eg., you can write "new module.decorated with Learner".
+   */
+  class decorated extends Module {
+    type Context = thisModule.Context
+    type ModelType = thisModule.ModelType
+
+    def model(context: Context, observation: State) = thisModule.model(context, observation)
+
+  }
+
 
 
 }

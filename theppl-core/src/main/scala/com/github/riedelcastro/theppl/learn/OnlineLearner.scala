@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl.learn
 
-import com.github.riedelcastro.theppl.{State, Module, LinearModule}
+import com.github.riedelcastro.theppl.{Model, State, Module, LinearModule}
 
 
 /**
@@ -53,6 +53,7 @@ trait PerceptronUpdate extends UpdateRule {
 
 trait Learner extends Module {
   def train(instances: Seq[Instance[Context]])
+//  def gold(model:ModelType):State
 }
 
 class Corpus(val module: Module)
@@ -60,4 +61,11 @@ class Corpus(val module: Module)
 case class Instance[C](context: C, gold: State, observation: State = State.empty) {
 
 }
+
+trait Instance2[C,M<:Model] {
+  def context: C
+  def observation:State
+  def gold(model:Model):State
+}
+
 
