@@ -36,11 +36,11 @@ class UniqueVar[T](name: String) extends Variable[T] with Term[T] {
   def variables = Seq(this)
 }
 
-case class Dom[T](values: Seq[T]) extends EmptyBuilt[UniqueVar[T]] {
-  private var count = 0
-  def newName() = {count += 1; "x" + count}
-  def argument = new UniqueVar[T](newName())
-}
+//case class Dom[T](values: Seq[T]) extends EmptyBuilt[UniqueVar[T]] {
+//  private var count = 0
+//  def newName() = {count += 1; "x" + count}
+//  def argument = new UniqueVar[T](newName())
+//}
 
 case class TupleTerm2[T1,T2](arg1:Term[T1], arg2:Term[T2]) extends Term[(T1, T2)] {
   def eval(state: State) = (arg1.eval(state),arg2.eval(state))
@@ -60,6 +60,6 @@ object LogicPlayground {
   def main(args: Array[String]) {
     val values = Range(0, 10)
     val add = (x: (Int, Int)) => x._1 + x._2
-    val formula = for (x <- Dom(values); y <- Dom(values)) yield FunApp($(add), (x, y))
+//    val formula = for (x <- Dom(values); y <- Dom(values)) yield FunApp($(add), (x, y))
   }
 }
