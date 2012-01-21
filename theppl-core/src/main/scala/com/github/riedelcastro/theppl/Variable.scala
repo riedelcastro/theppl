@@ -1,5 +1,7 @@
 package com.github.riedelcastro.theppl
 
+import logic.Term
+
 /**
  * A Variable is an identifier we can assign values to. Notably,
  * a value of variable is not stored in the variable itself. Instead
@@ -15,13 +17,14 @@ package com.github.riedelcastro.theppl
  *
  * @author sriedel
  */
-trait Variable[+V] {
+trait Variable[+V] extends Term[V] {
   /**
    * This returns the value of a variable with respect to a specified state.
    * Since the state is an implicit parameter, this method allows
    * clients to use variables as if they have a single value, if needed.
    */
-  def value(implicit state: State): V = state(this)
+  def eval(state: State) = state.get(this)
+  def variables = Seq(this)
 }
 
 /**

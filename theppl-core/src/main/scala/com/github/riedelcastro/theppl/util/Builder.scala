@@ -73,7 +73,8 @@ object BuilderTest {
       def argument = Tuple1(inner)
     }
 //    val test = for (x <- D(1); y <- D(2); z <- D(3); d <- D(4)) yield x -> y -> z
-    val test2 = for (x <- D(1); y <- D(2); z <- D(3)) yield x._1
+    val test2 = for (x <- D(1); y <- D(2); z <- D(3)) yield y._1
+    //D(1).flatMap(x => D2(2).flatMap(y => D(3).map(z => {...}))
     println(test2.argument._1)
     //    val test = for (x <- D(1, 1)) yield 5 //x -> y
     //    val test2 = D(1,1).flatMap(x => D(2,2))
@@ -82,10 +83,74 @@ object BuilderTest {
     //    println(test3.built)
 
     println(test2.built)
+    
+    case class Dom[I](i:I) extends Builder1[I, Nothing] {
+      def argument = i
+      def built = sys.error("empty")
+    }
+
+    val test3 = for (x <- Dom(1); y <- Dom(2); z <- Dom(3)) yield x
+    println(test3.arguments)
+    println(test3.built)
+
   }
 }
 
+trait Builder1[+Argument,Built] {self =>
+  def argument:Argument
+  def built:Built
+
+  def map[NewBuilt](f: Argument => NewBuilt): BuilderN[Argument, NewBuilt] = {
+    new BuilderN[Argument, NewBuilt] {
+      val tmpArg = self.argument
+      def arguments = Seq(tmpArg)
+      def built = f(tmpArg)
+    }
+  }
+
+  def flatMap[NewArgument >: Argument, NewBuilt](f: Argument => BuilderN[NewArgument, NewBuilt]): BuilderN[NewArgument, NewBuilt] = {
+    new BuilderN[NewArgument, NewBuilt] {
+      val tmpArg = self.argument
+
+      val applied = f(tmpArg)
+      def arguments = tmpArg +: applied.arguments
+      def built = applied.built
+    }
+  }
+//  def flatMap[NewArgument >: Argument, NewBuilt](f: Argument => Builder1[NewArgument, NewBuilt]): BuilderN[NewArgument, NewBuilt] = {
+//    new BuilderN[NewArgument, NewBuilt] {
+//      val applied = f(self.argument)
+//      def arguments = Seq(self.argument,applied.argument)
+//      def built = applied.built
+//    }
+//  }
 
 
+}
+
+
+trait BuilderN[+Argument,Built] { self =>
+  
+  def arguments:Seq[Argument]
+  def built:Built
+
+  def map[NewBuilt](f: Seq[Argument] => NewBuilt): BuilderN[Argument, NewBuilt] = {
+    new BuilderN[Argument, NewBuilt] {
+      val tmpArguments = self.arguments
+      def arguments = tmpArguments
+      def built = f(tmpArguments)
+    }
+  }
+
+  def flatMap[NewArgument >: Argument, NewBuilt](f: Seq[Argument] => BuilderN[NewArgument, NewBuilt]): BuilderN[NewArgument, NewBuilt] = {
+    new BuilderN[NewArgument, NewBuilt] {
+      val tmpArguments = self.arguments
+      val applied = f(tmpArguments)
+      def arguments = tmpArguments ++ applied.arguments
+      def built = applied.built
+    }
+  }
+
+}
 
 
