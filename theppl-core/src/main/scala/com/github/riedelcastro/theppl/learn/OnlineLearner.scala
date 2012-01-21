@@ -17,7 +17,7 @@ trait OnlineLearner extends LinearModule with Learner {
     for (epoch <- 0 until epochs) {
       for (instance <- instances) {
         val gold = instance.gold
-        val model = self.model(instance.context, instance.observation)
+        val model = self.model(instance.context)
         val guess = model.predict
         updateRule(model, gold, guess)
       }

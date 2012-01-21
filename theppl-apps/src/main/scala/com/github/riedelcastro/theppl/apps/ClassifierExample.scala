@@ -66,7 +66,7 @@ object Evaluator {
     var count = 0
     for (instance <- instances) {
       val gold = instance.gold
-      val model = module.model(instance.context, instance.observation)
+      val model = module.model(instance.context)
       val guess = model.predict
       for (hidden <- model.hidden) {
         if (gold(hidden) != guess(hidden)) totalLoss += 1.0

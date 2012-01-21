@@ -25,7 +25,7 @@ class MaxentLearnerSpec extends ThePPLSpec {
 
       val delta = new HierarchicalParameterVector()
 
-      for (i <- instances; model = classifier.model(i.context, i.observation)) {
+      for (i <- instances; model = classifier.model(i.context)) {
         val gold = model.features(i.gold)
         val guess = model.expectations(Message.empty).featureExpectations
         delta.add(gold, 1.0)

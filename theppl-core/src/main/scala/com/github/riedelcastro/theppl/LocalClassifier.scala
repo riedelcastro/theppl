@@ -20,7 +20,6 @@ trait LocalClassifier extends LinearLeafModule {
     def labelVariable: Variable[Label]
     def domain: Iterable[Label]
     def restrictions = Seq(Restriction(labelVariable,domain))
-    def observation: State
     def classify: Label = argmax(Message.empty).state.get(labelVariable).get
     def argmax(penalties: Message) = {
       val states = domain.map(new SingletonState(labelVariable, _))
@@ -36,11 +35,11 @@ trait LocalClassifier extends LinearLeafModule {
     }
   }
 
-  def classify(context: Context, observation: State): Label = model(context, observation).classify
+  def classify(context: Context): Label = model(context).classify
 
 }
 
-trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
+trait ClassifierOld[L, C] extends LocalClassifier {
   self =>
 
   type Label = L
@@ -54,14 +53,14 @@ trait ClassifierOld[L, C] extends LocalClassifier with SourceModule {
   def domain: Iterable[L]
 
   class DefaultLocalModel(val context: Context)
-    extends LocalModel with SourceModel with BruteForceExpectationCalculator{
+    extends LocalModel with BruteForceExpectationCalculator{
     val labelVariable = self.variable(context)
     val contextFeatures = self.contextFeatures(context)
     def labelFeatures(label: Label) = self.labelFeatures(label)
     val domain = self.domain
   }
 
-  def model(c: Context, observed: State): ModelType = new DefaultLocalModel(c)
+  def model(c: Context): ModelType = new DefaultLocalModel(c)
 
 }
 
@@ -83,20 +82,3 @@ case class Classifier[L, C](v: C => Variable[L],
   def variable(context: Context) = v(context)
 }
 
-
-trait PipeableClassifier extends LocalClassifier {
-  type Observed = Variable[ParameterVector]
-  type ModelType <: PipeableLocalModel
-
-  trait PipeableLocalModel extends LocalModel {
-    def in: Variable[ParameterVector]
-    def observed = Seq(in)
-    val contextFeatures = observation.get(in).get
-  }
-}
-
-
-trait NoSerialization extends Module {
-  def load(in: InputStream) = {}
-  def save(out: OutputStream) = {}
-}

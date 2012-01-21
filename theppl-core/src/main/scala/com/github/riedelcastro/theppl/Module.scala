@@ -31,13 +31,9 @@ trait Module {
   trait Model extends com.github.riedelcastro.theppl.Model { thisModel =>
 
     def context: Context
-    def observed: Iterable[Variable[Any]]
-    def observation: State
-    
+
     class decorated extends super.decorated with Model {
       def context = thisModel.context
-      def observed = thisModel.observed
-      def observation = thisModel.observation
     }
     
   }
@@ -46,7 +42,7 @@ trait Module {
    * For a given context i, and observation x, this method creates
    * a model s_i(y;x).
    */
-  def model(context: Context, observation: State = State.empty): ModelType
+  def model(context: Context): ModelType
 
   /**
    * The name of this module.
@@ -66,7 +62,7 @@ trait Module {
     type Context = thisModule.Context
     type ModelType = thisModule.ModelType
 
-    def model(context: Context, observation: State) = thisModule.model(context, observation)
+    def model(context: Context) = thisModule.model(context)
 
   }
 
@@ -85,8 +81,8 @@ trait ProfilerModule extends Module {
     }
   }
 
-  abstract override def model(context: Context, observation: State) = {
-    val m = super.model(context,observation)
+  abstract override def model(context: Context) = {
+    val m = super.model(context)
     new m.decorated with ProfiledModel
   }
 }
@@ -122,46 +118,5 @@ trait LocalModule extends Module {
   }
 
 }
-
-
-/**
- * A module that does not take any observation into account.
- */
-trait SourceModule extends Module {
-  type Observed = Variable[Nothing]
-  type ModelType <: SourceModel
-
-  trait SourceModel extends Model {
-    def observation = State.empty
-
-    def observed = Seq.empty
-  }
-
-}
-
-
-/**
- * Additional convenience methods to mix into modules.
- */
-trait ModuleExtras extends Module {
-  self =>
-
-  type Pipeable = Module {
-    type Context = self.Context
-//    type Observed = self.Hidden
-  }
-  type LinearPipeable = LinearModule {
-    type Context = self.Context
-//    type Observed = self.Hidden
-  }
-
-  //  def |(that: Pipeable) = new PipedSimple[Context, Hidden](this, that)
-  //
-  //  def |(that: LinearPipeable) = new PipedLinear[Context, Hidden](this, that)
-
-
-}
-
-
 
 

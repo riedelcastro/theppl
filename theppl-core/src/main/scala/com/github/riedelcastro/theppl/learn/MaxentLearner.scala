@@ -16,7 +16,7 @@ trait MaxentLearner extends LinearModule with Learner with HasLogger {
   
   def train(instances: Seq[Instance[Context]]) {
     logger.info("Creating models.")
-    val models = instances.map(i => model(i.context, i.observation))
+    val models = instances.map(i => model(i.context))
 
     logger.info("Extracting gold features.")
     val goldFeatures: Seq[HierarchicalParameterVector] = instances.zip(models).map({case (i, m) => m.features(i.gold)})
