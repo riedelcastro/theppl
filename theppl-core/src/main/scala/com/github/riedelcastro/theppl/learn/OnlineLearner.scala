@@ -13,11 +13,11 @@ trait OnlineLearner extends LinearModule with Learner {
 
   var epochs: Int = 2
 
-  def train(instances: Seq[Instance[Context]]) {
+  def train(instances: Seq[Context]) {
     for (epoch <- 0 until epochs) {
       for (instance <- instances) {
-        val gold = instance.gold
-        val model = self.model(instance.context)
+        val model = self.model(instance)
+        val gold = target(model)
         val guess = model.predict
         updateRule(model, gold, guess)
       }
@@ -52,8 +52,8 @@ trait PerceptronUpdate extends UpdateRule {
 }
 
 trait Learner extends Module {
-  def train(instances: Seq[Instance[Context]])
-//  def gold(model:ModelType):State
+  def train(instances: Seq[Context])
+  def target(model:ModelType):State
 }
 
 class Corpus(val module: Module)

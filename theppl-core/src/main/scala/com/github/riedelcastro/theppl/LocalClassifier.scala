@@ -9,18 +9,19 @@ import Imports._
  */
 trait LocalClassifier extends LinearLeafModule {
   module =>
-  type Label
+  type LabelType
+  type LabelVariableType <: Variable[LabelType]
   type ModelType <: LocalModel
 
   val weights = new HierarchicalParameterVector
 
   trait LocalModel extends LinearModel with FiniteSupportModel with BruteForceMarginalizer {
-    def labelFeatures(label: Label): ParameterVector
+    def labelFeatures(label: LabelType): ParameterVector
     def contextFeatures: ParameterVector
-    def labelVariable: Variable[Label]
-    def domain: Iterable[Label]
-    def restrictions = Seq(Restriction(labelVariable,domain))
-    def classify: Label = argmax(Message.empty).state.get(labelVariable).get
+    def labelVariable: LabelVariableType
+    def domain: Iterable[LabelType]
+    def restrictions = Seq(Restriction(labelVariable, domain))
+    def classify: LabelType = argmax(Message.empty).state.get(labelVariable).get
     def argmax(penalties: Message) = {
       val states = domain.map(new SingletonState(labelVariable, _))
       val (st, sc) = MathUtil.argmax(states, (s: State) => score(s))
@@ -35,28 +36,24 @@ trait LocalClassifier extends LinearLeafModule {
     }
   }
 
-  def classify(context: Context): Label = model(context).classify
+  def classify(context: Context): LabelType = model(context).classify
 
 }
 
-trait ClassifierOld[L, C] extends LocalClassifier {
+trait Classifier extends LocalClassifier {
   self =>
 
-  type Label = L
-  type Hidden = Variable[L]
   type ModelType = DefaultLocalModel
-  type Context = C
-
-  def labelFeatures(label: Label): ParameterVector
+  def labelFeatures(label: LabelType): ParameterVector
   def contextFeatures(context: Context): ParameterVector
-  def variable(context: Context): Hidden
-  def domain: Iterable[L]
+  def variable(context: Context): LabelVariableType
+  def domain: Iterable[LabelType]
 
   class DefaultLocalModel(val context: Context)
-    extends LocalModel with BruteForceExpectationCalculator{
+    extends LocalModel with BruteForceExpectationCalculator {
     val labelVariable = self.variable(context)
     val contextFeatures = self.contextFeatures(context)
-    def labelFeatures(label: Label) = self.labelFeatures(label)
+    def labelFeatures(label: LabelType) = self.labelFeatures(label)
     val domain = self.domain
   }
 
@@ -64,21 +61,5 @@ trait ClassifierOld[L, C] extends LocalClassifier {
 
 }
 
-/**
- * A Local Classifier.
- *
- * @param v mapping from contexts to a variable.
- * @param dom the possible labels the variable can take on.
- * @param cf feature function for the context.
- * @param lf feature function for the label.
- */
-case class Classifier[L, C](v: C => Variable[L],
-                               dom: Seq[L],
-                               cf: C => ParameterVector,
-                               lf: L => ParameterVector = (l: L) => Feat(l)) extends ClassifierOld[L, C] {
-  val domain = dom
-  def labelFeatures(label: Label) = lf(label)
-  def contextFeatures(context: Context) = cf(context)
-  def variable(context: Context) = v(context)
-}
+
 

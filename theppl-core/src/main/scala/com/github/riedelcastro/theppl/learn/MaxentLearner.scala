@@ -14,12 +14,12 @@ trait MaxentLearner extends LinearModule with Learner with HasLogger {
 
   case class Mapping(forward:Map[(Seq[Any],Feat),Int],reverse:Map[Int,(Seq[Any],Feat)])
   
-  def train(instances: Seq[Instance[Context]]) {
+  def train(instances: Seq[Context]) {
     logger.info("Creating models.")
-    val models = instances.map(i => model(i.context))
+    val models = instances.map(model(_))
 
     logger.info("Extracting gold features.")
-    val goldFeatures: Seq[HierarchicalParameterVector] = instances.zip(models).map({case (i, m) => m.features(i.gold)})
+    val goldFeatures: Seq[HierarchicalParameterVector] = models.map(m => m.features(target(m)))
 
     logger.info("Counting features.")
     val qualified = for (h <- goldFeatures.view;
@@ -43,7 +43,7 @@ trait MaxentLearner extends LinearModule with Learner with HasLogger {
     optimizer.optimize(iterations)
   }
 
-  case class LLInstance(instance:Instance[Context],model:ModelType,goldFeatures:HierarchicalParameterVector)
+  case class LLInstance(instance:Context,model:ModelType,goldFeatures:HierarchicalParameterVector)
 
   class LLObjective(instances: Seq[LLInstance],mapping:Mapping) extends Objective {
     def domainSize = mapping.forward.size
