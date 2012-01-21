@@ -10,18 +10,11 @@ import collection.mutable.HashMap
 trait FiniteSupportModel extends Model {
 
   /**
-   * The variables of this model together with their supported range.
-   */
-  def restrictions: Iterable[Restriction[Any]]
-
-  def hidden = restrictions.map(_.variable)
-
-  /**
    * Iterates over all states for the hidden variables of this model.
    */
   def allStates = {
-    val variables = restrictions.map(_.variable).toSeq
-    val domains = restrictions.map(_.domain).toSeq
+    val variables = hidden.toSeq
+    val domains = variables.map(_.domain).toSeq
     val tuples = StreamUtil.allTuples(domains)
     val states = tuples.map(State(variables, _))
     states

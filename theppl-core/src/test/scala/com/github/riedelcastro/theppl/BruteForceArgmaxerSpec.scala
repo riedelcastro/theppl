@@ -3,7 +3,7 @@ package com.github.riedelcastro.theppl
 import math._
 
 trait ExampleModels {
-  case class V(index: Int) extends Variable[Int]
+  case class Var(index: Int, domain:Seq[Int]) extends Variable[Int]
 
   /**
    * A model with integer variables that scores each state
@@ -12,7 +12,7 @@ trait ExampleModels {
   abstract class ExampleModel(varCount: Int = 3, domainSize: Int = 3) extends FiniteSupportModel {
     override lazy val hidden = Range(0, varCount).map(V(_))
     lazy val domain = Range(0, domainSize)
-    lazy val restrictions: Seq[Restriction[Int]] = hidden.map(Restriction(_, domain))
+    def V(index:Int) = Var(index,domain)
   }
 
   /**
@@ -42,7 +42,7 @@ trait ExampleModels {
    */
   def exampleMessage(valueToPenalize: Int = 2, penalty: Double = -10) = {
     val message = Message.fromFunction({
-      case (V(_), x) if (valueToPenalize == x) => penalty
+      case (Var(_,_), x) if (valueToPenalize == x) => penalty
       case _ => 0.0
     })
     message
@@ -57,6 +57,7 @@ class BruteForceArgmaxerSpec extends ThePPLSpec with ExampleModels {
   describe("A BruteForceArgmaxer") {
     it("should calculate the exact argmax") {
       val model = new ExampleModel() with SumScore with BruteForceMarginalizer with BruteForceArgmaxer
+      import model._
       val message = exampleMessage()
       val result = model.argmax(message)
       val expected = State.fromFunction(Map(V(0) -> 1, V(1) -> 1, V(2) -> 1))
@@ -70,13 +71,14 @@ class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
   describe("A BruteForceMarginalizer") {
     it("should calculate exact marginals") {
       val model = new ExampleModel(2, 2) with SumScore with BruteForceMarginalizer with BruteForceArgmaxer
+      import model._
       val message = exampleMessage(1, -1)
       val result = model.marginalize(message)
 
       result.logZ must be(log(4.0) plusOrMinus eps)
 
-      for (Restriction(v, d) <- model.restrictions;
-           value <- d)
+      for (v <- model.hidden;
+           value <- v.domain)
         result.marginals(v, value) must be(0.5 plusOrMinus eps)
 
     }
@@ -88,6 +90,7 @@ class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExampleModels 
     it("should calculate exact expectations in linear models") {
       val model = new ExampleModel(2, 2)
         with LinearScore with BruteForceMarginalizer with BruteForceArgmaxer with BruteForceExpectationCalculator
+      import model._
       val message = exampleMessage(1, -1)
       val result = model.expectations(message)
       val Z = exp(1) + exp(1) + exp(-1) + exp(-1)

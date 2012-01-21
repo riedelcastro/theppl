@@ -17,7 +17,10 @@ object ClassifierExample {
 
     val n = 50
     case class Token(index: Int, word: String, tag: String, chunk: String)
-    case class ChunkVar(token: Token) extends Variable[String]
+    val dom = Seq("O") ++ (for (bi <- Seq("B-", "I-"); t <- Seq("VP", "NP", "PP")) yield bi + t)
+    case class ChunkVar(token: Token) extends Variable[String] {
+      def domain = dom
+    }
 
     val stream = Util.getStreamFromClassPathOrFile("com/github/riedelcastro/theppl/datasets/conll2000/train.txt")
     val indexedLines = Source.fromInputStream(stream).getLines().take(n).filter(_ != "").zipWithIndex

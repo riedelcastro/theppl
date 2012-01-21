@@ -58,14 +58,14 @@ case class FunApp2[A1, A2, R](f: Term[(A1, A2) => R], a1: Term[A1], a2: Term[A2]
 }
 
 
-class UniqueVar[T](name: String) extends Variable[T] with Term[T] {
+class UniqueVar[T](name: String, val domain:Seq[T]) extends Variable[T] with Term[T] {
   override def toString = name
 }
 
 case class Dom[T](name: Symbol, values: Seq[T]) extends Builder1[UniqueVar[T], Nothing] {
   private var count = 0
   def newName() = {count += 1; "x" + count}
-  def argument = new UniqueVar[T](newName())
+  def argument = new UniqueVar[T](newName(),values)
   def built = sys.error("empty")
   override def toString = name.toString()
 
@@ -97,10 +97,10 @@ object LogicPlayground {
   //    def variables = (f.variables ++ a1.variables ++ a2.variables ++ a3.variables).toSet.toSeq
   //  }
 
-  case class GroundAtom1[A1, R](name: Symbol, a1: A1) extends Variable[R]
+  case class GroundAtom1[A1, R](name: Symbol, a1: A1, domain:Seq[R]) extends Variable[R]
   case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Dom('bools, Seq(true, false)))
     extends FunTerm1[A1, R] {
-    def mapping(a1: A1) = GroundAtom1(name, a1)
+    def mapping(a1: A1) = GroundAtom1(name, a1, range.values)
     def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
     def variables = dom1.values.map(mapping(_))
     override def toString = name.toString()

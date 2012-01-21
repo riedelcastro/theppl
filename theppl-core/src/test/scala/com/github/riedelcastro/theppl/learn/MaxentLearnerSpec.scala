@@ -13,7 +13,7 @@ class MaxentLearnerSpec extends ThePPLSpec {
   describe("A MaxentLearner") {
     it("should yield a model that has the same expectations as the training data") {
       case class Data(x: Int, y: Boolean)
-      case class LabelVar(data: Data) extends Variable[Boolean]
+      case class LabelVar(data: Data) extends BoolVariable
       val data1 = Data(0, true)
       val data2 = Data(1, false)
       val tokens = Seq(data1, data2)

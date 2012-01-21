@@ -19,11 +19,10 @@ trait LocalClassifier extends LinearLeafModule {
     def labelFeatures(label: LabelType): ParameterVector
     def contextFeatures: ParameterVector
     def labelVariable: LabelVariableType
-    def domain: Iterable[LabelType]
-    def restrictions = Seq(Restriction(labelVariable, domain))
+    def hidden = Seq(labelVariable)
     def classify: LabelType = argmax(Message.empty).state.get(labelVariable).get
     def argmax(penalties: Message) = {
-      val states = domain.map(new SingletonState(labelVariable, _))
+      val states = labelVariable.domain.map(new SingletonState(labelVariable, _))
       val (st, sc) = MathUtil.argmax(states, (s: State) => score(s))
       new ArgmaxResult {
         def score = sc
@@ -47,14 +46,12 @@ trait Classifier extends LocalClassifier {
   def labelFeatures(label: LabelType): ParameterVector
   def contextFeatures(context: Context): ParameterVector
   def variable(context: Context): LabelVariableType
-  def domain: Iterable[LabelType]
 
   class DefaultLocalModel(val context: Context)
     extends LocalModel with BruteForceExpectationCalculator {
     val labelVariable = self.variable(context)
     val contextFeatures = self.contextFeatures(context)
     def labelFeatures(label: LabelType) = self.labelFeatures(label)
-    val domain = self.domain
   }
 
   def model(c: Context): ModelType = new DefaultLocalModel(c)
