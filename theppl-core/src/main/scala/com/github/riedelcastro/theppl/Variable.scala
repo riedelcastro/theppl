@@ -22,6 +22,7 @@ trait Variable[+V] extends Term[V] {
   def eval(state: State) = state.get(this)
   def variables = Seq(this)
   def domain: Seq[V]
+  def default = domain.head
 }
 
 trait BoolVariable extends Variable[Boolean] {

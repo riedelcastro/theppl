@@ -89,12 +89,16 @@ object State {
  * A State assigns a value to each variable. This assignment also defines a Message in which
  * gives score 1.0 to the variable-value pairs defined in this state, and 0.0 otherwise.
  */
-trait State extends Message {
+trait State extends Message { self =>
   def apply[V](variable: Variable[V]): V = get(variable).get
 
   def get[V](variable: Variable[V]): Option[V]
 
   def msg[V](variable: Variable[V], value: V) = if (get(variable) == Some(value)) 1.0 else 0.0
+
+  def closed = new State {
+    def get[V](variable: Variable[V]) = self.get(variable).orElse(Some(variable.default))
+  }
 }
 
 
