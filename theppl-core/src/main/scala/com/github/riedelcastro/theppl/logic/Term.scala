@@ -14,7 +14,6 @@ trait Term[+V] {
   def variables: Iterable[Variable[Any]]
   def ===(that: Term[Any]) = Eq(this, that)
   def substitute(substitution: Substitution): Term[V] = this
-  def reduce: Term[V] = this
   def ground: Term[V] = this
   def isConstant = variables.isEmpty
 }
@@ -64,12 +63,6 @@ trait Composite[T, This <: Composite[T, This]] extends Term[T] {
   def eval(state: State) = {
     val partsEval = parts.map(_.eval(state))
     if (partsEval.exists(_.isEmpty)) None else Some(genericEval(partsEval.map(_.get)))
-  }
-
-  override def reduce = {
-    val partsReduction = parts.map(_.reduce)
-    val constants = partsReduction.collect({case Constant(c) => c})
-    if (constants.size == partsReduction.size) Constant(genericEval(constants)) else genericCreate(partsReduction)
   }
 
   override def ground = {
@@ -210,10 +203,17 @@ object LogicPlayground {
   trait GroundAtom[R] extends Variable[R] {
     def range: Dom[R]
     def domain = range.values
+    def name:Symbol
+    def args:Seq[Any]
+    override def toString =  "'" + name + args.mkString("(",",",")")
   }
 
-  case class GroundAtom1[A1, R](name: Symbol, a1: A1, range: Dom[R]) extends GroundAtom[R]
-  case class GroundAtom2[A1, A2, R](name: Symbol, a1: A1, a2: A2, range: Dom[R]) extends GroundAtom[R]
+  case class GroundAtom1[A1, R](name: Symbol, a1: A1, range: Dom[R]) extends GroundAtom[R] {
+    def args = Seq(a1)
+  }
+  case class GroundAtom2[A1, A2, R](name: Symbol, a1: A1, a2: A2, range: Dom[R]) extends GroundAtom[R]{
+    def args = Seq(a1,a2)
+  }
 
 
   trait Pred[F, R] extends Term[F] {
@@ -310,7 +310,11 @@ object LogicPlayground {
   def reduce[T](term:Term[T]):Term[T] = {
     term match {
       case FunApp1(pred@Pred1(_,_,_),Constant(a1)) => pred.mapping(a1)
-      case _ => term.reduce
+      case c:Composite[_,_] => 
+        val parts = c.parts.map(reduce(_))
+        val constants = parts.collect({case Constant(x) => x})
+        if (constants.size == parts.size) Constant(c.genericEval(constants)) else c.genericCreate(parts)
+      case _ => term
     }
   }
   
