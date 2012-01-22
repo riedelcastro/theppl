@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl
 
-import logic.Term
+import logic.{Substitution, Term}
+
 
 /**
  * A Variable is an identifier we can assign values to. Notably,
@@ -23,6 +24,7 @@ trait Variable[+V] extends Term[V] {
   def variables = Seq(this)
   def domain: Seq[V]
   def default = domain.head
+  override def substitute(substitution: Substitution) = substitution.get(this).getOrElse(this)
 }
 
 trait BoolVariable extends Variable[Boolean] {
