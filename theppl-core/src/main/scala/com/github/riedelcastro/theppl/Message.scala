@@ -1,5 +1,7 @@
 package com.github.riedelcastro.theppl
 
+import util.StreamUtil
+
 /**
  * A message is a mapping from variable-value assignments to real numbers.
  *
@@ -71,6 +73,16 @@ object State {
     apply(map)
   }
 
+  /**
+   * Iterates over all states for the given variables
+   */
+  def allStates(variables:Seq[Variable[Any]]) = {
+    val domains = variables.map(_.domain).toSeq
+    val tuples = StreamUtil.allTuples(domains)
+    val states = tuples.map(State(variables, _))
+    states
+  }
+  
 }
 
 /**

@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl.logic
 
 import com.github.riedelcastro.theppl.{Variable, State}
-import com.github.riedelcastro.theppl.util.{Builder1, BuilderN, Builder, EmptyBuilt}
+import com.github.riedelcastro.theppl.util._
 
 
 /**
@@ -19,53 +19,64 @@ case class Constant[+V](value: V) extends Term[V] {
   def variables = Seq.empty
 }
 
-trait Composite[T] extends Term[T] {
+trait Composite[T, This <: Composite[T, This]] extends Term[T] {
   def parts: Seq[Term[Any]]
   def variables = parts.flatMap(_.variables).toSet.toSeq
+  def genericCreate(p: Seq[Term[Any]]): This
+  def genericEval(p: Seq[Any]): T
+  def eval(state: State) = {
+    val partsEval = parts.map(_.eval(state))
+    if (partsEval.exists(_.isEmpty)) None else Some(genericEval(partsEval.map(_.get)))
+  }
+  object Caster {
+    implicit def cast[T](t: Any) = t.asInstanceOf[T]
+  }
 }
 
-trait FunApp[R] extends Composite[R] {
+trait FunApp[R, F, This <: FunApp[R, F, This]] extends Composite[R, This] {
   def f: Term[Any]
   def args: Seq[Term[Any]]
   def parts = f +: args
   override def toString = f + args.mkString("(", ",", ")")
-  def reduce[T](t: Term[T], v: Option[T]) = v.map(Constant(_)).getOrElse(t)
+
+  def genericFunAppEval(f: F, args: Seq[Any]): R
+  def genericEval(p: Seq[Any]) = genericFunAppEval(p(0).asInstanceOf[F], p.drop(1))
+
 
 }
 
-case class FunApp1[A1, R](f: Term[A1 => R], a1: Term[A1]) extends FunApp[R] {
+case class FunApp1[A1, R](f: Term[A1 => R],
+                          a1: Term[A1])
+  extends FunApp[R, A1 => R, FunApp1[A1, R]] {
+
+  import Caster._
 
   def args = Seq(a1)
-  def eval(state: State) = for (_f <- f.eval(state);
-                                _a1 <- a1.eval(state)) yield _f(_a1)
-  def ground(state: State): Term[R] = (f.eval(state), a1.eval(state)) match {
-    case (Some(_f), Some(_a1)) => Constant(_f(_a1))
-    case (_f, _a1) => FunApp1(reduce(f, _f), reduce(a1, _a1))
-  }
+  def genericCreate(p: Seq[Term[Any]]) = FunApp1(p(0), p(1))
+  def genericFunAppEval(f: A1 => R, args: Seq[Any]) = f(args(0))
 
 }
 
-case class FunApp2[A1, A2, R](f: Term[(A1, A2) => R], a1: Term[A1], a2: Term[A2]) extends FunApp[R] {
+case class FunApp2[A1, A2, R](f: Term[(A1, A2) => R],
+                              a1: Term[A1], a2: Term[A2])
+  extends FunApp[R, (A1, A2) => R, FunApp2[A1, A2, R]] {
+
+  import Caster._
 
   def args = Seq(a1, a2)
-  def eval(state: State) = for (_f <- f.eval(state);
-                                _a1 <- a1.eval(state);
-                                _a2 <- a2.eval(state)) yield _f(_a1, _a2)
-  def ground(state: State): Term[R] = (f.eval(state), a1.eval(state), a2.eval(state)) match {
-    case (Some(_f), Some(_a1), Some(_a2)) => Constant(_f(_a1, _a2))
-    case (_f, _a1, _a2) => FunApp2(reduce(f, _f), reduce(a1, _a1), reduce(a2, _a2))
-  }
+  def genericCreate(p: Seq[Term[Any]]) = FunApp2(p(0), p(1), p(2))
+  def genericFunAppEval(f: (A1, A2) => R, args: Seq[Any]) = f(args(0), args(1))
 }
 
 
-class UniqueVar[T](name: String, val domain:Seq[T]) extends Variable[T] with Term[T] {
+class UniqueVar[+T](name: String, val domain: Seq[T]) extends Variable[T] with Term[T] {
   override def toString = name
 }
 
-case class Dom[T](name: Symbol, values: Seq[T]) extends Builder1[UniqueVar[T], Nothing] {
+case class Dom[+T](name: Symbol, values: Seq[T]) extends Builder1[UniqueVar[T], Nothing] {
   private var count = 0
   def newName() = {count += 1; "x" + count}
-  def argument = new UniqueVar[T](newName(),values)
+  def argument = new UniqueVar[T](newName(), values)
   def built = sys.error("empty")
   override def toString = name.toString()
 
@@ -73,9 +84,14 @@ case class Dom[T](name: Symbol, values: Seq[T]) extends Builder1[UniqueVar[T], N
 
 }
 
-case class TupleTerm2[T1, T2](arg1: Term[T1], arg2: Term[T2]) extends Term[(T1, T2)] {
-  def eval(state: State) = for (_a1 <- arg1.eval(state); _a2 <- arg2.eval(state)) yield (_a1, _a2)
-  def variables = (arg1.variables ++ arg2.variables).toSet
+case class TupleTerm2[T1, T2](arg1: Term[T1], arg2: Term[T2]) extends Composite[(T1, T2), TupleTerm2[T1, T2]] {
+
+  import Caster._
+
+  def parts = Seq(arg1, arg2)
+  def genericCreate(p: Seq[Term[Any]]) = TupleTerm2(p(0), p(1))
+  def genericEval(p: Seq[Any]) = (p(0), p(1))
+
 }
 
 object LogicPlayground {
@@ -97,18 +113,41 @@ object LogicPlayground {
   //    def variables = (f.variables ++ a1.variables ++ a2.variables ++ a3.variables).toSet.toSeq
   //  }
 
-  case class GroundAtom1[A1, R](name: Symbol, a1: A1, domain:Seq[R]) extends Variable[R]
-  case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Dom('bools, Seq(true, false)))
-    extends FunTerm1[A1, R] {
-    def mapping(a1: A1) = GroundAtom1(name, a1, range.values)
-    def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
-    def variables = dom1.values.map(mapping(_))
+  trait GroundAtom[R] extends Variable[R] {
+    def range: Dom[R]
+    def domain = range.values
+  }
+
+  case class GroundAtom1[A1, R](name: Symbol, a1: A1, range: Dom[R]) extends GroundAtom[R]
+  case class GroundAtom2[A1, A2, R](name: Symbol, a1: A1, a2: A2, range: Dom[R]) extends GroundAtom[R]
+
+
+  trait Pred[F, R] extends Term[F] {
+    def genericMapping(args: Seq[Any]): Variable[R]
+    def name: Symbol
+    def domains: Seq[Dom[Any]]
+    def variables = StreamUtil.allTuples(domains.map(_.values)).map(genericMapping(_))
     override def toString = name.toString()
+    def c[T](t: Any) = t.asInstanceOf[T]
   }
-  case class Pred2[A1, A2, R](dom1: Seq[A1], dom2: Seq[A2], range: Seq[R], mapping: (A1, A2) => Variable[R]) extends Term[(A1, A2) => R] {
+  case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Bools)
+    extends FunTerm1[A1, R] with Pred[A1 => R, R] {
+
+    def domains = Seq(dom1)
+    def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)))
+    def mapping(a1: A1) = GroundAtom1(name, a1, range)
+    def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
+  }
+
+  case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: Dom[R] = Bools)
+    extends FunTerm2[A1, A2, R] with Pred[(A1, A2) => R, R] {
+
+    def domains = Seq(dom1, dom2)
+    def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)), c[A2](args(1)))
+    def mapping(a1: A1, a2: A2) = GroundAtom2(name, a1, a2, range)
     def eval(state: State) = Some((a1: A1, a2: A2) => state(mapping(a1, a2)))
-    def variables = Seq.empty //todo
   }
+
 
   def simplify[T](term: Term[T]): Term[T] = {
     term match {
@@ -144,10 +183,24 @@ object LogicPlayground {
 
   case class Forall(variables: Seq[Variable[Any]], term: Term[Boolean]) extends Term[Boolean] {
     //todo: generate all states
-    def eval(state: State) = None
+    def eval(state: State) = {
+      val results = State.allStates(variables).map(term.eval(_))
+      if (results.exists(_.isEmpty)) None else Some(results.forall(_.get))
+    }
   }
+
   def forall(builder: BuilderN[Variable[Any], Term[Boolean]]) = {
     Forall(builder.arguments, builder.built)
+  }
+
+  case class Dot(variables: Seq[Variable[Any]], term: Term[Double]) extends Term[Double] {
+    //todo: evaluate for each state to get a real vector, then dot product with weights
+    //todo: feat = (value1,value2,..)
+    def eval(state: State) = null
+  }
+
+  def dot(builder: BuilderN[Variable[Any], Term[Double]]) = {
+    null
   }
 
   //  implicit def toTT2[T1, T2](pair: (Term[T1], Term[T2])) = TupleTerm2(pair._1, pair._2)
@@ -155,6 +208,7 @@ object LogicPlayground {
   implicit def symbolToPredBuilder(name: Symbol) = {
     new AnyRef {
       def :=[T, R](doms: (Dom[T], Dom[R])) = Pred1(name, doms._1, doms._2)
+      def :=[A1,A2,R](doms:((Dom[A1],Dom[A2]),Dom[R])) = Pred2(name, doms._1._1, doms._1._2, doms._2)
     }
   }
 
@@ -195,10 +249,13 @@ object LogicPlayground {
     val persons = Dom('persons, Range(0, 10))
     val smokes = Pred1('smokes, persons, bools)
     val cancer = 'cancer := persons -> bools
+    val friends = 'friends := (persons,persons) -> bools
     val test3 = forall {for (x <- persons) yield smokes(x)}
     println(test3)
     println(forall {for (x <- persons) yield And(cancer(x), smokes(x))})
     println(forall {for (x <- persons) yield cancer(x) && smokes(x)})
+    println(forall {for (x <- persons) yield forall {for (y <- persons) yield cancer(x) && smokes(y)}})
+    println(forall {for (x <- persons; y <- persons) yield friends(x,y)})
 
   }
 }
