@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl
 
-import logic.{Substitution, Term}
+import logic.{Bool, Substitution, Term}
 
 
 /**
@@ -28,7 +28,7 @@ trait Variable[+V] extends Term[V] {
 }
 
 trait BoolVariable extends Variable[Boolean] {
-  def domain = Seq(true, false)
+  def domain = Bool.values
 }
 
 

@@ -59,7 +59,7 @@ class ParameterVector {
   }
 
   def stringRep(prefix: String = "") = {
-    _values.map({
+    _values.toSeq.sortBy(-_._2).map({
       case (key, value) => "%s%-30s: %6.2f".format(prefix, key, value)
     }).mkString("\n")
   }

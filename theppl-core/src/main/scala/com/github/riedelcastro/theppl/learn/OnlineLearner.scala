@@ -51,9 +51,14 @@ trait PerceptronUpdate extends UpdateRule {
 
 }
 
-trait Learner extends Module {
+trait Supervisor {
+  this: Module =>
+  def target(model: ModelType): State
+
+}
+
+trait Learner extends Module with Supervisor {
   def train(instances: Seq[Context])
-  def target(model:ModelType):State
 }
 
 class Corpus(val module: Module)
@@ -62,10 +67,10 @@ case class Instance[C](context: C, gold: State, observation: State = State.empty
 
 }
 
-trait Instance2[C,M<:Model] {
+trait Instance2[C, M <: Model] {
   def context: C
-  def observation:State
-  def gold(model:Model):State
+  def observation: State
+  def gold(model: Model): State
 }
 
 

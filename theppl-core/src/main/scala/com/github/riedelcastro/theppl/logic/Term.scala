@@ -188,6 +188,9 @@ case class SeqTerm[T](args:Seq[Term[T]]) extends Composite[Seq[T], SeqTerm[T]] {
   override def toString = args.mkString("[",",","]")
 }
 
+object Bool extends Dom('bools, Seq(false, true))
+
+
 object LogicPlayground {
 
 
@@ -310,6 +313,7 @@ object LogicPlayground {
   def reduce[T](term:Term[T]):Term[T] = {
     term match {
       case FunApp1(pred@Pred1(_,_,_),Constant(a1)) => pred.mapping(a1)
+      case FunApp2(pred@Pred2(_,_,_,_),Constant(a1),Constant(a2)) => pred.mapping(a1,a2)
       case c:Composite[_,_] => 
         val parts = c.parts.map(reduce(_))
         val constants = parts.collect({case Constant(x) => x})
@@ -362,7 +366,6 @@ object LogicPlayground {
   }
 
 
-  object Bool extends Dom('bools, Seq(false, true))
 
 
   def main(args: Array[String]) {
