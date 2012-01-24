@@ -8,7 +8,7 @@ import com.github.riedelcastro.theppl.{Model, State, Module, LinearModule}
  * weights after processing each instance.
  * @author sriedel
  */
-trait OnlineLearner extends LinearModule with Learner {
+trait OnlineLearner[-Context] extends LinearModule[Context] with Learner[Context] {
   self: UpdateRule =>
 
   var epochs: Int = 2
@@ -31,7 +31,7 @@ trait OnlineLearner extends LinearModule with Learner {
  * the gold data are used to update the weights.
  */
 trait UpdateRule {
-  this: OnlineLearner =>
+  this: OnlineLearner[Nothing] =>
   def updateRule(model: ModelType, gold: State, guess: State)
 }
 
@@ -39,7 +39,7 @@ trait UpdateRule {
  * The PerceptronUpdate simply adds the feature delta of gold and guess.
  */
 trait PerceptronUpdate extends UpdateRule {
-  this: OnlineLearner =>
+  this: OnlineLearner[Nothing] =>
 
   var learningRate = 1.0
 
@@ -51,26 +51,12 @@ trait PerceptronUpdate extends UpdateRule {
 
 }
 
-trait Supervisor {
-  this: Module =>
+trait Supervisor[-Context] {
+  this: Module[Context] =>
   def target(model: ModelType): State
 
 }
 
-trait Learner extends Module with Supervisor {
+trait Learner[-Context] extends Module[Context] with Supervisor[Context] {
   def train(instances: Seq[Context])
 }
-
-class Corpus(val module: Module)
-
-case class Instance[C](context: C, gold: State, observation: State = State.empty) {
-
-}
-
-trait Instance2[C, M <: Model] {
-  def context: C
-  def observation: State
-  def gold(model: Model): State
-}
-
-

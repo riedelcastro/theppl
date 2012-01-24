@@ -15,13 +15,12 @@ class ClassifierSpec extends Spec with MustMatchers {
       case class Var(index: Int) extends Variable[Int] {
         def domain = Seq(1,2)
       }
-      trait TestClassifier extends Classifier {
-        type Context = Int
+      trait TestClassifier extends Classifier[Int] {
         type LabelType = Int
         type LabelVariableType = Var
         def labelFeatures(label: LabelType) = vector(label)
-        def contextFeatures(context: Context) = vector(context)
-        def variable(context: Context) = Var(context)
+        def contextFeatures(context: Int) = vector(context)
+        def variable(context: Int) = Var(context)
       }
       val classifier = new TestClassifier {}
       val copy = new TestClassifier {}

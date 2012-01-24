@@ -8,7 +8,7 @@ import com.github.riedelcastro.theppl.{Feat, HierarchicalParameterVector, Messag
 /**
  * @author sriedel
  */
-trait MaxentLearner extends LinearModule with Learner with HasLogger {
+trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context] with HasLogger {
 
   var iterations = 10
 

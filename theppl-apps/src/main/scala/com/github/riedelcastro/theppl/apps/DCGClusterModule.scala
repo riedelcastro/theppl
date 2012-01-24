@@ -8,12 +8,12 @@ import com.github.riedelcastro.theppl.{Model, State, Variable, Module}
  * A clustering module that uses delayed column generation for inference
  * @author sriedel
  */
-trait DCGClusterModule extends Module {
+trait DCGClusterModule[Context] extends Module[Context] {
   thisModule =>
 
   type Instance
   type ModelType <: DCGClusterModel with Model { type Instance = thisModule.Instance}
-  type SlaveModule <: Module { type Context = thisModule.Context }
+  type SlaveModule <: Module[Context]
   def slaveModule:SlaveModule
 
 }

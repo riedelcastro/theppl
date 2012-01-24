@@ -7,7 +7,7 @@ import Imports._
 /**
  * @author sriedel
  */
-trait LocalClassifier extends LinearLeafModule {
+trait LocalClassifier[Context] extends LinearLeafModule[Context] {
   module =>
   type LabelType
   type LabelVariableType <: Variable[LabelType]
@@ -39,7 +39,7 @@ trait LocalClassifier extends LinearLeafModule {
 
 }
 
-trait Classifier extends LocalClassifier {
+trait Classifier[Context] extends LocalClassifier[Context] {
   self =>
 
   type ModelType = DefaultLocalModel

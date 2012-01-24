@@ -5,14 +5,22 @@ import com.github.riedelcastro.theppl._
 /**
  * @author sriedel
  */
-trait Evaluator {
-  val module: Module with Supervisor
+trait Evaluator[Context] {
+  val module: Module[Context] with Supervisor[Context]
 
   var fn = 0
   var tp = 0
   var fp = 0
   var tn = 0
   var numInstances = 0
+
+  def reset() {
+    fn = 0
+    tp = 0
+    fp = 0
+    tn = 0
+    numInstances = 0
+  }
 
   def total = fn + fp + tn + tp
   def totalGold = fn + tp
@@ -29,7 +37,8 @@ trait Evaluator {
     math.sqrt((tp.toDouble + fp) * (tp.toDouble + fn) * (tn.toDouble + fp) * (tn.toDouble + fn)))
 
 
-  def evaluate(instances: Seq[module.Context]) {
+  def evaluate(instances: Seq[Context]) {
+    reset()
     for (instance <- instances) {
       val model = module.model(instance)
       val gold = module.target(model)

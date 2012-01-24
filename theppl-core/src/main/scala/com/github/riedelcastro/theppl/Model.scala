@@ -1,12 +1,12 @@
 package com.github.riedelcastro.theppl
 
-import util.StreamUtil
+import logic.Term
 
 
 /**
  * A Model is a scoring function s(Y=y) over a set of variables Y.
  */
-trait Model {
+trait Model extends Term[Double]{
   thisModel =>
 
   /**
@@ -19,6 +19,8 @@ trait Model {
    */
   def score(state: State): Double
 
+  
+  
   /**
    * Returns the assignment to hidden variables of this model that maximizes the score,
    * with added penalties on the variables.
@@ -53,6 +55,9 @@ trait Model {
     def marginalize(penalties: Message) = thisModel.marginalize(penalties)
     def self = thisModel
   }
+
+  def variables = hidden
+  def eval(state: State) = Some(score(state))
 }
 
 /**

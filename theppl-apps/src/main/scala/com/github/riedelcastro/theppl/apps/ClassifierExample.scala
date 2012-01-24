@@ -3,10 +3,10 @@ package com.github.riedelcastro.theppl.apps
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.util.Util
 import io.Source
-import learn.{Learner, Instance, PerceptronUpdate, OnlineLearner}
+import learn.{Learner, PerceptronUpdate, OnlineLearner}
 import ParameterVector._
 import Imports._
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import java.io.ByteArrayOutputStream
 
 /**
  * @author sriedel
@@ -28,7 +28,7 @@ object ClassifierExample {
       Token(index, word, tag, chunk)
     val lifted = tokens.lift
 
-    val classifier = new Classifier with OnlineLearner with PerceptronUpdate with Evaluator {
+    val classifier = new Classifier[Token] with OnlineLearner[Token] with PerceptronUpdate with Evaluator[Token] {
       type Context = Token
       type LabelType = String
       type LabelVariableType = ChunkVar
@@ -62,7 +62,7 @@ object ClassifierExample {
 
 }
 
-trait Evaluator extends Learner {
+trait Evaluator[Context] extends Learner[Context] {
   def evaluate[C](instances: Seq[Context]) = {
     var totalLoss = 0.0
     var count = 0

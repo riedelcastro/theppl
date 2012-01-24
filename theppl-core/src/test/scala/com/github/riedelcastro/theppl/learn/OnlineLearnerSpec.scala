@@ -17,7 +17,7 @@ class OnlineLearnerSpec extends Spec with MustMatchers {
       val data1 = Data(0, true)
       val data2 = Data(1, false)
       val tokens = Seq(data1,data2)
-      trait TestClassifier extends Classifier with OnlineLearner with PerceptronUpdate{
+      trait TestClassifier extends Classifier[Data] with OnlineLearner[Data] with PerceptronUpdate{
         type Context = Data
         type LabelType = Boolean
         type LabelVariableType = LabelVar

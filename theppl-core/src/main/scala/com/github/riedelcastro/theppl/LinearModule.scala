@@ -9,20 +9,17 @@ import collection.mutable.HashMap
  *
  * @author sriedel
  */
-trait LinearModule extends Module {
+trait LinearModule[-Context] extends Module[Context] {
   thisModule =>
 
-  type ModelType <: LinearModule#LinearModel
+  type ModelType <: LinearModule[Context]#LinearModel
 
   def weights: HierarchicalParameterVector
 
-  trait LinearModel extends com.github.riedelcastro.theppl.LinearModel with Model {
+  trait LinearModel extends com.github.riedelcastro.theppl.LinearModel  {
     def weights = thisModule.weights
   }
 
-  class decorated extends super.decorated with LinearModule {
-    def weights = thisModule.weights
-  }
 }
 
 /**
@@ -77,7 +74,7 @@ trait BruteForceExpectationCalculator extends FiniteSupportModel with LinearMode
 /**
  * A LinearModule that has no child modules.
  */
-trait LinearLeafModule extends LinearModule with SerializableModule {
+trait LinearLeafModule[Context] extends LinearModule[Context] with SerializableModule[Context] {
   def load(in: InputStream) {
     weights(Seq.empty) = new ParameterVector()
     weights.params(Seq.empty).load(in)

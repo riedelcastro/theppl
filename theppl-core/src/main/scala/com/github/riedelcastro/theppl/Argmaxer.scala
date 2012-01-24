@@ -11,7 +11,7 @@ trait Argmaxer {
 
 }
 
-trait ArgmaxRecipe[ModelType <: Model] {
+trait ArgmaxRecipe[-ModelType <: Model] {
   def argmaxer(model: ModelType, cookbook: ArgmaxRecipe[Model] = ArgmaxCookbook): Argmaxer
 }
 
@@ -32,12 +32,11 @@ object ArgmaxCookbook extends ArgmaxRecipe[Model] {
 
 object BFRecipe extends ArgmaxRecipe[FiniteSupportModel] {
   def argmaxer(m: FiniteSupportModel, cookbook: ArgmaxRecipe[Model]) =
-    cookbook.argmaxer(m,cookbook)
-    //new BFArgmaxer {val model = m}
+    new BFArgmaxer {val model = m}
 }
 
 object ArgmaxImpossible extends ArgmaxRecipe[Model] {
-  def argmaxer(model: Model, cookbook: ArgmaxRecipe[Model]) = sys.error("Inference not possible")
+  def argmaxer(model: Model, cookbook: ArgmaxRecipe[Model]) = sys.error("Argmax impossible")
 }
 
 

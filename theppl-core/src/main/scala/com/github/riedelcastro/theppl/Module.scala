@@ -6,41 +6,23 @@ import java.io.{InputStream, OutputStream}
 /**
  * A module creates models based on a context and observation. Think of it as a parametrized
  * scoring function s_i(y_i;x_i) where i is the context, and x the observation.
+ * The context is an object that (a) parametrizes the scoring function, and (b)
+ * determines which hidden (c) determines which hidden and observed
+ * variables the scoring function is defined over. For example, for
+ * a PoS tagger the context could be a sentence object, and this would define
+ * PoS tag variables as hidden and word form variables as observed variables.
+ * A crucial difference to observations is that contexts can be arbitrary
+ * application objects and don't have to be assignments to variables.
  * @author sriedel
  */
-trait Module {
+trait Module[-Context] {
   thisModule =>
 
-  /**
-   * The context is an object that (a) parametrizes the scoring function, and (b)
-   * determines which hidden (c) determines which hidden and observed
-   * variables the scoring function is defined over. For example, for
-   * a PoS tagger the context could be a sentence object, and this would define
-   * PoS tag variables as hidden and word form variables as observed variables.
-   * A crucial difference to observations is that contexts can be arbitrary
-   * application objects and don't have to be assignments to variables.
-   */
-  type Context
-
-  type ModelType <: Module#Model
+  type ModelType <: Model
 
   /**
-   * A model defines a potential/scoring function over a set
-   * of variables.
-   */
-  trait Model extends com.github.riedelcastro.theppl.Model { thisModel =>
-
-    def context: Context
-
-    class decorated extends super.decorated with Model {
-      def context = thisModel.context
-    }
-    
-  }
-
-  /**
-   * For a given context i, and observation x, this method creates
-   * a model s_i(y;x).
+   * For a given context i this method creates
+   * a model s_i(y).
    */
   def model(context: Context): ModelType
 
@@ -54,43 +36,13 @@ trait Module {
    */
   override def toString = name
 
-  /**
-   * This class can be instantiated to create proxy objects which can
-   * have other traits mixed-in. Eg., you can write "new module.decorated with Learner".
-   */
-  class decorated extends Module {
-    type Context = thisModule.Context
-    type ModelType = thisModule.ModelType
 
-    def model(context: Context) = thisModule.model(context)
-
-  }
-
-
-
-}
-
-trait ProfilerModule extends Module {
-
-  type ModelType = ProfiledModel
-
-  trait ProfiledModel extends Model {
-
-    abstract override def argmax(penalties: Message) = {
-      super.argmax(penalties)
-    }
-  }
-
-  abstract override def model(context: Context) = {
-    val m = super.model(context)
-    new m.decorated with ProfiledModel
-  }
 }
 
 /**
  * A module that can be stored to and loaded from output and input streams, respectively.
  */
-trait SerializableModule extends Module {
+trait SerializableModule[Context] extends Module[Context] {
   /**
    * Serialize this module.
    */
@@ -103,20 +55,6 @@ trait SerializableModule extends Module {
 
 }
 
-/**
- * A model that scores a single variable in isolation.
- */
-trait LocalModule extends Module {
-  type Label
-  type Hidden <: Variable[Label]
-  type ModelType <: LocalModel
 
-  trait LocalModel extends Model {
-    def variable: Hidden
-    def hidden = Seq(variable)
-    def domain: Seq[Label]
-  }
-
-}
 
 
