@@ -9,7 +9,7 @@ import math._
 trait Expectator {
 
   def model: Model
-  def expectations(penalties: Messages): Expectations
+  def expectations(penalties: Messages = Messages.empty): Expectations
 
 }
 

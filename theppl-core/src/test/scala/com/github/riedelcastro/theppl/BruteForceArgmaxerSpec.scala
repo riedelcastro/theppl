@@ -85,7 +85,7 @@ class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
 }
 
 class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExampleModels {
-  describe("A BruteForceExpectationCalculator") {
+  describe("A BruteForceExpectator") {
     it("should calculate exact expectations in linear models") {
       val model = new ExampleModel(2, 2)
         with LinearScore with BruteForceArgmaxer

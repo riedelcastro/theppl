@@ -48,7 +48,7 @@ trait Classifier[Context] extends LocalClassifier[Context] {
   def variable(context: Context): LabelVariableType
 
   class DefaultLocalModel(val context: Context)
-    extends LocalModel with BruteForceExpectationCalculator {
+    extends LocalModel {
     val labelVariable = self.variable(context)
     val contextFeatures = self.contextFeatures(context)
     def labelFeatures(label: LabelType) = self.labelFeatures(label)

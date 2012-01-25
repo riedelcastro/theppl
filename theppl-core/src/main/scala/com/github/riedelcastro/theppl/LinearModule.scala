@@ -53,32 +53,6 @@ trait Expectations extends MarginalizeResult {
   def featureExpectations:ParameterVector
 }
 
-trait BruteForceExpectationCalculator extends FiniteSupportModel with LinearModel {
-  def expectations(penalties: Messages) = {
-
-    val masses = new HashMap[(Variable[Any],Any),Double] {
-      override def default(key: (Variable[Any], Any)) = 0.0
-    }
-    val featExp = new ParameterVector()
-    var total = 0.0
-    for (state <- allStates) {
-      val mass = math.exp(penalizedScore(penalties,state))
-      for (v <- hidden) masses(v -> state(v)) = masses(v -> state(v)) + mass
-      total += mass
-      featExp.add(features(state), mass)
-    }
-    featExp.scale( 1.0 / total)
-    new Expectations {
-      lazy val logMarginals = Messages.fromMap(masses.map(x => x._1 -> (log(x._2)- log(total))))
-      lazy val logZ = math.log(total)
-      lazy val featureExpectations = featExp
-    }
-
-  }
-}
-
-
-
 /**
  * A LinearModule that has no child modules.
  */

@@ -36,7 +36,8 @@ class MaxentLearnerSpec extends ThePPLSpec {
       for (i <- tokens; model = classifier.model(i)) {
         val goldState = classifier.target(model)
         val gold = model.features(goldState)
-        val guess = model.expectations(Messages.empty).featureExpectations
+        val expectator = classifier.expectator(model)
+        val guess = expectator.expectations().featureExpectations
         delta.add(gold, 1.0)
         delta.add(guess, -1.0)
       }
