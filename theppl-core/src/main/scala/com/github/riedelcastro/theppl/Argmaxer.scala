@@ -20,12 +20,12 @@ object ArgmaxCookbook extends ArgmaxRecipe[Model] {
 
   def argmaxer(model: Model, cookbook: ArgmaxRecipe[Model]) = {
     model match {
-      case f:FiniteSupportModel => BFRecipe.argmaxer(f,cookbook)
-      case _ => ArgmaxImpossible.argmaxer(model,cookbook)
+      case f: FiniteSupportModel => BFRecipe.argmaxer(f, cookbook)
+      case _ => ArgmaxImpossible.argmaxer(model, cookbook)
     }
   }
   def apply(m: Model) = m match {
-    case f:FiniteSupportModel => BFRecipe
+    case f: FiniteSupportModel => BFRecipe
     case _ => ArgmaxImpossible
   }
 }

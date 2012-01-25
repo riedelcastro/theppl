@@ -19,19 +19,11 @@ trait Model extends Term[Double]{
    */
   def score(state: State): Double
 
-  
-  
   /**
    * Returns the assignment to hidden variables of this model that maximizes the score,
    * with added penalties on the variables.
    */
   def argmax(penalties: Messages): ArgmaxResult
-
-  /**
-   * Returns marginal probabilities of all hidden variables, with penalties
-   * added as local factors.
-   */
-  def marginalize(penalties: Messages): MarginalizeResult
 
   /**
    * Convenience method for when no incoming message is needed.
@@ -52,7 +44,6 @@ trait Model extends Term[Double]{
     def hidden = thisModel.hidden
     def score(state: State) = thisModel.score(state)
     def argmax(penalties: Messages) = thisModel.argmax(penalties)
-    def marginalize(penalties: Messages) = thisModel.marginalize(penalties)
     def self = thisModel
   }
 

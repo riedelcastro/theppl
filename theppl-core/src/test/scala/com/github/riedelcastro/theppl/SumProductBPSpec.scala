@@ -22,12 +22,10 @@ class SumProductBPSpec extends ThePPLSpec {
         def features(state: State) = new ParameterVector(Feat(state(x), state(y)))
         def hidden = IndexedSeq(x, y)
         def argmax(penalties: Messages) = null
-        def expectations(penalties: Messages) = null
-        def marginalize(penalties: Messages) = null
         val weights = new ParameterVector()
         override def toString = (x,y).toString()
       }
-      val AB = new EdgePotential(A, B) with HiddenParameters
+      val AB = new EdgePotential(A, B)
       val BC = new EdgePotential(B, C)
       val BD = new EdgePotential(B, D)
       AB.weights(Feat('x1, 'x1)) = 1.0
@@ -39,8 +37,6 @@ class SumProductBPSpec extends ThePPLSpec {
         type ArgType = EdgePotential
         def args = IndexedSeq(AB, BC, BD)
         def argmax(penalties: Messages) = null
-        def expectations(penalties: Messages) = null
-        def marginalize(penalties: Messages) = null
         def weights = null
       }
 

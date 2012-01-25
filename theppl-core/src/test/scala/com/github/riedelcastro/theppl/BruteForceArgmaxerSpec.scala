@@ -88,10 +88,11 @@ class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExampleModels 
   describe("A BruteForceExpectationCalculator") {
     it("should calculate exact expectations in linear models") {
       val model = new ExampleModel(2, 2)
-        with LinearScore with BruteForceMarginalizer with BruteForceArgmaxer with BruteForceExpectationCalculator
+        with LinearScore with BruteForceArgmaxer
       import model._
       val message = exampleMessage(1, -1)
-      val result = model.expectations(message)
+      val expectator = BruteForceExpectator.expectator(model)
+      val result = expectator.expectations(message)
       val Z = exp(1) + exp(1) + exp(-1) + exp(-1)
 
       result.logZ must be(log(Z) plusOrMinus eps)

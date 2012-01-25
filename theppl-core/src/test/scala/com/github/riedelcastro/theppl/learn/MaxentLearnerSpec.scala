@@ -17,7 +17,7 @@ class MaxentLearnerSpec extends ThePPLSpec {
       val data1 = Data(0, true)
       val data2 = Data(1, false)
       val tokens = Seq(data1, data2)
-      trait TestClassifier extends Classifier[Data] with MaxentLearner[Data] {
+      class TestClassifier extends Classifier[Data] with MaxentLearner[Data] {
         type Context = Data
         type LabelType = Boolean
         type LabelVariableType = LabelVar
@@ -26,8 +26,9 @@ class MaxentLearnerSpec extends ThePPLSpec {
         def labelFeatures(label: LabelType) = vector(label)
         def contextFeatures(context: Context) = vector(context.x)
         def target(model: ModelType) = model.labelVariable -> model.labelVariable.data.y
+        def expectator(model: ModelType) = Expectator(model)
       }
-      val classifier = new TestClassifier {}
+      val classifier = new TestClassifier
       classifier.train(tokens)
 
       val delta = new ParameterVector()
