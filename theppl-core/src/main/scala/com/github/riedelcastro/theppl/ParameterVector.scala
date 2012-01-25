@@ -16,6 +16,10 @@ class ParameterVector {
     for (key <- keys) _values(key) = 1.0
   }
 
+  def this(keys: Feat*) = {
+    this (keys.toIterable)
+  }
+
   private val _values = new HashMap[Feat, Double] {
     override def default(key: Feat) = 0.0
   }

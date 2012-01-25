@@ -7,7 +7,7 @@ package com.github.riedelcastro.theppl
 trait SumModel extends Model {
 
   def args: Iterable[Model]
-
+  def hidden = args.flatMap(_.hidden).toSet.toIndexedSeq
   def score(state: State) = args.map(_.score(state)).sum
 }
 

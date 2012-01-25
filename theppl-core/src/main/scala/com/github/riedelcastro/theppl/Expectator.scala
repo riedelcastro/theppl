@@ -13,14 +13,14 @@ trait Expectator {
 }
 
 trait ExpectatorRecipe[-M <: Model] {
-  def expectator(model: M, cookbook: ExpectatorRecipe[Model]): Expectator
+  def expectator(model: M, cookbook: ExpectatorRecipe[Model] = DefaultExpectators): Expectator
 }
 
 object Expectator {
-  def apply(model: Model, cookbook: ExpectatorRecipe[Model] = DefaultExpectator) = cookbook.expectator(model, cookbook)
+  def apply(model: Model, cookbook: ExpectatorRecipe[Model] = DefaultExpectators) = cookbook.expectator(model, cookbook)
 }
 
-object DefaultExpectator extends ExpectatorRecipe[Model] {
+object DefaultExpectators extends ExpectatorRecipe[Model] {
   def expectator(model: Model, cookbook: ExpectatorRecipe[Model]) = model match {
     case s: SumModel with LinearModel => SumProductBPRecipe.expectator(s,cookbook)
     case f: FiniteSupportModel with LinearModel => new BFExpectator {def model = f}
@@ -28,6 +28,11 @@ object DefaultExpectator extends ExpectatorRecipe[Model] {
   }
 }
 
+object BruteForceExpectator extends ExpectatorRecipe[FiniteSupportModel with LinearModel] {
+  def expectator(fm: FiniteSupportModel with LinearModel, cookbook: ExpectatorRecipe[Model]) = new BFExpectator {
+    def model = fm
+  }
+}
 trait BFExpectator extends Expectator {
   def model: FiniteSupportModel with LinearModel
   def expectations(penalties: Messages) = {

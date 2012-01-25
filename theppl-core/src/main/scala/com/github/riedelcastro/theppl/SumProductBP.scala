@@ -58,7 +58,7 @@ trait SumProductBP extends Expectator {
 }
 
 object SumProductBPRecipe extends ExpectatorRecipe[SumModel] {
-  def expectator(m: SumModel, cookbook: ExpectatorRecipe[Model] = DefaultExpectator) = {
+  def expectator(m: SumModel, cookbook: ExpectatorRecipe[Model] = DefaultExpectators) = {
     val factorGraph = new MessagePassingFactorGraph {
       def expectator(model: Model) = cookbook.expectator(model, cookbook)
     }
