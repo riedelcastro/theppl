@@ -5,10 +5,26 @@ package com.github.riedelcastro.theppl
  * @author sriedel
  */
 trait SumModel extends Model {
-  type ArgType <: Model
 
-  def args: Iterable[ArgType]
+  def args: Iterable[Model]
 
   def score(state: State) = args.map(_.score(state)).sum
 }
 
+trait LinearSumModel extends SumModel with LinearModel {
+
+  def linearArgs:Iterable[LinearModel]
+  def opaqueArgs:Iterable[Model]
+  def args = linearArgs ++ opaqueArgs
+
+  override def score(state: State) = {
+    super[SumModel].score(state)
+  }
+  def features(state: State) = {
+    val result = new ParameterVector()
+    for (arg <- linearArgs) result.add(arg.features(state),1.0)
+    result
+  }
+  def marginalize(penalties: Messages) = null
+  def expectations(penalties: Messages) = null
+}
