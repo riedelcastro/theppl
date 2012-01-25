@@ -41,7 +41,7 @@ trait SumProductBP extends Expectator {
         msgF2Vs(factor)
       }
     }
-    val expectations = new HierarchicalParameterVector()
+    val expectations = new ParameterVector
     for (factor <- fg.factors) {
       expectations.add(factor.expectator.expectations(incomingMessages(factor)).featureExpectations, 1.0)
     }

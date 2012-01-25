@@ -15,7 +15,7 @@ trait LinearModule[-Context] extends Module[Context] {
 
   type ModelType <: LinearModule[Context]#LinearModel
 
-  def weights: HierarchicalParameterVector
+  def weights: ParameterVector
 
   trait LinearModel extends com.github.riedelcastro.theppl.LinearModel  {
     def weights = thisModule.weights
@@ -28,8 +28,8 @@ trait LinearModule[-Context] extends Module[Context] {
  * taking the dot product of a weight vector and a feature representation of the state.
  */
 trait LinearModel extends Model {
-  def weights: HierarchicalParameterVector
-  def features(state: State): HierarchicalParameterVector
+  def weights: ParameterVector
+  def features(state: State): ParameterVector
   def featureDelta(gold: State, guess: State) = {
     val result = features(gold)
     result.add(features(guess), -1.0)
@@ -43,7 +43,7 @@ trait LinearModel extends Model {
  * The result of marginalizing a linear model also contains expectations of the features/sufficient statistics.
  */
 trait Expectations extends MarginalizeResult {
-  def featureExpectations:HierarchicalParameterVector
+  def featureExpectations:ParameterVector
 }
 
 trait BruteForceExpectationCalculator extends FiniteSupportModel with LinearModel {
@@ -52,7 +52,7 @@ trait BruteForceExpectationCalculator extends FiniteSupportModel with LinearMode
     val masses = new HashMap[(Variable[Any],Any),Double] {
       override def default(key: (Variable[Any], Any)) = 0.0
     }
-    val featExp = new HierarchicalParameterVector()
+    val featExp = new ParameterVector()
     var total = 0.0
     for (state <- allStates) {
       val mass = math.exp(penalizedScore(penalties,state))
@@ -77,10 +77,9 @@ trait BruteForceExpectationCalculator extends FiniteSupportModel with LinearMode
  */
 trait LinearLeafModule[Context] extends LinearModule[Context] with SerializableModule[Context] {
   def load(in: InputStream) {
-    weights(Seq.empty) = new ParameterVector()
-    weights.params(Seq.empty).load(in)
+    weights.load(in)
   }
   def save(out: OutputStream) {
-    weights.params(Seq.empty).save(out)
+    weights.save(out)
   }
 }

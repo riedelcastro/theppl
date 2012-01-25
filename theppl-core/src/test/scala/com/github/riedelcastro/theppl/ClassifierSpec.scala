@@ -24,7 +24,7 @@ class ClassifierSpec extends Spec with MustMatchers {
       }
       val classifier = new TestClassifier {}
       val copy = new TestClassifier {}
-      classifier.weights(Seq.empty) = new ParameterVector(Seq(Feat(1,1)))
+      classifier.weights(Feat(1,1)) = 1.0
 
       val out = new ByteArrayOutputStream(1000)
       classifier.save(out)
@@ -32,8 +32,8 @@ class ClassifierSpec extends Spec with MustMatchers {
       val in = new ByteArrayInputStream(out.toByteArray)
       copy.load(in)
 
-      copy.weights.params(Seq.empty)(Feat(1,1)) must be (1.0 plusOrMinus 0.00001)
-      copy.weights.params(Seq.empty).size must be (1)
+      copy.weights(Feat(1,1)) must be (1.0 plusOrMinus 0.00001)
+      copy.weights.size must be (1)
 
     }
   }

@@ -31,9 +31,9 @@ trait ExampleModels {
     this: ExampleModel =>
 
     def features(state: State) =
-      new HierarchicalParameterVector(ParameterVector.fromPairIterable(hidden.map(v => v -> state(v))))
+      ParameterVector.fromPairIterable(hidden.map(v => v -> state(v)))
     def weights =
-      new HierarchicalParameterVector(ParameterVector.fromPairIterable(hidden.map(v => v -> v.index)))
+      ParameterVector.fromPairIterable(hidden.map(v => v -> v.index))
   }
 
 
@@ -96,7 +96,7 @@ class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExampleModels 
 
       result.logZ must be(log(Z) plusOrMinus eps)
 
-      val expectations = result.featureExpectations()
+      val expectations = result.featureExpectations
       expectations(Feat(V(0), 0)) must be((exp(1) + exp(1)) / Z plusOrMinus eps)
       expectations(Feat(V(0), 1)) must be((exp(-1) + exp(-1)) / Z plusOrMinus eps)
       expectations(Feat(V(1), 0)) must be((exp(1) + exp(-1)) / Z plusOrMinus eps)

@@ -30,7 +30,7 @@ class MaxentLearnerSpec extends ThePPLSpec {
       val classifier = new TestClassifier {}
       classifier.train(tokens)
 
-      val delta = new HierarchicalParameterVector()
+      val delta = new ParameterVector()
 
       for (i <- tokens; model = classifier.model(i)) {
         val goldState = classifier.target(model)
@@ -39,7 +39,7 @@ class MaxentLearnerSpec extends ThePPLSpec {
         delta.add(gold, 1.0)
         delta.add(guess, -1.0)
       }
-      for ((path,feats) <- delta.params; (_,value) <- feats.values)
+      for ((_,value) <- delta.values)
         value must be (0.0 plusOrMinus epsLarge)
 
     }

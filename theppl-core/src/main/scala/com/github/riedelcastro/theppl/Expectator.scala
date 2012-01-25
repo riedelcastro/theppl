@@ -35,7 +35,7 @@ trait BFExpectator extends Expectator {
     val masses = new HashMap[(Variable[Any], Any), Double] {
       override def default(key: (Variable[Any], Any)) = 0.0
     }
-    val featExp = new HierarchicalParameterVector()
+    val featExp = new ParameterVector()
     var total = 0.0
     for (state <- model.allStates) {
       val mass = math.exp(model.penalizedScore(penalties, state))

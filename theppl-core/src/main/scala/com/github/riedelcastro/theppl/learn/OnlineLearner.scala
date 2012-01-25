@@ -58,7 +58,7 @@ trait Supervisor {
 
 trait ExpectationSupervisor {
   this:Module[Nothing] =>
-  def targetExpectations(model:ModelType):HierarchicalParameterVector
+  def targetExpectations(model:ModelType):ParameterVector
 }
 
 trait ExpectationFromStateSupervisor extends ExpectationSupervisor with Supervisor {

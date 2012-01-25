@@ -2,7 +2,7 @@ package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl.optimize.{LimitedMemoryBFGS, Objective}
 import com.github.riedelcastro.theppl.util.HasLogger
-import com.github.riedelcastro.theppl.{Feat, HierarchicalParameterVector, Messages, LinearModule}
+import com.github.riedelcastro.theppl._
 
 
 /**
@@ -12,19 +12,19 @@ trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context]
 
   var iterations = 10
 
-  case class Mapping(forward:Map[(Seq[Any],Feat),Int],reverse:Map[Int,(Seq[Any],Feat)])
+  case class Mapping(forward:Map[Feat,Int],reverse:Map[Int,Feat])
   
   def train(instances: Seq[Context]) {
     logger.info("Creating models.")
     val models = instances.map(model(_))
 
     logger.info("Extracting gold features.")
-    val goldFeatures: Seq[HierarchicalParameterVector] = models.map(m => m.features(target(m)))
+    val goldFeatures: Seq[ParameterVector] = models.map(m => m.features(target(m)))
 
     logger.info("Counting features.")
     val qualified = for (h <- goldFeatures.view;
-                         (path, feats) <- h.params;
-                         feat <- feats.values.keys) yield (path,feat) -> 1
+                         feat <- h.values.keys) yield feat -> 1
+
     val byFeature = qualified.groupBy(_._1).mapValues(_.size)
     
     logger.info("Indexing.")
@@ -43,19 +43,19 @@ trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context]
     optimizer.optimize(iterations)
   }
 
-  case class LLInstance(instance:Context,model:ModelType,goldFeatures:HierarchicalParameterVector)
+  case class LLInstance(instance:Context,model:ModelType,goldFeatures:ParameterVector)
 
   class LLObjective(instances: Seq[LLInstance],mapping:Mapping) extends Objective {
     def domainSize = mapping.forward.size
     def calculateGradientAndObjective(parameters: Array[Double]) = {
 
       //set weights
-      for (((path,feat),index) <- mapping.forward) {
-        weights(path,feat) = parameters(index)
+      for ((feat,index) <- mapping.forward) {
+        weights(feat) = parameters(index)
       }
 
       //calculate gradient
-      val gradient = new HierarchicalParameterVector
+      val gradient = new ParameterVector
       var objective = 0.0
       for (instance <- instances) {
         val expectations = instance.model.expectations(Messages.empty)
@@ -67,8 +67,8 @@ trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context]
 
       //convert
       val arrayGradient = Array.ofDim[Double](domainSize)
-      for (((path,feat),index) <- mapping.forward) {
-        arrayGradient(index) = gradient(path,feat)
+      for ((feat,index) <- mapping.forward) {
+        arrayGradient(index) = gradient(feat)
       }
 
       GradientAndObjective(arrayGradient, objective)
