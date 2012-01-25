@@ -2,10 +2,11 @@ package com.github.riedelcastro.theppl
 
 import java.util.UUID
 import java.io.{InputStream, OutputStream}
+import logic.Term
 
 /**
  * A module creates models based on a context and observation. Think of it as a parametrized
- * scoring function s_i(y_i;x_i) where i is the context, and x the observation.
+ * scoring function s_i(y_i) where i is a context parameter.
  * The context is an object that (a) parametrizes the scoring function, and (b)
  * determines which hidden (c) determines which hidden and observed
  * variables the scoring function is defined over. For example, for
@@ -15,7 +16,7 @@ import java.io.{InputStream, OutputStream}
  * application objects and don't have to be assignments to variables.
  * @author sriedel
  */
-trait Module[-Context] {
+trait Module[-Context] extends Term[Context => Double] {
   thisModule =>
 
   type ModelType <: Model
@@ -27,16 +28,15 @@ trait Module[-Context] {
   def model(context: Context): ModelType
 
   /**
-   * The name of this module.
+   * A module is also a term that evaluates to a function from context to scores.
    */
-  val name: String = "Module(%s)".format(UUID.randomUUID.toString)
+  def eval(state: State) = Some((c: Context) => model(c).score(state))
 
   /**
-   * Returns the name of this module.
+   * A module can potentially contain infinite amounts of variables, one set for every possible context. Hence
+   * this method is generally not well defined.
    */
-  override def toString = name
-
-
+  def variables = sys.error("Potentially infinite number of variables")
 }
 
 /**

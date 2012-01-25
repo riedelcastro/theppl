@@ -6,7 +6,7 @@ import com.github.riedelcastro.theppl._
  * @author sriedel
  */
 trait Evaluator[Context] {
-  val module: Module[Context] with Supervisor[Context]
+  val module: Module[Context] with Supervisor
 
   var fn = 0
   var tp = 0

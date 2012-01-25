@@ -2,7 +2,7 @@ package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl.optimize.{LimitedMemoryBFGS, Objective}
 import com.github.riedelcastro.theppl.util.HasLogger
-import com.github.riedelcastro.theppl.{Feat, HierarchicalParameterVector, Message, LinearModule}
+import com.github.riedelcastro.theppl.{Feat, HierarchicalParameterVector, Messages, LinearModule}
 
 
 /**
@@ -58,7 +58,7 @@ trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context]
       val gradient = new HierarchicalParameterVector
       var objective = 0.0
       for (instance <- instances) {
-        val expectations = instance.model.expectations(Message.empty)
+        val expectations = instance.model.expectations(Messages.empty)
         val goldFeatures = instance.goldFeatures 
         gradient.add(goldFeatures, 1.0)
         gradient.add(expectations.featureExpectations, -1.0)

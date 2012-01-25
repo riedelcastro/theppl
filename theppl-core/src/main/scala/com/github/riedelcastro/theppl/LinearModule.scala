@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl
 
 import java.io.{OutputStream, InputStream}
 import collection.mutable.HashMap
+import math._
 
 /**
  * A LinearModule calculates its score by a dot product of
@@ -35,7 +36,7 @@ trait LinearModel extends Model {
     result
   }
   def score(state: State) = features(state) dot weights
-  def expectations(penalties: Message):Expectations
+  def expectations(penalties: Messages):Expectations
 }
 
 /**
@@ -46,7 +47,7 @@ trait Expectations extends MarginalizeResult {
 }
 
 trait BruteForceExpectationCalculator extends FiniteSupportModel with LinearModel {
-  def expectations(penalties: Message) = {
+  def expectations(penalties: Messages) = {
 
     val masses = new HashMap[(Variable[Any],Any),Double] {
       override def default(key: (Variable[Any], Any)) = 0.0
@@ -61,7 +62,7 @@ trait BruteForceExpectationCalculator extends FiniteSupportModel with LinearMode
     }
     featExp.scale( 1.0 / total)
     new Expectations {
-      lazy val marginals = Message.fromMap(masses.map(x => x._1 -> (x._2 /total)))
+      lazy val logMarginals = Messages.fromMap(masses.map(x => x._1 -> (log(x._2)- log(total))))
       lazy val logZ = math.log(total)
       lazy val featureExpectations = featExp
     }

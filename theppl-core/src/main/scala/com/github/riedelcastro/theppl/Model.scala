@@ -25,23 +25,23 @@ trait Model extends Term[Double]{
    * Returns the assignment to hidden variables of this model that maximizes the score,
    * with added penalties on the variables.
    */
-  def argmax(penalties: Message): ArgmaxResult
+  def argmax(penalties: Messages): ArgmaxResult
 
   /**
    * Returns marginal probabilities of all hidden variables, with penalties
    * added as local factors.
    */
-  def marginalize(penalties: Message): MarginalizeResult
+  def marginalize(penalties: Messages): MarginalizeResult
 
   /**
    * Convenience method for when no incoming message is needed.
    */
-  def predict: State = argmax(Message.empty).state
+  def predict: State = argmax(Messages.empty).state
 
   /**
    * Convenience method to score a state with added penalties.
    */
-  def penalizedScore(penalties: Message, state: State) = {
+  def penalizedScore(penalties: Messages, state: State) = {
     score(state) + hidden.map(v => penalties.msg(v, state(v))).sum
   }
 
@@ -51,8 +51,8 @@ trait Model extends Term[Double]{
   class decorated extends Proxy.Typed[Model] with Model {
     def hidden = thisModel.hidden
     def score(state: State) = thisModel.score(state)
-    def argmax(penalties: Message) = thisModel.argmax(penalties)
-    def marginalize(penalties: Message) = thisModel.marginalize(penalties)
+    def argmax(penalties: Messages) = thisModel.argmax(penalties)
+    def marginalize(penalties: Messages) = thisModel.marginalize(penalties)
     def self = thisModel
   }
 
@@ -72,7 +72,7 @@ trait ArgmaxResult {
  * The result of an marginalize call.
  */
 trait MarginalizeResult {
-  def marginals: Message
+  def logMarginals: Messages
   def logZ: Double
 }
 

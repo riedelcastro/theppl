@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl
 
 import util.StreamUtil
 import collection.mutable.HashMap
+import math._
 
 
 /**
@@ -28,7 +29,7 @@ trait FiniteSupportModel extends Model {
  */
 trait BruteForceArgmaxer extends FiniteSupportModel {
 
-  def argmax(penalties: Message) = {
+  def argmax(penalties: Messages) = {
     val states = allStates
     def scored = states.map(state => Scored(state, penalizedScore(penalties, state)))
     val result = scored.maxBy(_.score)
@@ -43,7 +44,7 @@ trait BruteForceArgmaxer extends FiniteSupportModel {
  * Marginalizes model by exhaustively iterating over all states.
  */
 trait BruteForceMarginalizer extends FiniteSupportModel {
-  def marginalize(penalties: Message) = {
+  def marginalize(penalties: Messages) = {
     val masses = new HashMap[(Variable[Any],Any),Double] {
       override def default(key: (Variable[Any], Any)) = 0.0
     }
@@ -54,7 +55,7 @@ trait BruteForceMarginalizer extends FiniteSupportModel {
       total += mass
     }
     new MarginalizeResult {
-      lazy val marginals = Message.fromMap(masses.map(x => x._1 -> (x._2 /total)))
+      lazy val logMarginals = Messages.fromMap(masses.map(x => x._1 -> (log(x._2) - log(total))))
       lazy val logZ = math.log(total)
     }
     

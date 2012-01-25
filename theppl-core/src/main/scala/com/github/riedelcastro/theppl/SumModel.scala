@@ -4,7 +4,7 @@ package com.github.riedelcastro.theppl
  * The sum of several argument models.
  * @author sriedel
  */
-trait Sum extends Model {
+trait SumModel extends Model {
   type ArgType <: Model
 
   def args: Iterable[ArgType]

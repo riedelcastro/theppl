@@ -7,7 +7,7 @@ trait Argmaxer {
 
   val model: Model
 
-  def argmax(penalties: Message): ArgmaxResult
+  def argmax(penalties: Messages): ArgmaxResult
 
 }
 
@@ -44,7 +44,7 @@ trait BFArgmaxer extends Argmaxer {
 
   val model: FiniteSupportModel
 
-  def argmax(penalties: Message) = {
+  def argmax(penalties: Messages) = {
     val states = model.allStates
     def scored = states.map(state => Scored(state, model.penalizedScore(penalties, state)))
     val result = scored.maxBy(_.score)

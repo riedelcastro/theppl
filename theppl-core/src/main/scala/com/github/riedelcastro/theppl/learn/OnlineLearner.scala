@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl.learn
 
-import com.github.riedelcastro.theppl.{Model, State, Module, LinearModule}
+import com.github.riedelcastro.theppl._
 
 
 /**
@@ -51,12 +51,23 @@ trait PerceptronUpdate extends UpdateRule {
 
 }
 
-trait Supervisor[-Context] {
-  this: Module[Context] =>
+trait Supervisor {
+  this: Module[Nothing] =>
   def target(model: ModelType): State
-
 }
 
-trait Learner[-Context] extends Module[Context] with Supervisor[Context] {
+trait ExpectationSupervisor {
+  this:Module[Nothing] =>
+  def targetExpectations(model:ModelType):HierarchicalParameterVector
+}
+
+trait ExpectationFromStateSupervisor extends ExpectationSupervisor with Supervisor {
+  this:Module[Nothing] { type ModelType <: LinearModel } =>
+  def targetExpectations(model: ModelType) = {
+    model.features(target(model))
+  }
+}
+
+trait Learner[-Context] extends Module[Context] with Supervisor {
   def train(instances: Seq[Context])
 }

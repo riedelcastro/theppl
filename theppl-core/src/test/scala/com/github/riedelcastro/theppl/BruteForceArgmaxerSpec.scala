@@ -3,7 +3,7 @@ package com.github.riedelcastro.theppl
 import math._
 
 trait ExampleModels {
-  case class Var(index: Int, domain:Seq[Int]) extends Variable[Int]
+  case class Var(index: Int, domain: Seq[Int]) extends Variable[Int]
 
   /**
    * A model with integer variables that scores each state
@@ -12,7 +12,7 @@ trait ExampleModels {
   abstract class ExampleModel(varCount: Int = 3, domainSize: Int = 3) extends FiniteSupportModel {
     override lazy val hidden = Range(0, varCount).map(V(_))
     lazy val domain = Range(0, domainSize)
-    def V(index:Int) = Var(index,domain)
+    def V(index: Int) = Var(index, domain)
   }
 
   /**
@@ -41,8 +41,8 @@ trait ExampleModels {
    * A message that penalizes the same value for each variable.
    */
   def exampleMessage(valueToPenalize: Int = 2, penalty: Double = -10) = {
-    val message = Message.fromFunction({
-      case (Var(_,_), x) if (valueToPenalize == x) => penalty
+    val message = Messages.fromFunction({
+      case (Var(_, _), x) if (valueToPenalize == x) => penalty
       case _ => 0.0
     })
     message
@@ -71,7 +71,6 @@ class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
   describe("A BruteForceMarginalizer") {
     it("should calculate exact marginals") {
       val model = new ExampleModel(2, 2) with SumScore with BruteForceMarginalizer with BruteForceArgmaxer
-      import model._
       val message = exampleMessage(1, -1)
       val result = model.marginalize(message)
 
@@ -79,7 +78,7 @@ class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
 
       for (v <- model.hidden;
            value <- v.domain)
-        result.marginals(v, value) must be(0.5 plusOrMinus eps)
+        result.logMarginals(v, value) must be(log(0.5) plusOrMinus eps)
 
     }
   }
@@ -103,11 +102,11 @@ class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExampleModels 
       expectations(Feat(V(1), 0)) must be((exp(1) + exp(-1)) / Z plusOrMinus eps)
       expectations(Feat(V(1), 1)) must be((exp(1) + exp(-1)) / Z plusOrMinus eps)
 
-      val marginals = result.marginals
-      marginals(V(0), 0) must be((exp(1) + exp(1)) / Z plusOrMinus eps)
-      marginals(V(0), 1) must be((exp(-1) + exp(-1)) / Z plusOrMinus eps)
-      marginals(V(1), 0) must be((exp(1) + exp(-1)) / Z plusOrMinus eps)
-      marginals(V(1), 1) must be((exp(1) + exp(-1)) / Z plusOrMinus eps)
+      val marginals = result.logMarginals
+      exp(marginals(V(0), 0)) must be((exp(1) + exp(1)) / Z plusOrMinus eps)
+      exp(marginals(V(0), 1)) must be((exp(-1) + exp(-1)) / Z plusOrMinus eps)
+      exp(marginals(V(1), 0)) must be((exp(1) + exp(-1)) / Z plusOrMinus eps)
+      exp(marginals(V(1), 1)) must be((exp(1) + exp(-1)) / Z plusOrMinus eps)
 
 
     }
