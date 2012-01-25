@@ -8,6 +8,8 @@ trait SumProductBP extends Expectator {
 
   val fg: MessagePassingFactorGraph
 
+  def maxIterations:Int
+
   def incomingMessages(factor: fg.FactorType): Messages = {
     val incoming = new Messages {
       def message[V](variable: Variable[V]) =
@@ -20,20 +22,28 @@ trait SumProductBP extends Expectator {
     val incoming = incomingMessages(factor)
     val expectations = factor.expectator.expectations(incoming)
     for (edge <- factor.edges) {
-      edge.f2n = expectations.logMarginals.message(edge.node.variable)
+      edge.f2n = expectations.logMarginals.message(edge.node.variable) - edge.n2f
     }
   }
 
   def msgV2Fs(node: fg.NodeType, penalties: Messages) {
-    node.belief = penalties.message(node.variable) +
-      node.edges.map(_.f2n).foldLeft[Message[Any]](Message.empty[Any])(_ + _)
+    node.belief =
+      node.edges.map(_.f2n).foldLeft[Message[Any]](penalties.message(node.variable))(_ + _)
     for (edge <- node.edges) {
       edge.n2f = node.belief - edge.f2n
     }
   }
 
   def expectations(penalties: Messages) = {
-    for (i <- 0 until 2) {
+    //inititialize
+    for (edge <- fg.edges) {
+      edge.n2f = Message.empty(edge.node.variable)
+      edge.f2n = Message.empty(edge.node.variable)
+    }
+    for (node <- fg.nodes) {
+      node.belief = Message.empty(node.variable)
+    }
+    for (i <- 0 until maxIterations) {
       for (node <- fg.nodes) {
         msgV2Fs(node, penalties)
       }
@@ -49,7 +59,7 @@ trait SumProductBP extends Expectator {
     new Expectations {
       def featureExpectations = expectations
       def logMarginals = new Messages {
-        val map: Map[Variable[Any], Message[Any]] = fg.nodes.map(n => n.variable -> n.belief).toMap
+        val map: Map[Variable[Any], Message[Any]] = fg.nodes.map(n => n.variable -> n.belief.normalize).toMap
         def message[V](variable: Variable[V]) = map(variable).asInstanceOf[Message[V]]
       }
       def logZ = 0.0
@@ -65,6 +75,7 @@ object SumProductBPRecipe extends ExpectatorRecipe[SumModel] {
     factorGraph.add(m.args)
     new SumProductBP {
       val fg = factorGraph
+      def maxIterations = 6
       def model = m
     }
   }

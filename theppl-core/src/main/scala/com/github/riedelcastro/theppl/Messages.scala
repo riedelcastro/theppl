@@ -14,43 +14,49 @@ trait Messages {
 }
 
 trait Message[V] {
-  def apply(value: V): Double
-  def +(that: Message[V]): Message[V]
-  def -(that: Message[V]): Message[V]
-  def normalize: Message[V]
-}
-
-trait VariableMessage[V] extends Message[V] {
   self =>
   def variable: Variable[V]
+  def apply(value:V):Double
   def +(that: Message[V]): Message[V] = {
-    new VariableMessage[V] {
+    new Message[V] {
       def apply(value: V) = self.apply(value) + that(value)
       def variable = self.variable
     }
   }
   def -(that: Message[V]): Message[V] = {
-    new VariableMessage[V] {
+    new Message[V] {
       def apply(value: V) = self.apply(value) - that(value)
       def variable = self.variable
     }
   }
 
+  def negate = new Message[V] {
+    def apply(value: V) = -self.apply(value)
+    def variable = self.variable
+  }
   def normalize = {
     val normalizer = math.log(variable.domain.map(v => math.exp(this(v))).sum)
-    new VariableMessage[V] {
+    new Message[V] {
       def apply(value: V) = self.apply(value) - normalizer
       def variable = self.variable
     }
   }
-}
+  
+  def norm1 = variable.domain.map(v => math.abs(this(v))).sum
+  
+  override def toString = {
+    variable.domain.map(v => "%20s %8.4f".format(v,this(v))).mkString("\n")
+  }}
+
 
 object Message {
-  def empty[T] = new Message[T] {
-    def +(that: Message[T]) = that
-    def -(that: Message[T]) = that
+  def empty[T](v:Variable[T]) = new Message[T] {
+    override def +(that: Message[T]) = that
+    override def -(that: Message[T]) = that.negate
     def apply(value: T) = 0.0
-    def normalize = this
+    override def normalize = this
+    override def negate = this
+    def variable = v
   }
 }
 
@@ -61,16 +67,16 @@ case class Scored[T](value: T, score: Double)
 
 object Messages {
   val empty = new Messages {
-    def message[V](variable: Variable[V]) = Message.empty[V]
+    def message[V](variable: Variable[V]) = Message.empty(variable)
   }
   def fromFunction(f: (Variable[Any], Any) => Double) = new Messages {
-    def message[V](v: Variable[V]) = new VariableMessage[V] {
+    def message[V](v: Variable[V]) = new Message[V] {
       def apply(value: V) = f(v, value)
       def variable = v
     }
   }
   def fromMap(f: scala.collection.Map[(Variable[Any], Any), Double]) = new Messages {
-    def message[V](v: Variable[V]) = new VariableMessage[V] {
+    def message[V](v: Variable[V]) = new Message[V] {
       def apply(value: V) = f(v, value)
       def variable = v
     }
@@ -80,7 +86,7 @@ object Messages {
 
 class SingletonMessages[Value](val variable: Variable[Value], val value: Value, val msg: Double) extends Messages {
   self =>
-  def message[V](v: Variable[V]) = new VariableMessage[V] {
+  def message[V](v: Variable[V]) = new Message[V] {
     def apply(value: V) = if (v == self.variable && value == self.value) msg else 0.0
     def variable = v
   }
@@ -142,23 +148,7 @@ trait State extends Messages {
   def message[V](v: Variable[V]) = new Message[V] {
     thisMsg =>
     def apply(value: V) = if (get(v) == Some(value)) 1.0 else 0.0
-    def +(that: Message[V]) = new VariableMessage[V] {
-      def apply(value: V) = if (get(v) == Some(value)) 1.0 + that(value) else that(value)
-      def variable = v
-    }
-
-    def -(that: Message[V]) = new VariableMessage[V] {
-      def apply(value: V) = if (get(v) == Some(value)) 1.0 - that(value) else -that(value)
-      def variable = v
-    }
-    def normalize = new VariableMessage[V] {
-      def apply(value: V) = thisMsg(value) - 1.0
-      def variable = v
-    }
+    def variable = v
   }
 }
 
-
-trait Marginals extends Messages {
-  def marginals[V](variable: Variable[V], value: V) = msg(variable, value)
-}

@@ -15,14 +15,17 @@ class SumProductBPSpec extends ThePPLSpec {
       val B = Var('B)
       val C = Var('C)
       val D = Var('D)
+      
+      val vars = Seq(A,B,C,D)
 
-      class EdgePotential(x: Var, y: Var) extends LinearModel {
+      class EdgePotential(x: Var, y: Var) extends LinearModel with FiniteSupportModel {
         def features(state: State) = new ParameterVector(Feat(state(x), state(y)))
-        def hidden = IndexedSeq(A, B)
+        def hidden = IndexedSeq(x, y)
         def argmax(penalties: Messages) = null
         def expectations(penalties: Messages) = null
         def marginalize(penalties: Messages) = null
-        def weights = new ParameterVector()
+        val weights = new ParameterVector()
+        override def toString = (x,y).toString()
       }
       val AB = new EdgePotential(A, B)
       val BC = new EdgePotential(B, C)
@@ -42,6 +45,12 @@ class SumProductBPSpec extends ThePPLSpec {
 
       val brute = BruteForceExpectator.expectator(sum)
       val bp = SumProductBPRecipe.expectator(sum, DefaultExpectators)
+
+      val bfExp = brute.expectations(Messages.empty)
+      val bpExp = bp.expectations(Messages.empty)
+
+      for (v <- vars)
+        (bfExp.logMarginals.message(v) - bpExp.logMarginals.message(v)).norm1 must be (0.0 plusOrMinus eps)
 
 
     }

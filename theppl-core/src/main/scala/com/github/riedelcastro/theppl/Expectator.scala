@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import collection.mutable.HashMap
+import math._
 
 /**
  * @author sriedel
@@ -50,7 +51,7 @@ trait BFExpectator extends Expectator {
     }
     featExp.scale(1.0 / total)
     new Expectations {
-      lazy val logMarginals = Messages.fromMap(masses.map(x => x._1 -> (x._2 / total)))
+      lazy val logMarginals = Messages.fromMap(masses.map(x => x._1 -> (log(x._2) - log(total))))
       lazy val logZ = math.log(total)
       lazy val featureExpectations = featExp
     }
