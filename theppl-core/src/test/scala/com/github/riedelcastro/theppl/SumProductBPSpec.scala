@@ -21,7 +21,7 @@ class SumProductBPSpec extends ThePPLSpec {
         def argmax(penalties: Messages) = null
         def expectations(penalties: Messages) = null
         def marginalize(penalties: Messages) = null
-        def weights = new ParameterVector(Seq(Feat(A, state(A)), Feat(B, state(B))))
+        def weights = new ParameterVector()
       }
 
     }

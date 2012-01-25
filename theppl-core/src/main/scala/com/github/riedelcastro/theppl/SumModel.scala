@@ -25,6 +25,4 @@ trait LinearSumModel extends SumModel with LinearModel {
     for (arg <- linearArgs) result.add(arg.features(state),1.0)
     result
   }
-  def marginalize(penalties: Messages) = null
-  def expectations(penalties: Messages) = null
 }
