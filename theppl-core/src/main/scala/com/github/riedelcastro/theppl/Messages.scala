@@ -42,6 +42,13 @@ trait Message[V] {
     }
   }
   
+  def map(f:Double=>Double) = {
+    new Message[V] {
+      def apply(value: V) = f(self(value))
+      def variable = self.variable
+    }
+  }
+  
   def norm1 = variable.domain.view.map(v => math.abs(this(v))).sum
 
   def entropy = variable.domain.view.map(v => {
@@ -49,7 +56,11 @@ trait Message[V] {
     val prob =  math.exp(score)
     -prob * score
   }).sum
-  
+
+  def dot(that:Message[V]) = {
+    variable.domain.view.map(v => this(v) * that(v)).sum
+  }
+
   override def toString = {
     variable.domain.view.map(v => "%20s %8.4f".format(v,this(v))).mkString("\n")
   }}

@@ -55,8 +55,8 @@ class SumProductBPSpec extends ThePPLSpec {
       for (v <- vars)
         (bfExp.logMarginals.message(v) - bpExp.logMarginals.message(v)).norm1 must be (0.0 plusOrMinus eps)
 
-      println(bfExp.logZ)
-      println(bpExp.logZ)
+      bfExp.logZ must be (bpExp.logZ plusOrMinus eps)
+
 
 
 

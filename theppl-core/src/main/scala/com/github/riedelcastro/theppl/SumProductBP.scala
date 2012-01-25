@@ -57,10 +57,13 @@ trait SumProductBP extends Expectator {
       val expPerFactor = factor.expectator.expectations(incomingMessages(factor))
       expectations.add(expPerFactor.featureExpectations, 1.0)
       logPartition += expPerFactor.logZ
+      for (edge <- factor.edges) {
+        logPartition -= (edge.node.belief.map(math.exp(_)) dot edge.n2f)
+      }
     }
     //reduce double counts from nodes
     for (node <- fg.nodes) {
-      logPartition -= (node.edges.size - 1) * node.belief.entropy
+      logPartition -= (node.edges.size - 1) * node.belief.entropy 
     }
 
     new Expectations {
