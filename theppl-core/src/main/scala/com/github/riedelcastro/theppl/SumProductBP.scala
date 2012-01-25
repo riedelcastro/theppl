@@ -28,9 +28,9 @@ trait SumProductBP extends Expectator {
 
   def msgV2Fs(node: fg.NodeType, penalties: Messages) {
     node.belief =
-      node.edges.map(_.f2n).foldLeft[Message[Any]](penalties.message(node.variable))(_ + _)
+      node.edges.view.map(_.f2n).foldLeft[Message[Any]](penalties.message(node.variable))(_ + _).normalize
     for (edge <- node.edges) {
-      edge.n2f = node.belief - edge.f2n
+      edge.n2f = (node.belief - edge.f2n).normalize
     }
   }
 
@@ -52,17 +52,24 @@ trait SumProductBP extends Expectator {
       }
     }
     val expectations = new ParameterVector
+    var logPartition = 0.0
     for (factor <- fg.factors) {
-      expectations.add(factor.expectator.expectations(incomingMessages(factor)).featureExpectations, 1.0)
+      val expPerFactor = factor.expectator.expectations(incomingMessages(factor))
+      expectations.add(expPerFactor.featureExpectations, 1.0)
+      logPartition += expPerFactor.logZ
+    }
+    //reduce double counts from nodes
+    for (node <- fg.nodes) {
+      logPartition -= (node.edges.size - 1) * node.belief.entropy
     }
 
     new Expectations {
       def featureExpectations = expectations
       def logMarginals = new Messages {
-        val map: Map[Variable[Any], Message[Any]] = fg.nodes.map(n => n.variable -> n.belief.normalize).toMap
+        val map: Map[Variable[Any], Message[Any]] = fg.nodes.map(n => n.variable -> n.belief).toMap
         def message[V](variable: Variable[V]) = map(variable).asInstanceOf[Message[V]]
       }
-      def logZ = 0.0
+      def logZ = logPartition
     }
   }
 }
@@ -85,6 +92,9 @@ object SumProductBPRecipe extends ExpectatorRecipe[SumModel] {
 trait MessagePassingFactorGraph extends PotentialGraph {
   fg =>
   def expectator(model: Model): Expectator
+  type FactorType = Factor
+  type NodeType = Node
+  type EdgeType = Edge
   trait Edge extends super.Edge {
     var n2f: Message[Any] = _
     var f2n: Message[Any] = _
@@ -95,9 +105,6 @@ trait MessagePassingFactorGraph extends PotentialGraph {
   trait Factor extends super.Factor {
     def expectator: Expectator
   }
-  type FactorType = Factor
-  type NodeType = Node
-  type EdgeType = Edge
   def createFactor(potential: Model) = new Factor {
     def expectator = fg.expectator(potential)
   }

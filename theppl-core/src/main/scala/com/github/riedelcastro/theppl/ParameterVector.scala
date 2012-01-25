@@ -45,6 +45,17 @@ class ParameterVector {
     }
   }
 
+  def -(that:ParameterVector) = {
+    val result = new ParameterVector
+    result._values ++= _values
+    for ((key,value) <- that.values)
+      result(key) = result(key) - value
+    result
+  }
+
+  def norm1 = {
+    values.values.map(math.abs(_)).sum
+  }
 
   def dot(that: ParameterVector): Double = {
     var result = 0.0

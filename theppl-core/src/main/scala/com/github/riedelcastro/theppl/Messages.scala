@@ -42,10 +42,16 @@ trait Message[V] {
     }
   }
   
-  def norm1 = variable.domain.map(v => math.abs(this(v))).sum
+  def norm1 = variable.domain.view.map(v => math.abs(this(v))).sum
+
+  def entropy = variable.domain.view.map(v => {
+    val score = this(v)
+    val prob =  math.exp(score)
+    -prob * score
+  }).sum
   
   override def toString = {
-    variable.domain.map(v => "%20s %8.4f".format(v,this(v))).mkString("\n")
+    variable.domain.view.map(v => "%20s %8.4f".format(v,this(v))).mkString("\n")
   }}
 
 

@@ -39,6 +39,12 @@ trait LinearModel extends Model {
   def expectations(penalties: Messages):Expectations
 }
 
+trait HiddenParameters extends LinearModel {
+  abstract override def score(state: State) = super.features(state) dot super.weights
+  abstract override val weights = new ParameterVector()
+  abstract override def features(state: State) = new ParameterVector()
+}
+
 /**
  * The result of marginalizing a linear model also contains expectations of the features/sufficient statistics.
  */
