@@ -1,8 +1,6 @@
 package com.github.riedelcastro.theppl
 
 import java.io.{OutputStream, InputStream}
-import collection.mutable.HashMap
-import math._
 
 /**
  * A LinearModule calculates its score by a dot product of
@@ -30,12 +28,12 @@ trait LinearModule[-Context] extends Module[Context] {
 trait LinearModel extends Model {
   def weights: ParameterVector
   def features(state: State): ParameterVector
+  def score(state: State) = features(state) dot weights
   def featureDelta(gold: State, guess: State) = {
     val result = features(gold)
     result.add(features(guess), -1.0)
     result
   }
-  def score(state: State) = features(state) dot weights
 }
 
 trait HiddenParameters extends LinearModel {
