@@ -13,6 +13,8 @@ trait PRLearner[Context] {
   val q: LinearModule[Context]
   val p: LinearModule[Context]
 
+  def maxIterations: Int
+
   def targetExpectations(context: Context, model: q.ModelType): ParameterVector
 
   def train(trainData: Seq[Context]) {
@@ -50,11 +52,13 @@ trait PRLearner[Context] {
       def instances = trainData
     }
 
-    //I-projection: train (q(w) + p_i-1) to match constraints of q. That is, train qPlusP based on q's target
-    qPlusPLearner.train()
+    for (iteration <- 0 until maxIterations) {
+      //I-projection: train (q(w) + p_i-1) to match constraints of q. That is, train qPlusP based on q's target
+      qPlusPLearner.train()
 
-    //M-projection: train p_i to match q
-    pLearner.train()
+      //M-projection: train p_i to match q
+      pLearner.train()
+    }
   }
 
 }
