@@ -40,14 +40,21 @@ trait PRLearner[Context] {
       def expectator(model: module.ModelType) = SumProductBPRecipe.expectator(model)
       def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.qModel)
       def instances = trainData
+    }
 
+    val pLearner = new MaxentLearner[Context] {
+      val module = p
+      def expectator(model: ModelType) = Expectator(model)
+      def targetExpectations(context: Context, model: ModelType) =
+        Expectator(qPlusP.model(context)).expectations().featureExpectations
+      def instances = trainData
     }
 
     //I-projection: train (q(w) + p_i-1) to match constraints of q. That is, train qPlusP based on q's target
     qPlusPLearner.train()
 
     //M-projection: train p_i to match q
-    //p.train(trainData)
+    pLearner.train()
   }
 
 }
