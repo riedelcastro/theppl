@@ -6,12 +6,28 @@ import math._
 /**
  * @author sriedel
  */
-trait Expectator {
+trait Expectator extends HasModel {
 
-  def model: Model
   def expectations(penalties: Messages = Messages.empty): Expectations
 
 }
+
+/**
+ * The result of an marginalize call.
+ */
+trait MarginalizeResult {
+  def logMarginals: Messages
+  def logZ: Double
+}
+
+
+/**
+ * The result of marginalizing a linear model also contains expectations of the features/sufficient statistics.
+ */
+trait Expectations extends MarginalizeResult {
+  def featureExpectations:ParameterVector
+}
+
 
 trait ExpectatorRecipe[-M <: Model] {
   def expectator(model: M, cookbook: ExpectatorRecipe[Model] = DefaultExpectators): Expectator
@@ -24,18 +40,18 @@ object Expectator {
 object DefaultExpectators extends ExpectatorRecipe[Model] {
   def expectator(model: Model, cookbook: ExpectatorRecipe[Model]) = model match {
     case s: SumModel with LinearModel => SumProductBPRecipe.expectator(s,cookbook)
-    case f: FiniteSupportModel with LinearModel => new BFExpectator {def model = f}
+    case f: FiniteSupportModel with LinearModel => new BFExpectator {val model = f}
     case x => sys.error("Cannot do inference in " + x)
   }
 }
 
 object BruteForceExpectator extends ExpectatorRecipe[FiniteSupportModel with LinearModel] {
   def expectator(fm: FiniteSupportModel with LinearModel, cookbook: ExpectatorRecipe[Model]) = new BFExpectator {
-    def model = fm
+    val model = fm
   }
 }
 trait BFExpectator extends Expectator {
-  def model: FiniteSupportModel with LinearModel
+  val model: FiniteSupportModel with LinearModel
   def expectations(penalties: Messages) = {
 
     val masses = new HashMap[(Variable[Any], Any), Double] {

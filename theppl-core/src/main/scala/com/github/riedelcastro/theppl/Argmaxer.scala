@@ -1,21 +1,34 @@
 package com.github.riedelcastro.theppl
 
 /**
+ * An object that can calculate the argmax state for a given model.
  * @author sriedel
  */
-trait Argmaxer {
+trait Argmaxer extends HasModel {
 
-  val model: Model
-
-  def argmax(penalties: Messages): ArgmaxResult
+  def argmax(penalties: Messages = Messages.empty): ArgmaxResult
+  def predict = argmax(Messages.empty).state
 
 }
+
+/**
+ * The result of an argmax call. Has the argmaxing state and its score.
+ */
+trait ArgmaxResult {
+  def state: State
+  def score: Double
+}
+
 
 trait ArgmaxRecipe[-ModelType <: Model] {
-  def argmaxer(model: ModelType, cookbook: ArgmaxRecipe[Model] = ArgmaxCookbook): Argmaxer
+  def argmaxer(model: ModelType, cookbook: ArgmaxRecipe[Model] = DefaultArgmaxers): Argmaxer
 }
 
-object ArgmaxCookbook extends ArgmaxRecipe[Model] {
+object Argmaxer {
+  def apply(model: Model, cookbook: ArgmaxRecipe[Model] = DefaultArgmaxers) =
+    cookbook.argmaxer(model, cookbook)
+}
+object DefaultArgmaxers extends ArgmaxRecipe[Model] {
   //todo: this should eventually call the default recipe of the model
 
   def argmaxer(model: Model, cookbook: ArgmaxRecipe[Model]) = {
@@ -32,7 +45,7 @@ object ArgmaxCookbook extends ArgmaxRecipe[Model] {
 
 object BFRecipe extends ArgmaxRecipe[FiniteSupportModel] {
   def argmaxer(m: FiniteSupportModel, cookbook: ArgmaxRecipe[Model]) =
-    new BFArgmaxer {val model = m}
+    new BruteForceArgmaxer {val model = m}
 }
 
 object ArgmaxImpossible extends ArgmaxRecipe[Model] {
@@ -40,7 +53,7 @@ object ArgmaxImpossible extends ArgmaxRecipe[Model] {
 }
 
 
-trait BFArgmaxer extends Argmaxer {
+trait BruteForceArgmaxer extends Argmaxer {
 
   val model: FiniteSupportModel
 

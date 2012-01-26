@@ -8,20 +8,22 @@ import com.github.riedelcastro.theppl._
 /**
  * @author sriedel
  */
-trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context] with HasLogger {
+trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectations[Context] with HasLogger {
 
   var iterations = 10
 
+  val module: LinearModule[Context]
+
   case class Mapping(forward: Map[Feat, Int], reverse: Map[Int, Feat])
 
-  def expectator(model: ModelType): Expectator
+  def expectator(model: module.ModelType): Expectator
 
-  def train(instances: Seq[Context]) {
+  def train() {
     logger.info("Creating models.")
-    val models = instances.map(model(_))
+    val models = instances.map(i => i -> module.model(i))
 
     logger.info("Extracting gold features.")
-    val goldFeatures: Seq[ParameterVector] = models.map(m => m.features(target(m)))
+    val goldFeatures: Seq[ParameterVector] = models.map({case (context, model) => targetExpectations(context, model)})
 
     logger.info("Counting features.")
     val qualified = for (h <- goldFeatures.view;
@@ -35,8 +37,8 @@ trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context]
     val mapping = Mapping(forward, backward)
 
 
-    val llInstances = instances.zip(models).zip(goldFeatures).map {
-      case ((i, m), f) => LLInstance(i, m, expectator(m),f)
+    val llInstances = models.zip(goldFeatures).map {
+      case ((i, m), f) => LLInstance(i, m, expectator(m), f)
     }
     val objective = new LLObjective(llInstances, mapping)
     val optimizer = new LimitedMemoryBFGS(objective)
@@ -45,7 +47,7 @@ trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context]
     optimizer.optimize(iterations)
   }
 
-  case class LLInstance(instance: Context, model: ModelType, expectator: Expectator, goldFeatures: ParameterVector)
+  case class LLInstance(instance: Context, model: module.ModelType, expectator: Expectator, goldFeatures: ParameterVector)
 
   class LLObjective(instances: Seq[LLInstance], mapping: Mapping) extends Objective {
     def domainSize = mapping.forward.size
@@ -53,7 +55,7 @@ trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context]
 
       //set weights
       for ((feat, index) <- mapping.forward) {
-        weights(feat) = parameters(index)
+        module.weights(feat) = parameters(index)
       }
 
       //calculate gradient
@@ -64,7 +66,7 @@ trait MaxentLearner[Context] extends LinearModule[Context] with Learner[Context]
         val goldFeatures = instance.goldFeatures
         gradient.add(goldFeatures, 1.0)
         gradient.add(expectations.featureExpectations, -1.0)
-        objective += (goldFeatures dot weights) - expectations.logZ
+        objective += (goldFeatures dot module.weights) - expectations.logZ
       }
 
       //convert

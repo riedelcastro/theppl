@@ -85,8 +85,8 @@ object SumProductBPRecipe extends ExpectatorRecipe[SumModel] {
     factorGraph.add(m.args)
     new SumProductBP {
       val fg = factorGraph
+      val model = m
       def maxIterations = 6
-      def model = m
     }
   }
 }

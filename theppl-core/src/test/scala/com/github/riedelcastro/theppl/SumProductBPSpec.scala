@@ -21,7 +21,6 @@ class SumProductBPSpec extends ThePPLSpec {
       class EdgePotential(x: Var, y: Var) extends LinearModel with FiniteSupportModel {
         def features(state: State) = new ParameterVector(Feat(state(x), state(y)))
         def hidden = IndexedSeq(x, y)
-        def argmax(penalties: Messages) = null
         val weights = new ParameterVector()
         override def toString = (x,y).toString()
       }
@@ -36,7 +35,6 @@ class SumProductBPSpec extends ThePPLSpec {
 
         type ArgType = EdgePotential
         def args = IndexedSeq(AB, BC, BD)
-        def argmax(penalties: Messages) = null
         def weights = null
       }
 

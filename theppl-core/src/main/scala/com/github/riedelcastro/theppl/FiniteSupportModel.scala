@@ -22,24 +22,6 @@ trait FiniteSupportModel extends Model {
   }
 }
 
-
-/**
- * This model does argmax by exhaustively iterating over all states.
- * Generally very slow, and only recommended to use for testing other methods.
- */
-trait BruteForceArgmaxer extends FiniteSupportModel {
-
-  def argmax(penalties: Messages) = {
-    val states = allStates
-    def scored = states.map(state => Scored(state, penalizedScore(penalties, state)))
-    val result = scored.maxBy(_.score)
-    new ArgmaxResult {
-      def state = result.value
-      def score = result.score
-    }
-  }
-}
-
 /**
  * Marginalizes model by exhaustively iterating over all states.
  */

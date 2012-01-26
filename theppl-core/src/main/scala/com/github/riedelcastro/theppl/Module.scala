@@ -40,6 +40,18 @@ trait Module[-Context] extends Term[Context => Double] {
 }
 
 /**
+ * An object that has a module it can use for computation of all sorts. One purpose of
+ * this trait is to allow clients to use type members of modules without having
+ * to mix-in the module trait. Learners and evaluators
+ * all use this trait.
+ */
+trait HasModule[-Context] {
+  type ModelType = module.ModelType
+  type ModuleType = module.type
+  val module: Module[Context]
+}
+
+/**
  * A module that can be stored to and loaded from output and input streams, respectively.
  */
 trait SerializableModule[Context] extends Module[Context] {

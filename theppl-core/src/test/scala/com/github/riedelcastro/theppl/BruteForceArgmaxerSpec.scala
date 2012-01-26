@@ -56,10 +56,11 @@ class BruteForceArgmaxerSpec extends ThePPLSpec with ExampleModels {
 
   describe("A BruteForceArgmaxer") {
     it("should calculate the exact argmax") {
-      val model = new ExampleModel() with SumScore with BruteForceMarginalizer with BruteForceArgmaxer
+      val model = new ExampleModel() with SumScore
+      val argmaxer = Argmaxer(model)
       import model._
       val message = exampleMessage()
-      val result = model.argmax(message)
+      val result = argmaxer.argmax(message)
       val expected = State.fromFunction(Map(V(0) -> 1, V(1) -> 1, V(2) -> 1))
       model.hidden.foreach(v => result.state(v) must be(expected(v)))
     }
@@ -70,7 +71,7 @@ class BruteForceArgmaxerSpec extends ThePPLSpec with ExampleModels {
 class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
   describe("A BruteForceMarginalizer") {
     it("should calculate exact marginals") {
-      val model = new ExampleModel(2, 2) with SumScore with BruteForceMarginalizer with BruteForceArgmaxer
+      val model = new ExampleModel(2, 2) with SumScore with BruteForceMarginalizer
       val message = exampleMessage(1, -1)
       val result = model.marginalize(message)
 
@@ -87,8 +88,7 @@ class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
 class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExampleModels {
   describe("A BruteForceExpectator") {
     it("should calculate exact expectations in linear models") {
-      val model = new ExampleModel(2, 2)
-        with LinearScore with BruteForceArgmaxer
+      val model = new ExampleModel(2, 2) with LinearScore
       import model._
       val message = exampleMessage(1, -1)
       val expectator = BruteForceExpectator.expectator(model)

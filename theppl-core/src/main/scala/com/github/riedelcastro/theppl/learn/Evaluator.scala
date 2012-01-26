@@ -5,14 +5,15 @@ import com.github.riedelcastro.theppl._
 /**
  * @author sriedel
  */
-trait Evaluator[Context] {
-  val module: Module[Context] with Supervisor
+trait Evaluator[Context] extends SuperviseByState[Context]{
 
   var fn = 0
   var tp = 0
   var fp = 0
   var tn = 0
   var numInstances = 0
+
+  def argmaxer(model:module.ModelType):Argmaxer
 
   def reset() {
     fn = 0
@@ -41,8 +42,9 @@ trait Evaluator[Context] {
     reset()
     for (instance <- instances) {
       val model = module.model(instance)
-      val gold = module.target(model)
-      val guess = model.predict
+      val gold = targetState(instance,model)
+      val argmaxer = this.argmaxer(model)
+      val guess = argmaxer.predict
       for (hidden <- model.hidden) {
         val default = hidden.domain.head
         gold(hidden) -> guess(hidden) match {

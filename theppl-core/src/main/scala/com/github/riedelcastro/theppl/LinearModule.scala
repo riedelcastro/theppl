@@ -45,13 +45,6 @@ trait HiddenParameters extends LinearModel {
 
 
 /**
- * The result of marginalizing a linear model also contains expectations of the features/sufficient statistics.
- */
-trait Expectations extends MarginalizeResult {
-  def featureExpectations:ParameterVector
-}
-
-/**
  * A LinearModule that has no child modules.
  */
 trait LinearLeafModule[Context] extends LinearModule[Context] with SerializableModule[Context] {

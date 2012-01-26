@@ -3,7 +3,7 @@ package com.github.riedelcastro.theppl.apps
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.util.Util
 import io.Source
-import learn.{Learner, PerceptronUpdate, OnlineLearner}
+import learn._
 import ParameterVector._
 import Imports._
 import java.io.ByteArrayOutputStream
@@ -28,24 +28,36 @@ object ClassifierExample {
       Token(index, word, tag, chunk)
     val lifted = tokens.lift
 
-    val classifier = new Classifier[Token] with OnlineLearner[Token] with PerceptronUpdate with Evaluator[Token] {
-      type Context = Token
+    val classifier = new Classifier[Token]  {
       type LabelType = String
       type LabelVariableType = ChunkVar
-      def variable(context: Context) = ChunkVar(context)
-      val domain = Seq("O") ++ (for (bi <- Seq("B-", "I-"); t <- Seq("VP", "NP", "PP")) yield bi + t)
+      def variable(context: Token) = ChunkVar(context)
       def labelFeatures(label: LabelType) = fromFeats(Seq(Feat(label)) ++ label.split("-").map(Feat("split", _)))
-      def contextFeatures(token: Context) = fromPairs("t" -> token.tag, "t-1" -> lifted(token.index - 1).map(_.tag))
-      def target(model: ModelType) = model.labelVariable -> model.labelVariable.token.chunk
+      def contextFeatures(token: Token) = fromPairs("t" -> token.tag, "t-1" -> lifted(token.index - 1).map(_.tag))
     }
 
-    val train = tokens.take(tokens.size / 2)
-    val test = tokens.drop(tokens.size / 2)
-    println(classifier.evaluate(train))
 
-    classifier.train(train)
-    println(classifier.evaluate(train))
-    println(classifier.evaluate(test))
+    val trainTokens = tokens.take(tokens.size / 2)
+    val testTokens = tokens.drop(tokens.size / 2)
+
+    val evaluator = new Evaluator[Token] {
+      val module = classifier
+      def targetState(context: Token, model: module.ModelType) = model.labelVariable -> context.chunk
+      def argmaxer(model: ModelType) = Argmaxer(model)
+    }
+
+    println(evaluator.evaluate(trainTokens))
+
+    val learner = new OnlineLearner[Token] with PerceptronUpdate {
+      val module = classifier
+      def targetState(context: Token, model: module.ModelType) = model.labelVariable -> context.chunk
+      def argmaxer(model: module.ModelType) = Argmaxer(model)
+      def instances = trainTokens
+    }
+
+    learner.train()
+    println(evaluator.evaluate(trainTokens))
+    println(evaluator.evaluate(testTokens))
 
     println(classifier.weights)
 
@@ -62,21 +74,4 @@ object ClassifierExample {
 
 }
 
-trait Evaluator[Context] extends Learner[Context] {
-  def evaluate[C](instances: Seq[Context]) = {
-    var totalLoss = 0.0
-    var count = 0
-    for (instance <- instances) {
-      val model = this.model(instance)
-      val gold = target(model)
-      val guess = model.predict
-      for (hidden <- model.hidden) {
-        if (gold(hidden) != guess(hidden)) totalLoss += 1.0
-        count += 1
-      }
-    }
-    totalLoss / count
-  }
-
-}
 
