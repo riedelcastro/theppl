@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import util.StreamUtil
+import collection.mutable.HashMap
 
 /**
  * A message is a mapping from variable-value assignments to real numbers.
@@ -63,7 +64,17 @@ trait Message[V] {
 
   override def toString = {
     variable.domain.view.map(v => "%20s %8.4f".format(v,this(v))).mkString("\n")
-  }}
+  }
+
+  def materialize = new Message[V] {
+    def variable = self.variable
+    val map = new HashMap[V,Double]
+    def apply(value: V) = map.getOrElseUpdate(value, self(value))
+  }
+  
+}
+
+  
 
 
 object Message {

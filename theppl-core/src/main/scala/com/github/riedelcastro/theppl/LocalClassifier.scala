@@ -20,22 +20,12 @@ trait LocalClassifier[Context] extends LinearLeafModule[Context] {
     def contextFeatures: ParameterVector
     def labelVariable: LabelVariableType
     def hidden = Seq(labelVariable)
-    def classify: LabelType = argmax(Messages.empty).state.get(labelVariable).get
-    def argmax(penalties: Messages) = {
-      val states = labelVariable.domain.map(new SingletonState(labelVariable, _))
-      val (st, sc) = MathUtil.argmax(states, (s: State) => score(s))
-      new ArgmaxResult {
-        def score = sc
-        def state = st
-      }
-    }
     def features(state: State) = {
       val feats = contextFeatures conjoin labelFeatures(state.get(labelVariable).get)
       feats
     }
   }
 
-  def classify(context: Context): LabelType = model(context).classify
 
 }
 

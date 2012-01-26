@@ -34,8 +34,7 @@ trait SumProductBP extends Expectator {
     }
   }
 
-  def expectations(penalties: Messages) = {
-    //inititialize
+  def calculateMarginals(penalties: Messages) {
     for (edge <- fg.edges) {
       edge.n2f = Message.empty(edge.node.variable)
       edge.f2n = Message.empty(edge.node.variable)
@@ -51,28 +50,51 @@ trait SumProductBP extends Expectator {
         msgF2Vs(factor)
       }
     }
-    val expectations = new ParameterVector
+  }
+  def outgoingMarginals: Messages = {
+    new Messages {
+      val map: Map[Variable[Any], Message[Any]] = fg.nodes.map(n => n.variable -> n.belief).toMap
+      def message[V](variable: Variable[V]) = map(variable).asInstanceOf[Message[V]]
+    }
+  }
+
+  override def marginalize(penalties: Messages) = {
+    calculateMarginals(penalties)
+    new MarginalizeResult {
+      def logMarginals = outgoingMarginals
+      def logZ = logPartitionFunction
+    }
+  }
+
+  def logPartitionFunction = {
     var logPartition = 0.0
     for (factor <- fg.factors) {
-      val expPerFactor = factor.expectator.expectations(incomingMessages(factor))
-      expectations.add(expPerFactor.featureExpectations, 1.0)
-      logPartition += expPerFactor.logZ
+      val margResult = factor.expectator.marginalize(incomingMessages(factor))
+      logPartition += margResult.logZ
       for (edge <- factor.edges) {
         logPartition -= (edge.node.belief.map(math.exp(_)) dot edge.n2f)
       }
     }
     //reduce double counts from nodes
     for (node <- fg.nodes) {
-      logPartition -= (node.edges.size - 1) * node.belief.entropy 
+      logPartition -= (node.edges.size - 1) * node.belief.entropy
+    }
+    logPartition
+  }
+
+  def expectations(penalties: Messages) = {
+    calculateMarginals(penalties)
+
+    val expectations = new ParameterVector
+    for (factor <- fg.factors) {
+      val expPerFactor = factor.expectator.expectations(incomingMessages(factor))
+      expectations.add(expPerFactor.featureExpectations, 1.0)
     }
 
     new Expectations {
       def featureExpectations = expectations
-      def logMarginals = new Messages {
-        val map: Map[Variable[Any], Message[Any]] = fg.nodes.map(n => n.variable -> n.belief).toMap
-        def message[V](variable: Variable[V]) = map(variable).asInstanceOf[Message[V]]
-      }
-      def logZ = logPartition
+      def logMarginals = outgoingMarginals
+      def logZ = logPartitionFunction
     }
   }
 }

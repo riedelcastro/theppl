@@ -29,6 +29,13 @@ trait Model extends Term[Double] {
   def eval(state: State) = Some(score(state))
 }
 
+object Model {
+  val zero = new Model {
+    def hidden = Seq.empty
+    def score(state: State) = 0.0
+  }
+}
+
 /**
  * An object that has a model it can use for computation of all sorts. One purpose of
  * this trait is to allow clients to use type members of modules without having

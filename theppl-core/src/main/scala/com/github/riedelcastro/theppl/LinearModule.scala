@@ -28,7 +28,7 @@ trait LinearModule[-Context] extends Module[Context] {
 trait LinearModel extends Model {
   def weights: ParameterVector
   def features(state: State): ParameterVector
-  def score(state: State) = features(state) dot weights
+  def score(state: State) = (features(state) dot weights)
   def featureDelta(gold: State, guess: State) = {
     val result = features(gold)
     result.add(features(guess), -1.0)
@@ -36,12 +36,17 @@ trait LinearModel extends Model {
   }
 }
 
-trait HiddenParameters extends LinearModel {
-  
-  abstract override def score(state: State) = super.features(state) dot super.weights
-  abstract override val weights = new ParameterVector()
-  abstract override def features(state: State) = new ParameterVector()
+trait LinearModelWithBaseMeasure extends LinearModel {
+  def baseMeasure:Model
+  def linearScore(state:State) = (features(state) dot weights)
+  override def score(state: State) = linearScore(state) + baseMeasure.score(state)
+
 }
+
+
+
+
+
 
 
 /**

@@ -6,9 +6,15 @@ import math._
 /**
  * @author sriedel
  */
-trait Expectator extends HasModel {
+trait Expectator extends Marginalizer {
 
   def expectations(penalties: Messages = Messages.empty): Expectations
+  def marginalize(penalties: Messages):MarginalizeResult = expectations(penalties)
+}
+
+trait Marginalizer extends HasModel {
+
+  def marginalize(penalties: Messages = Messages.empty): MarginalizeResult
 
 }
 
