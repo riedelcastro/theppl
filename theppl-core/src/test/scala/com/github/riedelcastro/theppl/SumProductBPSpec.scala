@@ -31,11 +31,10 @@ class SumProductBPSpec extends ThePPLSpec {
       BC.weights(Feat('x1, 'x1)) = 1.0
       BD.weights(Feat('x1, 'x1)) = 1.0
 
-      val sum = new LinearSumModel with FiniteSupportModel{
+      val sum = new FeatureSumModel with FiniteSupportModel{
 
-        type ArgType = EdgePotential
-        def args = IndexedSeq(AB, BC, BD)
-        def weights = null
+        def featureArgs = IndexedSeq(AB, BC, BD)
+        def otherArgs = IndexedSeq.empty
       }
 
       val brute = BruteForceExpectator.expectator(sum)

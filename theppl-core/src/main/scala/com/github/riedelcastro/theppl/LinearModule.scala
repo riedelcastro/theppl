@@ -15,8 +15,24 @@ trait LinearModule[-Context] extends Module[Context] {
 
   def weights: ParameterVector
 
-  trait LinearModel extends com.github.riedelcastro.theppl.LinearModel  {
+  trait LinearModel extends com.github.riedelcastro.theppl.LinearModel {
     def weights = thisModule.weights
+  }
+
+}
+
+/**
+ * A FeatureModel can calculate a feature representation of a state. This
+ * representation is often  used to calculate the score of the model,
+ * but this interface does not require any connection between score
+ * and features.
+ */
+trait FeatureModel extends Model {
+  def features(state: State): ParameterVector
+  def featureDelta(gold: State, guess: State) = {
+    val result = features(gold)
+    result.add(features(guess), -1.0)
+    result
   }
 
 }
@@ -25,27 +41,10 @@ trait LinearModule[-Context] extends Module[Context] {
  * A linear model calculates the score of a state by
  * taking the dot product of a weight vector and a feature representation of the state.
  */
-trait LinearModel extends Model {
+trait LinearModel extends FeatureModel {
   def weights: ParameterVector
-  def features(state: State): ParameterVector
-  def score(state: State) = (features(state) dot weights)
-  def featureDelta(gold: State, guess: State) = {
-    val result = features(gold)
-    result.add(features(guess), -1.0)
-    result
-  }
+  def score(state: State) = features(state) dot weights
 }
-
-trait LinearModelWithBaseMeasure extends LinearModel {
-  def baseMeasure:Model
-  def linearScore(state:State) = (features(state) dot weights)
-  override def score(state: State) = linearScore(state) + baseMeasure.score(state)
-
-}
-
-
-
-
 
 
 

@@ -51,6 +51,8 @@ trait Message[V] {
   }
   
   def norm1 = variable.domain.view.map(v => math.abs(this(v))).sum
+  def norm2 = math.sqrt(variable.domain.view.map(v => math.pow(this(v),2.0)).sum)
+
 
   def entropy = variable.domain.view.map(v => {
     val score = this(v)

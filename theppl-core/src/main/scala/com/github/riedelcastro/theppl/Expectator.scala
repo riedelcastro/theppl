@@ -51,13 +51,13 @@ object DefaultExpectators extends ExpectatorRecipe[Model] {
   }
 }
 
-object BruteForceExpectator extends ExpectatorRecipe[FiniteSupportModel with LinearModel] {
-  def expectator(fm: FiniteSupportModel with LinearModel, cookbook: ExpectatorRecipe[Model]) = new BFExpectator {
+object BruteForceExpectator extends ExpectatorRecipe[FiniteSupportModel with FeatureModel] {
+  def expectator(fm: FiniteSupportModel with FeatureModel, cookbook: ExpectatorRecipe[Model]) = new BFExpectator {
     val model = fm
   }
 }
 trait BFExpectator extends Expectator {
-  val model: FiniteSupportModel with LinearModel
+  val model: FiniteSupportModel with FeatureModel
   def expectations(penalties: Messages) = {
 
     val masses = new HashMap[(Variable[Any], Any), Double] {
