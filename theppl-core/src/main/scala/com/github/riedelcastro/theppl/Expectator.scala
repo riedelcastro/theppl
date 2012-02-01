@@ -45,7 +45,7 @@ object Expectator {
 
 object DefaultExpectators extends ExpectatorRecipe[Model] {
   def expectator(model: Model, cookbook: ExpectatorRecipe[Model]) = model match {
-    case s: SumModel with LinearModel => SumProductBPRecipe.expectator(s,cookbook)
+    case s: FeatureSumModel => SumProductBPRecipe.expectator(s,cookbook)
     case f: FiniteSupportModel with LinearModel => new BFExpectator {val model = f}
     case x => sys.error("Cannot do inference in " + x)
   }

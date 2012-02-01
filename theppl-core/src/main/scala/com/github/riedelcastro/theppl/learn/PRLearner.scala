@@ -16,47 +16,38 @@ trait PRLearner[Context] {
   def maxIterations: Int
 
   def targetExpectations(context: Context, model: q.ModelType): ParameterVector
-  
-  def instances:Seq[Context]
+
+  def instances: Seq[Context]
 
   def train() {
-    trait QplusP extends LinearModule[Context] {
-
-      type ModelType = Overlay
-      trait Overlay extends LinearModel with SumModel {
-        def context: Context
-        override def score(state: State) = super[SumModel].score(state)
-        type ArgType = com.github.riedelcastro.theppl.LinearModel
-        lazy val qModel = q.model(context)
-        lazy val pModel = new com.github.riedelcastro.theppl.LinearModel with FiniteSupportModel {
-          val self = p.model(context)
-          val weights = new ParameterVector()
-          def features(state: State) = new ParameterVector()
-          def hidden = self.hidden
-          override def score(state: State) = self.score(state)
-        }
-        lazy val args = IndexedSeq[ArgType](qModel, pModel)
-        override def features(state: State) = qModel.features(state)
-      }
-      def model(c: Context) = new Overlay {
-        def context = c
-      }
-      def weights = q.weights
+    val qPlusP = new LinearModuleWithBaseMeasure[Context] {
+      type ModuleType = q.type
+      type BaseType = p.type
+      def module = q
+      def base = p
     }
 
-    val qPlusP = new QplusP {}
+    val pPlusQ = new LinearModuleWithBaseMeasure[Context] {
+      type ModuleType = p.type
+      type BaseType = q.type
+      def module = p
+      def base = q
+    }
+
     val qPlusPLearner = new MaxentLearner[Context] {
       val module = qPlusP
       def expectator(model: module.ModelType) = SumProductBPRecipe.expectator(model)
-      def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.qModel)
+      def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.model)
       def instances = pr.instances
     }
+
+
 
     val pLearner = new MaxentLearner[Context] {
       val module = p
       def expectator(model: ModelType) = Expectator(model)
       def targetExpectations(context: Context, model: ModelType) =
-        Expectator(qPlusP.model(context)).expectations().featureExpectations
+        Expectator(pPlusQ.model(context)).expectations().featureExpectations
       def instances = pr.instances
     }
 
@@ -69,4 +60,29 @@ trait PRLearner[Context] {
     }
   }
 
+}
+
+trait LinearModuleWithBaseMeasure[Context] extends LinearModule[Context] {
+  self =>
+
+  type ModuleType <: LinearModule[Context]
+  type BaseType <: Module[Context]
+
+  def module:ModuleType
+  def base:BaseType
+
+  type ModelType = Overlay
+  trait Overlay extends FeatureSumModel with LinearModel {
+    def context: Context
+    lazy val model = module.model(context)
+    lazy val baseModel = base.model(context)
+
+    def featureArgs = IndexedSeq(model)
+    def otherArgs = IndexedSeq(baseModel)
+    override def score(state: State) = super[FeatureSumModel].score(state)
+  }
+  def model(c: Context) = new Overlay {
+    def context = c
+  }
+  def weights = module.weights
 }

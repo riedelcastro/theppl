@@ -15,14 +15,14 @@ class PRLearnerSpec extends ThePPLSpec {
 
       val trainingData = Range(0,10).map(Instance(_))
 
-      val pModel = new Classifier[Instance] {
+      val pModule = new Classifier[Instance] {
         type LabelType = Boolean
         type LabelVariableType = Var
         def labelFeatures(label: LabelType) = ParameterVector.fromFeats(Seq(Feat(label)))
         def contextFeatures(context: Instance) = ParameterVector.fromFeats(Seq(Feat(context.x)))
         def variable(context: Instance) = Var(context)
       }
-      val qModel = new Classifier[Instance] {
+      val qModule = new Classifier[Instance] {
         type LabelType = Boolean
         type LabelVariableType = Var
         def labelFeatures(label: LabelType) = ParameterVector.fromFeats(Seq(Feat(label)))
@@ -30,26 +30,26 @@ class PRLearnerSpec extends ThePPLSpec {
         def variable(context: Instance) = Var(context)
       }
 
-      //the q model requires all
-
       val prLearner = new PRLearner[Instance] {
-        val q = qModel
-        val p = pModel
+        val q = qModule
+        val p = pModule
         def maxIterations = 4
         def targetExpectations(context: Instance, model: q.ModelType) = {
           val f = new ParameterVector()
           f(Feat(true,true)) = 0.7
+          f(Feat(true,false)) = 0.3
           f
         }
         def instances = trainingData
       }
 
-//      prLearner.train()
+      prLearner.train()
 
-      println(pModel.weights.stringRep())
-      println(qModel.weights.stringRep())
-
-
+      for (i <- trainingData) {
+        val model = pModule.model(i)
+        val expectations = Expectator(model).expectations()
+        math.exp(expectations.logMarginals(model.labelVariable, true)) must be (0.7 plusOrMinus epsLarge)
+      }
 
     }
   }

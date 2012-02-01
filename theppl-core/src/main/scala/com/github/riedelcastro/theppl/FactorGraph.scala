@@ -64,15 +64,23 @@ trait PotentialGraph extends MutableFactorGraph {
   trait Factor extends super.Factor {
     var potential:Model = _
   }
+  trait FeatureFactor extends super.Factor {
+  }
+
+  val featureFactors = new ArrayBuffer[FeatureFactorType]
+
 
   type NodeType <: Node
   type FactorType <: Factor
+  type FeatureFactorType <: FeatureFactor with FactorType
 
   def createFactor(potential: Model): FactorType
+  def createFeatureFactor(potential: Model): FeatureFactorType
   def createNode(variable: Variable[Any]): NodeType
   def createEdge(potential: Model, variable: Variable[Any]): EdgeType
 
-  def add(potentials:Iterable[Model]) {
+  def add(otherPotentials:Iterable[Model], featurePotentials:Iterable[FeatureModel] = Seq.empty) {
+    val potentials = otherPotentials ++ featurePotentials
     val varModelPairs = potentials.flatMap(a => a.hidden.map(_ -> a))
     val var2model = varModelPairs.groupBy(_._1)
     val var2node = var2model.keys.map(v => v -> {
@@ -80,11 +88,18 @@ trait PotentialGraph extends MutableFactorGraph {
       node.variable = v
       node
     }).toMap
-    val model2factor = potentials.map(p => p -> {
+    val otherModel2factor = otherPotentials.map(p => p -> {
       val factor = createFactor(p)
       factor.potential = p
       factor
-    }).toMap
+    })
+    val featureModel2factor = featurePotentials.map(p => p -> {
+      val factor = createFeatureFactor(p)
+      factor.potential = p
+      factor
+    })
+    val model2factor = (otherModel2factor ++ featureModel2factor).toMap
+
     val edges = for ((v,m) <- varModelPairs) yield {
       val node = var2node(v)
       val factor = model2factor(m)
@@ -96,6 +111,7 @@ trait PotentialGraph extends MutableFactorGraph {
       edge
     }
     this.factors ++= model2factor.values
+    this.featureFactors ++= featureModel2factor.map(_._2)
     this.nodes ++= var2node.values
     this.edges ++= edges
 

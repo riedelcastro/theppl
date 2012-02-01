@@ -82,7 +82,7 @@ class LimitedMemoryBFGS(val optimizable: OptimizableByValueAndGradient) extends 
       set(oldg, g)
       set(direction, g)
 
-      if (direction.absNormalize == 0) {
+      if (direction.absNormalize < gradientTolerance) {
         logger.info("L-BFGS initial gradient is zero; saying converged");
         g = null
         isConverged = true

@@ -8,7 +8,7 @@ trait SumProductBP extends Expectator {
 
   val fg: MessagePassingFactorGraph
 
-  def maxIterations:Int
+  def maxIterations: Int
 
   def incomingMessages(factor: fg.FactorType): Messages = {
     val incoming = new Messages {
@@ -18,6 +18,7 @@ trait SumProductBP extends Expectator {
     incoming
   }
 
+  //todo: these operations should be generalized for (a) faster operation and (b) different mp algorithms.
   def msgF2Vs(factor: fg.FactorType) {
     val incoming = incomingMessages(factor)
     val expectations = factor.expectator.expectations(incoming)
@@ -86,7 +87,7 @@ trait SumProductBP extends Expectator {
     calculateMarginals(penalties)
 
     val expectations = new ParameterVector
-    for (factor <- fg.factors) {
+    for (factor <- fg.featureFactors) {
       val expPerFactor = factor.expectator.expectations(incomingMessages(factor))
       expectations.add(expPerFactor.featureExpectations, 1.0)
     }
@@ -99,12 +100,12 @@ trait SumProductBP extends Expectator {
   }
 }
 
-object SumProductBPRecipe extends ExpectatorRecipe[SumModel] {
-  def expectator(m: SumModel, cookbook: ExpectatorRecipe[Model] = DefaultExpectators) = {
+object SumProductBPRecipe extends ExpectatorRecipe[FeatureSumModel] {
+  def expectator(m: FeatureSumModel, cookbook: ExpectatorRecipe[Model] = DefaultExpectators) = {
     val factorGraph = new MessagePassingFactorGraph {
       def expectator(model: Model) = cookbook.expectator(model, cookbook)
     }
-    factorGraph.add(m.args)
+    factorGraph.add(m.otherArgs,m.featureArgs)
     new SumProductBP {
       val fg = factorGraph
       val model = m
@@ -117,7 +118,8 @@ object SumProductBPRecipe extends ExpectatorRecipe[SumModel] {
 trait MessagePassingFactorGraph extends PotentialGraph {
   fg =>
   def expectator(model: Model): Expectator
-  type FactorType = Factor
+  type FactorType = OtherFactor
+  type FeatureFactorType = FeatureFactor
   type NodeType = Node
   type EdgeType = Edge
   trait Edge extends super.Edge {
@@ -127,10 +129,24 @@ trait MessagePassingFactorGraph extends PotentialGraph {
   trait Node extends super.Node {
     var belief: Message[Any] = _
   }
-  trait Factor extends super.Factor {
+
+  trait OtherFactor extends super.Factor {
     def expectator: Expectator
   }
-  def createFactor(potential: Model) = new Factor {
+
+  trait FeatureFactor extends OtherFactor with super.FeatureFactor {
+  }
+
+
+  trait Factor extends super.Factor {
+    def marginalizer: Marginalizer
+  }
+
+  def createFeatureFactor(potential: Model) = new FeatureFactor {
+    def expectator = fg.expectator(potential)
+  }
+
+  def createFactor(potential: Model) = new OtherFactor {
     def expectator = fg.expectator(potential)
   }
   def createNode(variable: Variable[Any]) = new Node {}
