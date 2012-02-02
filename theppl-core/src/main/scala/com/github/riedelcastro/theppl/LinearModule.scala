@@ -28,11 +28,16 @@ trait LinearModule[-Context] extends Module[Context] {
  * and features.
  */
 trait FeatureModel extends Model {
+  thisModel =>
   def features(state: State): ParameterVector
   def featureDelta(gold: State, guess: State) = {
     val result = features(gold)
     result.add(features(guess), -1.0)
     result
+  }
+
+  def defaultExpectator(cookbook: ExpectatorRecipe[Model]): Expectator = new BFExpectator {
+    val model = thisModel
   }
 
 }
@@ -45,7 +50,6 @@ trait LinearModel extends FeatureModel {
   def weights: ParameterVector
   def score(state: State) = features(state) dot weights
 }
-
 
 
 /**

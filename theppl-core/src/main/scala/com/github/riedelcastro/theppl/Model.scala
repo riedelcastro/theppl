@@ -25,8 +25,27 @@ trait Model extends Term[Double] {
     score(state) + hidden.map(v => penalties.msg(v, state(v))).sum
   }
 
-  def variables = hidden
+  /**
+   * Each model comes with a way to create a default marginalizer. This marginalizer
+   * may be composed of other marginalizers for sub-modules, and hence takes a
+   * cookbook as argument. By default marginalization is done in brute-force fashion.
+   */
+  def defaultMarginalizer(cookbook: MarginalizerRecipe[Model]): Marginalizer = new BFMarginalizer {val model = thisModel}
+
+  /**
+   * A model also has some default way of finding its argmax state.
+   */
+  def defaultArgmaxer(cookbook: ArgmaxRecipe[Model]): Argmaxer = new BruteForceArgmaxer {val model = thisModel}
+
+  /**
+   * A model evaluates to its score.
+   */
   def eval(state: State) = Some(score(state))
+
+
+  def variables = hidden
+
+
 }
 
 object Model {

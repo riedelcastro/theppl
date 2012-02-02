@@ -9,7 +9,7 @@ trait ExampleModels {
    * A model with integer variables that scores each state
    * by summing up the integer values associated with the variables.
    */
-  abstract class ExampleModel(varCount: Int = 3, domainSize: Int = 3) extends FiniteSupportModel {
+  abstract class ExampleModel(varCount: Int = 3, domainSize: Int = 3) extends Model {
     override lazy val hidden = Range(0, varCount).map(V(_))
     lazy val domain = Range(0, domainSize)
     def V(index: Int) = Var(index, domain)
@@ -71,14 +71,14 @@ class BruteForceArgmaxerSpec extends ThePPLSpec with ExampleModels {
 class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
   describe("A BruteForceMarginalizer") {
     it("should calculate exact marginals") {
-      val model = new ExampleModel(2, 2) with SumScore with BruteForceMarginalizer
+      val m = new ExampleModel(2, 2) with SumScore
+      val marginalizer = new BFMarginalizer {val model = m}
       val message = exampleMessage(1, -1)
-      val result = model.marginalize(message)
+      val result = marginalizer.marginalize(message)
 
       result.logZ must be(log(4.0) plusOrMinus eps)
 
-      for (v <- model.hidden;
-           value <- v.domain)
+      for (v <- m.hidden; value <- v.domain)
         result.logMarginals(v, value) must be(log(0.5) plusOrMinus eps)
 
     }

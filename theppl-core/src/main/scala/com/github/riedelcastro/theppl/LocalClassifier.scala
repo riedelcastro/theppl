@@ -15,7 +15,7 @@ trait LocalClassifier[Context] extends LinearLeafModule[Context] {
 
   val weights = new ParameterVector()
 
-  trait LocalModel extends LinearModel with FiniteSupportModel with BruteForceMarginalizer {
+  trait LocalModel extends LinearModel  {
     def labelFeatures(label: LabelType): ParameterVector
     def contextFeatures: ParameterVector
     def labelVariable: LabelVariableType

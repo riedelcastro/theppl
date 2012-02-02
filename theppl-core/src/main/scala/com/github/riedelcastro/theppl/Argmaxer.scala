@@ -21,41 +21,20 @@ trait ArgmaxResult {
 
 
 trait ArgmaxRecipe[-ModelType <: Model] {
-  def argmaxer(model: ModelType, cookbook: ArgmaxRecipe[Model] = DefaultArgmaxers): Argmaxer
+  def argmaxer(model: ModelType, cookbook: ArgmaxRecipe[Model] = Argmaxer): Argmaxer
 }
 
-object Argmaxer {
-  def apply(model: Model, cookbook: ArgmaxRecipe[Model] = DefaultArgmaxers) =
+object Argmaxer extends ArgmaxRecipe[Model] {
+
+  def argmaxer(model: Model, cookbook: ArgmaxRecipe[Model]) = model.defaultArgmaxer(cookbook)
+  def apply(model: Model, cookbook: ArgmaxRecipe[Model] = this) =
     cookbook.argmaxer(model, cookbook)
-}
-object DefaultArgmaxers extends ArgmaxRecipe[Model] {
-  //todo: this should eventually call the default recipe of the model
-
-  def argmaxer(model: Model, cookbook: ArgmaxRecipe[Model]) = {
-    model match {
-      case f: FiniteSupportModel => BFRecipe.argmaxer(f, cookbook)
-      case _ => ArgmaxImpossible.argmaxer(model, cookbook)
-    }
-  }
-  def apply(m: Model) = m match {
-    case f: FiniteSupportModel => BFRecipe
-    case _ => ArgmaxImpossible
-  }
-}
-
-object BFRecipe extends ArgmaxRecipe[FiniteSupportModel] {
-  def argmaxer(m: FiniteSupportModel, cookbook: ArgmaxRecipe[Model]) =
-    new BruteForceArgmaxer {val model = m}
-}
-
-object ArgmaxImpossible extends ArgmaxRecipe[Model] {
-  def argmaxer(model: Model, cookbook: ArgmaxRecipe[Model]) = sys.error("Argmax impossible")
 }
 
 
 trait BruteForceArgmaxer extends Argmaxer {
 
-  val model: FiniteSupportModel
+  val model: Model
 
   def argmax(penalties: Messages) = {
     val states = model.allStates

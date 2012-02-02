@@ -16,6 +16,19 @@ trait Term[+V] {
   def substitute(substitution: Substitution): Term[V] = this
   def ground: Term[V] = this
   def isConstant = variables.isEmpty
+
+  /**
+   * Iterates over all states for the hidden variables of this model.
+   */
+  def allStates = {
+    val variables = this.variables.toSeq
+    val domains = variables.map(_.domain).toSeq
+    val tuples = StreamUtil.allTuples(domains)
+    val states = tuples.map(State(variables, _))
+    states
+  }
+
+
 }
 
 trait Substitution {

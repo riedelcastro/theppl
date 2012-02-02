@@ -76,7 +76,7 @@ trait SumProductBP extends Expectator {
         logPartition -= (edge.node.belief.map(math.exp(_)) dot edge.n2f)
       }
     }
-    //reduce double counts from nodes
+    //reduce entropy double counts from nodes
     for (node <- fg.nodes) {
       logPartition -= (node.edges.size - 1) * node.belief.entropy
     }
@@ -101,7 +101,7 @@ trait SumProductBP extends Expectator {
 }
 
 object SumProductBPRecipe extends ExpectatorRecipe[FeatureSumModel] {
-  def expectator(m: FeatureSumModel, cookbook: ExpectatorRecipe[Model] = DefaultExpectators) = {
+  def expectator(m: FeatureSumModel, cookbook: ExpectatorRecipe[Model] = Expectator) = {
     val factorGraph = new MessagePassingFactorGraph {
       def expectator(model: Model) = cookbook.expectator(model, cookbook)
     }
