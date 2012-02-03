@@ -39,6 +39,10 @@ class ParameterVector {
       _values(key) = _values(key) + scale * value
     }
   }
+  def add(feats:Iterable[Any], scale:Double = 1.0) {
+    for (f <- feats) this(new Feat(Seq(Symbol(f.toString)))) = scale
+  }
+  
   def scale(scale: Double) = {
     for ((key, value) <- values) {
       _values(key) = _values(key) * scale
@@ -139,6 +143,10 @@ object ParameterVector {
   def fromFeats(feats: Iterable[Feat]) = {
     new ParameterVector(feats)
   }
+  def fromAny(feats: Iterable[Any]) = {
+    new ParameterVector(feats.map(f => new Feat(Seq(Symbol(f.toString)))))
+  }
+
   def fromPairs(feats: (Any, Any)*) = {
     new ParameterVector(feats.map({
       case (key, value) => Feat(key, value)

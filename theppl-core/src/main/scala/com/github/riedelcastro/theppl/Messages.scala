@@ -80,6 +80,12 @@ trait Message[V] {
 
 
 object Message {
+
+  def binary(v:Variable[Boolean], trueScore:Double, falseScore:Double = 0.0) = new Message[Boolean]{
+    def variable = v
+    def apply(value: Boolean) = if (value) trueScore else falseScore
+  }
+
   def empty[T](v:Variable[T]) = new Message[T] {
     override def +(that: Message[T]) = that
     override def -(that: Message[T]) = that.negate

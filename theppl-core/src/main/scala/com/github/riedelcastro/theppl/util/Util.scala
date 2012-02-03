@@ -47,6 +47,7 @@ object Util extends HasLogger {
   /**
    * Execute f on each index in 0..n
    */
+  @inline
   def forIndex(n:Int)(f:Int=>Unit) {
     var i = 0
     while (i < n) { f(i); i += 1 }
