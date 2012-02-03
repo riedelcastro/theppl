@@ -30,12 +30,22 @@ trait Model extends Term[Double] {
    * may be composed of other marginalizers for sub-modules, and hence takes a
    * cookbook as argument. By default marginalization is done in brute-force fashion.
    */
-  def defaultMarginalizer(cookbook: MarginalizerRecipe[Model]): Marginalizer = new BFMarginalizer {val model = thisModel}
+  def defaultMarginalizer(cookbook: MarginalizerRecipe[Model] = Marginalizer): Marginalizer = new BFMarginalizer {val model = thisModel}
 
   /**
    * A model also has some default way of finding its argmax state.
    */
-  def defaultArgmaxer(cookbook: ArgmaxRecipe[Model]): Argmaxer = new BruteForceArgmaxer {val model = thisModel}
+  def defaultArgmaxer(cookbook: ArgmaxRecipe[Model] = Argmaxer): Argmaxer = new BruteForceArgmaxer {val model = thisModel}
+
+  /**
+   * Convenience method that uses the default marginalizer.
+   */
+  def marginalize(penalties:Messages = Messages.empty) = defaultMarginalizer().marginalize(penalties)
+
+  /**
+   * Convenience method that uses the default argmaxer.
+   */
+  def argmax(penalties:Messages = Messages.empty) = defaultArgmaxer().argmax(penalties)
 
   /**
    * A model evaluates to its score.

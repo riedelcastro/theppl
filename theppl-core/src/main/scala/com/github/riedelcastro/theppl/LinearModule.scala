@@ -40,6 +40,8 @@ trait FeatureModel extends Model {
     val model = thisModel
   }
 
+  def expectations = defaultExpectator().expectations()
+
 }
 
 /**

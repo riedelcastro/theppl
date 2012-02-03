@@ -96,8 +96,7 @@ trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModul
       val result = new ParameterVector()
       if (state(hiddenEntity)) result.add(entFeats, 1.0)
       forIndex(mentions.size) {
-        i =>
-          if (state(hiddenMentions(i))) result.add(feats(i), 1.0)
+        i => if (state(hiddenMentions(i))) result.add(feats(i), 1.0)
       }
       result
     }
@@ -134,10 +133,11 @@ trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModul
         //entity marginal
         val logEntMarg = tmpZ - lZ
 
-        //prepare messages
+        //prepare messages---UGLY
         val mentionMsgs: Map[Variable[Any], Message[Boolean]] =
-          Range(0, n).view.map(i => hiddenMentions(i) -> Message.binary(hiddenMentions(i), logMentionMargs(i))).toMap
-        val entityMsg = Message.binary(hiddenEntity, logEntMarg)
+          Range(0, n).view.map(i => hiddenMentions(i) ->
+            Message.binary(hiddenMentions(i), logMentionMargs(i), tmpZ - logZs(i) - lZ)).toMap
+        val entityMsg = Message.binary(hiddenEntity, logEntMarg, -lZ)
         val result = new Messages {
           def message[V](variable: Variable[V]) = variable match {
             case x if (x == hiddenEntity) => entityMsg.asInstanceOf[Message[V]]

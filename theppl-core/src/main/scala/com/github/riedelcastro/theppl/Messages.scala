@@ -12,6 +12,7 @@ trait Messages {
   def message[V](variable: Variable[V]): Message[V]
   def msg[V](variable: Variable[V], value: V) = message(variable)(value)
   def apply[V](variable: Variable[V], value: V) = message(variable)(value)
+
 }
 
 trait Message[V] {
@@ -73,7 +74,7 @@ trait Message[V] {
     val map = new HashMap[V,Double]
     def apply(value: V) = map.getOrElseUpdate(value, self(value))
   }
-  
+
 }
 
   
