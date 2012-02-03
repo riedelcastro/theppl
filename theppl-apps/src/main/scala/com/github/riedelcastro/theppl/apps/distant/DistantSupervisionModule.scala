@@ -64,14 +64,17 @@ trait DistantSupervisionClassifier[EntityType] extends DistantSupervisionModule[
 
 }
 
-trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModule[EntityType] { module =>
+trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModule[EntityType] {
+  module =>
 
   import Util._
 
   type MentionVariableType <: Variable[Boolean]
+  type ModelType = LatentModel
 
   def mentionVariable(mention: MentionType): MentionVariableType
 
+  def model(context: EntityType) = new LatentModel {def entity = context}
 
   trait LatentModel extends DistantSupervisionModel {
     latentModel =>
@@ -85,16 +88,16 @@ trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModul
     lazy val feats = mentions.map(m => ParameterVector.fromAny(mentionFeatures(m))).toArray
 
 
-
     override def score(state: State) = {
       if (!state(hiddenEntity) && hiddenMentions.exists(state(_))) Double.NegativeInfinity else super.score(state)
     }
 
     def features(state: State) = {
       val result = new ParameterVector()
-      if (state(hiddenEntity)) result.add(entFeats,1.0)
-      forIndex(mentions.size) { i =>
-        if (state(hiddenMentions(i))) result.add(feats(i),1.0)
+      if (state(hiddenEntity)) result.add(entFeats, 1.0)
+      forIndex(mentions.size) {
+        i =>
+          if (state(hiddenMentions(i))) result.add(feats(i), 1.0)
       }
       result
     }
@@ -110,29 +113,31 @@ trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModul
         val logMentionMargs = Array.ofDim[Double](n)
 
         //convert penalties into array
-        val mentionPenalties = hiddenMentions.map(m => penalties(m,true) - penalties(m,false)).toArray
-        val entityPenalty = penalties(hiddenEntity,true) - penalties(hiddenEntity,false)
+        val mentionPenalties = hiddenMentions.map(m => penalties(m, true) - penalties(m, false)).toArray
+        val entityPenalty = penalties(hiddenEntity, true) - penalties(hiddenEntity, false)
         var tmpZ = entScore + entityPenalty
 
         //log partition function and local log partition functions
-        forIndex(n) { i=>
-          logZs(i) = log1p(exp(scores(i) + mentionPenalties(i)))
-          tmpZ += logZs(i)
+        forIndex(n) {
+          i =>
+            logZs(i) = log1p(exp(scores(i) + mentionPenalties(i)))
+            tmpZ += logZs(i)
         }
         val lZ = log1p(exp(tmpZ))
 
         //mention marginals
-        forIndex(n) { i=>
-          logMentionMargs(i) = tmpZ - logZs(i) + scores(i) + mentionPenalties(i) - lZ
+        forIndex(n) {
+          i =>
+            logMentionMargs(i) = tmpZ - logZs(i) + scores(i) + mentionPenalties(i) - lZ
         }
 
         //entity marginal
         val logEntMarg = tmpZ - lZ
 
         //prepare messages
-        val mentionMsgs:Map[Variable[Any],Message[Boolean]] =
+        val mentionMsgs: Map[Variable[Any], Message[Boolean]] =
           Range(0, n).view.map(i => hiddenMentions(i) -> Message.binary(hiddenMentions(i), logMentionMargs(i))).toMap
-        val entityMsg = Message.binary(hiddenEntity,logEntMarg)
+        val entityMsg = Message.binary(hiddenEntity, logEntMarg)
         val result = new Messages {
           def message[V](variable: Variable[V]) = variable match {
             case x if (x == hiddenEntity) => entityMsg.asInstanceOf[Message[V]]
@@ -143,9 +148,10 @@ trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModul
         //calculate feature expectations
         def featExp() = {
           val result = new ParameterVector()
-          result.add(entFeats,exp(logEntMarg))
-          forIndex(n) { i=>
-            result.add(feats(i),exp(logMentionMargs(i)))
+          result.add(entFeats, exp(logEntMarg))
+          forIndex(n) {
+            i =>
+              result.add(feats(i), exp(logMentionMargs(i)))
           }
           result
         }

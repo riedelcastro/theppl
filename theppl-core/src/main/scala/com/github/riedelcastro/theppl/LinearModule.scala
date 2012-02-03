@@ -36,7 +36,7 @@ trait FeatureModel extends Model {
     result
   }
 
-  def defaultExpectator(cookbook: ExpectatorRecipe[Model]): Expectator = new BFExpectator {
+  def defaultExpectator(cookbook: ExpectatorRecipe[Model] = Expectator): Expectator = new BFExpectator {
     val model = thisModel
   }
 

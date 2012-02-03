@@ -58,7 +58,7 @@ object ThePPLBuild extends Build {
   lazy val root = Project(id = "theppl",
     base = file("."),
     settings = buildSettings
-  ).aggregate(core, datasets, examples)
+  ).aggregate(core, datasets, apps)
 
 
   lazy val core = Project(id = "theppl-core",
@@ -71,9 +71,9 @@ object ThePPLBuild extends Build {
     settings = buildSettings
   )
 
-  lazy val examples = Project(id = "theppl-apps",
+  lazy val apps = Project(id = "theppl-apps",
     base = file("theppl-apps"),
     settings = buildSettings
-  ) dependsOn(core, datasets)
+  ) dependsOn(core, core % "test->test", datasets)
 
 }
