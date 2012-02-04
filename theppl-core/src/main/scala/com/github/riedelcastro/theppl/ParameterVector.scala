@@ -61,6 +61,11 @@ class ParameterVector {
     values.values.map(math.abs(_)).sum
   }
 
+  def norm2Sq = {
+    values.values.map(x => x * x).sum
+  }
+
+
   def dot(that: ParameterVector): Double = {
     var result = 0.0
     for ((key, value) <- values) {
@@ -144,6 +149,12 @@ object ParameterVector {
   def apply(feats:Any*) = {
     new ParameterVector(feats.toIterable)
   }
+  def apply(map:Map[Any, Double]) = {
+    val result = new ParameterVector()
+    for ((k,v) <- map) result(k) = v
+    result
+  }
+  
   def fromFeats(feats: Iterable[Feat]) = {
     new ParameterVector(feats)
   }

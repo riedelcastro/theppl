@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl.apps.distant
 
-import com.github.riedelcastro.theppl.{Feat, BruteForceExpectator, BoolVariable, ThePPLSpec}
+import com.github.riedelcastro.theppl._
 
 
 /**
@@ -22,14 +22,14 @@ class LatentDistantSupervisionSpec extends ThePPLSpec {
         type EntityVariableType = Var[Entity]
         type MentionVariableType = Var[Mention]
         def entityVariable(entity: Entity) = Var(entity)
-        def entityFeatures(entity: Entity) = entity.feats
+        def entityFeatures(entity: Entity) = new ParameterVector(entity.feats)
         def mentions(entity: Entity) = entity.mentions
-        def mentionFeatures(mention: Module#MentionType) = mention.feats
-        def mentionVariable(mention: Module#MentionType) = Var(mention)
+        def mentionFeatures(mention: MentionType, entity:Entity) = new ParameterVector(mention.feats)
+        def mentionVariable(mention: MentionType) = Var(mention)
       }
       val module = new Module {}
-      module.weights(Feat("mention")) = 1.0
-      module.weights(Feat("entity")) = 1.0
+      module.weights("mention") = 1.0
+      module.weights("entity") = 1.0
       val model = module.model(entity)
       val bf = BruteForceExpectator.expectator(model).expectations()
       val default = model.defaultExpectator().expectations()

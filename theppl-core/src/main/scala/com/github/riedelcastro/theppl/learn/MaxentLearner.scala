@@ -18,6 +18,8 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
 
   def expectator(model: module.ModelType): Expectator
 
+  def l2:Double = 0.0
+
   def train() {
     logger.info("Creating models.")
     val models = instances.map(i => i -> module.model(i))
@@ -67,6 +69,12 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
         gradient.add(goldFeatures, 1.0)
         gradient.add(expectations.featureExpectations, -1.0)
         objective += (goldFeatures dot module.weights) - expectations.logZ
+      }
+
+      //L2 normalizer
+      if (l2 != 0.0) {
+        objective -= l2 * module.weights.norm2Sq
+        gradient.add(module.weights, -2.0 * l2)
       }
 
       //convert

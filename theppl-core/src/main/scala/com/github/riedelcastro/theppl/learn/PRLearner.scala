@@ -18,6 +18,8 @@ trait PRLearner[Context] {
   def targetExpectations(context: Context, model: q.ModelType): ParameterVector
 
   def instances: Seq[Context]
+  
+  def beta = 0.0
 
   def train() {
     val qPlusP = new LinearModuleWithBaseMeasure[Context] {
@@ -39,6 +41,7 @@ trait PRLearner[Context] {
       def expectator(model: module.ModelType) = SumProductBPRecipe.expectator(model)
       def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.model)
       def instances = pr.instances
+      override def l2 = beta
     }
 
 
