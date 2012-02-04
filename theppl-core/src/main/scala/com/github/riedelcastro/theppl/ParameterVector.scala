@@ -11,28 +11,28 @@ import annotation.tailrec
  */
 class ParameterVector {
 
-  def this(keys: Iterable[Feat]) = {
+  def this(keys: Iterable[Any]) = {
     this ()
     for (key <- keys) _values(key) = 1.0
   }
 
-  def this(keys: Feat*) = {
-    this (keys.toIterable)
+//  def this(keys: Any*) = {
+//    this (keys.toIterable)
+//  }
+
+  private val _values = new HashMap[Any, Double] {
+    override def default(key: Any) = 0.0
   }
 
-  private val _values = new HashMap[Feat, Double] {
-    override def default(key: Feat) = 0.0
-  }
-
-  def values: Map[Feat, Double] = _values
+  def values: Map[Any, Double] = _values
 
   def size = values.size
 
-  def update(key: Feat, value: Double) = {
+  def update(key: Any, value: Double) = {
     _values(key) = value
   }
 
-  def apply(key: Feat): Double = _values(key)
+  def apply(key: Any): Double = _values(key)
 
   def add(that: ParameterVector, scale: Double) = {
     for ((key, value) <- that.values) {
@@ -40,9 +40,9 @@ class ParameterVector {
     }
   }
   def add(feats:Iterable[Any], scale:Double = 1.0) {
-    for (f <- feats) this(new Feat(Seq(Symbol(f.toString)))) = scale
+    for (f <- feats) this(f) = scale
   }
-  
+
   def scale(scale: Double) = {
     for ((key, value) <- values) {
       _values(key) = _values(key) * scale
@@ -72,7 +72,7 @@ class ParameterVector {
   def conjoin(that: ParameterVector): ParameterVector = {
     val result = new ParameterVector
     for ((key, value) <- this.values; (thatKey, thatValue) <- that.values) {
-      result(key & thatKey) = value * thatValue
+      result(IndexedSeq(key,thatKey)) = value * thatValue
     }
     result
   }
@@ -86,7 +86,7 @@ class ParameterVector {
   def load(in: InputStream) {
     for (line <- Source.fromInputStream(in).getLines()) {
       val split = line.split("\\t+")
-      update(new Feat(split.dropRight(1).map(Symbol(_))), split.last.toDouble)
+      update(split.dropRight(1).map(Symbol(_)).toIndexedSeq, split.last.toDouble)
     }
   }
 
@@ -105,8 +105,8 @@ class AveragingParameterVector extends ParameterVector {
   var consistifiedAt = 0
   val average = new ParameterVector
 
-  val oldCounts = new HashMap[Feat, Int] {
-    override def default(key: Feat): Int = 0
+  val oldCounts = new HashMap[Any, Int] {
+    override def default(key: Any): Int = 0
   }
 
   override def add(x: ParameterVector, scale: Double) {
@@ -140,6 +140,10 @@ class AveragingParameterVector extends ParameterVector {
 
 
 object ParameterVector {
+
+  def apply(feats:Any*) = {
+    new ParameterVector(feats.toIterable)
+  }
   def fromFeats(feats: Iterable[Feat]) = {
     new ParameterVector(feats)
   }
@@ -249,25 +253,3 @@ class HierarchicalParameterVector {
   }
 }
 
-trait Params extends Map[(Seq[Any], Feat), Double] { self =>
-  def children: Map[Any, Params]
-  def vector: ParameterVector
-  def get(key: (Seq[Any], Feat)) = {
-    val path = key._1
-    val feat = key._2
-    if (path.isEmpty) vector.values.get(feat)
-    else children.get(path.head).flatMap(_.get(path.drop(1) -> feat))
-  }
-  def iterator: Iterator[((Seq[Any], Feat), Double)] = {
-    val previous = for ((key, child) <- children.iterator;
-                        ((path, feat), value) <- child.iterator) yield (key +: path, feat) -> value
-    val local = for ((feat, value) <- vector.values.iterator) yield (Seq.empty, feat) -> value
-    local ++ previous
-  }
-  def +[B1 >: Double](kv: ((Seq[Any], Feat), B1)) = {
-    sys.error("not supported")
-  }
-  def -(key: (Seq[Any], Feat)) = {
-    sys.error("not supported")
-  }
-}

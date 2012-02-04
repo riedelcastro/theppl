@@ -18,15 +18,15 @@ class PRLearnerSpec extends ThePPLSpec {
       val pModule = new Classifier[Instance] {
         type LabelType = Boolean
         type LabelVariableType = Var
-        def labelFeatures(label: LabelType) = ParameterVector.fromFeats(Seq(Feat(label)))
-        def contextFeatures(context: Instance) = ParameterVector.fromFeats(Seq(Feat(context.x)))
+        def labelFeatures(label: LabelType) = ParameterVector(label)
+        def contextFeatures(context: Instance) = ParameterVector(context.x)
         def variable(context: Instance) = Var(context)
       }
       val qModule = new Classifier[Instance] {
         type LabelType = Boolean
         type LabelVariableType = Var
-        def labelFeatures(label: LabelType) = ParameterVector.fromFeats(Seq(Feat(label)))
-        def contextFeatures(context: Instance) = ParameterVector.fromFeats(Seq(Feat(true)))
+        def labelFeatures(label: LabelType) = ParameterVector(label)
+        def contextFeatures(context: Instance) = ParameterVector(true)
         def variable(context: Instance) = Var(context)
       }
 
@@ -36,8 +36,8 @@ class PRLearnerSpec extends ThePPLSpec {
         def maxIterations = 4
         def targetExpectations(context: Instance, model: q.ModelType) = {
           val f = new ParameterVector()
-          f(Feat(true,true)) = 0.7
-          f(Feat(true,false)) = 0.3
+          f(IndexedSeq(true,true)) = 0.7
+          f(IndexedSeq(true,false)) = 0.3
           f
         }
         def instances = trainingData

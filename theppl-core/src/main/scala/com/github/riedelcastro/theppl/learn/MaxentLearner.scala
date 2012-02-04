@@ -14,7 +14,7 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
 
   val module: LinearModule[Context]
 
-  case class Mapping(forward: Map[Feat, Int], reverse: Map[Int, Feat])
+  case class Mapping(forward: Map[Any, Int], reverse: Map[Int, Any])
 
   def expectator(model: module.ModelType): Expectator
 
