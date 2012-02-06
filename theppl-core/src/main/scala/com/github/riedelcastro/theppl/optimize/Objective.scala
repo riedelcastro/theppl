@@ -11,7 +11,7 @@ trait Objective extends OptimizableByValueAndGradient with HasLogger {
 
   def optimizableValue = {
     updateGradientAndObjective()
-    logger.info("Returning current objective to optimizer: " + gradientAndObjective.objective)
+    logger.trace("Returning current objective to optimizer: " + gradientAndObjective.objective)
     gradientAndObjective.objective
   }
 
@@ -26,7 +26,7 @@ trait Objective extends OptimizableByValueAndGradient with HasLogger {
     System.arraycopy(parameters, 0, a, 0, parameters.size)
   }
   def setOptimizableParameters(a: Array[Double]) {
-    logger.info("Getting Parameters from optimizer")
+    logger.trace("Getting Parameters from optimizer")
     System.arraycopy(a, 0, parameters, 0, a.size)
     invalidate()
   }
@@ -38,7 +38,7 @@ trait Objective extends OptimizableByValueAndGradient with HasLogger {
   }
 
   def getOptimizableGradient(a: Array[Double]) {
-    logger.info("Returning the current gradient to optimizer")
+    logger.trace("Returning the current gradient to optimizer")
     updateGradientAndObjective()
     System.arraycopy(gradientAndObjective.gradient, 0, a, 0, a.size)
   }
@@ -53,7 +53,7 @@ trait Objective extends OptimizableByValueAndGradient with HasLogger {
     if (needUpdate) {
 
       gradientAndObjective = calculateGradientAndObjective(parameters)
-      logger.info("Obj:          " + gradientAndObjective.objective)
+      logger.trace("Obj:          " + gradientAndObjective.objective)
       needUpdate = false
     }
   }

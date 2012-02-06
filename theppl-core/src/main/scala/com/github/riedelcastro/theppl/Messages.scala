@@ -65,6 +65,13 @@ trait Message[V] {
     variable.domain.view.map(v => this(v) * that(v)).sum
   }
 
+  def argmax = variable.domain.maxBy(apply(_))
+
+  def offsetDefault(offset:Double) = new Message[V] {
+    def variable = self.variable
+    def apply(value: V) = if (value == variable.default) self(value) + offset else self(value)
+  }
+
   override def toString = {
     variable.domain.view.map(v => "%20s %8.4f".format(v,this(v))).mkString("\n")
   }

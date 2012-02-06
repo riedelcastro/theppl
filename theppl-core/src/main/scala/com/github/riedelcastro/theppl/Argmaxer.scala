@@ -31,6 +31,22 @@ object Argmaxer extends ArgmaxRecipe[Model] {
     cookbook.argmaxer(model, cookbook)
 }
 
+trait MinimumBayesRiskArgmaxer extends Argmaxer {
+
+  def marginalizer: Marginalizer
+  def threshold: Double
+
+  def argmax(penalties: Messages) = {
+    val marginals = marginalizer.marginalize(penalties).logMarginals
+    new ArgmaxResult {
+      lazy val score = model.score(state)
+      lazy val state = new State {
+        def get[V](variable: Variable[V]) =
+          Some(marginals.message(variable).map(math.exp(_)).offsetDefault(-threshold).argmax)
+      }
+    }
+  }
+}
 
 trait BruteForceArgmaxer extends Argmaxer {
 

@@ -149,7 +149,7 @@ object ParameterVector {
   def apply(feats:Any*) = {
     new ParameterVector(feats.toIterable)
   }
-  def apply(map:Map[Any, Double]) = {
+  def fromMap(map:Map[Any, Double]) = {
     val result = new ParameterVector()
     for ((k,v) <- map) result(k) = v
     result

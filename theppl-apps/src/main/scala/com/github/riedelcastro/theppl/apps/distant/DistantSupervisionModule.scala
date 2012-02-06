@@ -3,6 +3,7 @@ package com.github.riedelcastro.theppl.apps.distant
 import com.github.riedelcastro.theppl._
 import util.Util
 import Util._
+import math._
 
 
 /**
@@ -22,7 +23,7 @@ trait DistantSupervisionModule[EntityType] extends LinearModule[EntityType] {
   def mentions(entity: EntityType): Seq[MentionType]
 
   def entityFeatures(entity: EntityType): ParameterVector
-  def mentionFeatures(mention: MentionType, entity:EntityType): ParameterVector
+  def mentionFeatures(mention: MentionType, entity: EntityType): ParameterVector
 
   trait DistantSupervisionModel extends super.LinearModel {
 
@@ -49,9 +50,9 @@ trait DistantSupervisionClassifier[EntityType] extends DistantSupervisionModule[
     def features(state: State) = {
       val result = new ParameterVector()
       if (state(hiddenEntity)) {
-        result.add(entityFeatures(entity),1.0)
+        result.add(entityFeatures(entity), 1.0)
         for (mention <- mentions(entity)) {
-          result.add(mentionFeatures(mention, entity),1.0)
+          result.add(mentionFeatures(mention, entity), 1.0)
         }
       }
       result
@@ -64,7 +65,8 @@ trait DistantSupervisionClassifier[EntityType] extends DistantSupervisionModule[
 
 }
 
-trait EntityMentionModule[EntityType] extends DistantSupervisionModule[EntityType] { module =>
+trait EntityMentionModule[EntityType] extends DistantSupervisionModule[EntityType] {
+  module =>
   type MentionVariableType <: Variable[Boolean]
 
   def mentionVariable(mention: MentionType): MentionVariableType
@@ -78,7 +80,7 @@ trait EntityMentionModule[EntityType] extends DistantSupervisionModule[EntityTyp
     lazy val hiddenMentions = mentions.map(mentionVariable(_))
     lazy val hidden = (hiddenMentions :+ hiddenEntity)
     lazy val entFeats = entityFeatures(entity)
-    lazy val feats = mentions.map(m => mentionFeatures(m,entity)).toArray
+    lazy val feats = mentions.map(m => mentionFeatures(m, entity)).toArray
 
     def features(state: State) = {
       val result = new ParameterVector()
@@ -91,43 +93,25 @@ trait EntityMentionModule[EntityType] extends DistantSupervisionModule[EntityTyp
   }
 
 }
-trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModule[EntityType] {
+trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[EntityType] {
   module =>
 
 
-  type MentionVariableType <: Variable[Boolean]
   type ModelType = LatentModel
 
   def mentionVariable(mention: MentionType): MentionVariableType
 
   def model(context: EntityType) = new LatentModel {def entity = context}
 
-  trait LatentModel extends DistantSupervisionModel {
+  trait LatentModel extends EntityMentionModel {
     latentModel =>
-
-    import math._
-
-    lazy val mentions = module.mentions(entity).toIndexedSeq
-    lazy val hiddenMentions = mentions.map(mentionVariable(_))
-    lazy val hidden = (hiddenMentions :+ hiddenEntity)
-    lazy val entFeats = entityFeatures(entity)
-    lazy val feats = mentions.map(m => mentionFeatures(m,entity)).toArray
 
 
     override def score(state: State) = {
       if (!state(hiddenEntity) && hiddenMentions.exists(state(_))) Double.NegativeInfinity else super.score(state)
     }
 
-    def features(state: State) = {
-      val result = new ParameterVector()
-      if (state(hiddenEntity)) result.add(entFeats, 1.0)
-      forIndex(mentions.size) {
-        i => if (state(hiddenMentions(i))) result.add(feats(i), 1.0)
-      }
-      result
-    }
-
-    override def defaultExpectator(cookbook: ExpectatorRecipe[com.github.riedelcastro.theppl.Model]) = new Expectator {
+    override def defaultExpectator(cookbook: ExpectatorRecipe[Model]) = new Expectator {
       val model = latentModel
       lazy val entScore = entFeats dot weights
       lazy val scores = feats.map(_ dot weights)
@@ -193,9 +177,17 @@ trait LatentDistantSupervisionModule[EntityType] extends DistantSupervisionModul
 
 }
 
-trait PreferKMentions[EntityType] extends LatentDistantSupervisionModule[EntityType] {
-  def entityFeatures(entity: EntityType) = ParameterVector(Map(entity -> mentions(entity).size))
-  def mentionFeatures(mention: MentionType, entity:EntityType) = ParameterVector(Map(entity -> -1.0))
+trait SomeFractionActive[EntityType] extends LatentDistantSupervisionModule[EntityType] {
+  def fractionActive = 0.3
+
+  def reliability(entity: EntityType): Double
+
+  def entityFeatures(entity: EntityType) =
+    ParameterVector.fromMap(Map(entity -> (mentions(entity).size * fractionActive), ('target, entity) -> reliability(entity)))
+
+  def mentionFeatures(mention: MentionType, entity: EntityType) =
+    ParameterVector.fromMap(Map(entity -> -1.0))
+
 }
 
 

@@ -10,7 +10,7 @@ import com.github.riedelcastro.theppl._
  */
 trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectations[Context] with HasLogger {
 
-  var iterations = 10
+  def iterations = 10
 
   val module: LinearModule[Context]
 

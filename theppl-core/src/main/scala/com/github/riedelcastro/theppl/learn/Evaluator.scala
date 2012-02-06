@@ -37,7 +37,8 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
   def mcc = nanTo0((tp.toDouble * tn - fp.toDouble * fn) /
     math.sqrt((tp.toDouble + fp) * (tp.toDouble + fn) * (tn.toDouble + fp) * (tn.toDouble + fn)))
 
-
+  def hook(variable:Variable[Any], gold:Any, guess:Any) {}
+  
   def evaluate(instances: Seq[Context]) {
     reset()
     for (instance <- instances) {
@@ -47,7 +48,10 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
       val guess = argmaxer.predict
       for (hidden <- model.hidden) {
         val default = hidden.domain.head
-        gold(hidden) -> guess(hidden) match {
+        val goldHidden = gold(hidden)
+        val guessHidden = guess(hidden)
+        hook(hidden,goldHidden,guessHidden)
+        goldHidden -> guessHidden match {
           case (gd, gs) if (gd == gs && gd != default) => tp += 1
           case (gd, gs) if (gd == gs && gd == default) => tn += 1
           case (gd, gs) if (gd != gs && gd != default) => fn += 1
