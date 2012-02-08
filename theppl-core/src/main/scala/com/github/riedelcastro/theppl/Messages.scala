@@ -13,6 +13,13 @@ trait Messages {
   def msg[V](variable: Variable[V], value: V) = message(variable)(value)
   def apply[V](variable: Variable[V], value: V) = message(variable)(value)
 
+  def toArrays:(IndexedSeq[Variable[Any]],IndexedSeq[Array[Double]]) = null
+  
+  def toString(variables:TraversableOnce[Variable[Any]]) = {
+    variables.map(v => "%s\n%s".format(v,message(v).toString)).mkString("\n")
+  }
+  
+
 }
 
 trait Message[V] {
@@ -75,6 +82,7 @@ trait Message[V] {
   override def toString = {
     variable.domain.view.map(v => "%20s %8.4f".format(v,this(v))).mkString("\n")
   }
+  
 
   def materialize = new Message[V] {
     def variable = self.variable
@@ -110,6 +118,22 @@ object Message {
 case class Scored[T](value: T, score: Double)
 
 object Messages {
+  
+  def fromArrays(variables:IndexedSeq[Variable[Any]], arrays:IndexedSeq[Array[Double]]) = {
+    val varMap = variables.zipWithIndex.toMap
+    new Messages {
+      def message[V](v: Variable[V]) = {
+        val array = arrays(varMap(v))
+        val valMap = v.domain.zipWithIndex.toMap
+        new Message[V] {
+          def variable = v
+          def apply(value: V) = array(valMap(value))
+        }
+      }
+      override def toArrays = (variables,arrays)
+    }
+  }
+  
   val empty = new Messages {
     def message[V](variable: Variable[V]) = Message.empty(variable)
   }

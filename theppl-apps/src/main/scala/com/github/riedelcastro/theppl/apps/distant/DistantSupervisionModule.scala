@@ -111,12 +111,42 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
       if (!state(hiddenEntity) && hiddenMentions.exists(state(_))) Double.NegativeInfinity else super.score(state)
     }
 
+
+    override def defaultArgmaxer(cookbook: ArgmaxRecipe[Model]) = new Argmaxer {
+      val model = latentModel
+      def argmax(penalties: Messages) = {
+        val entScore = entFeats dot weights
+        val scores = feats.map(_ dot weights)
+        val n = mentions.size
+        val mentionPenalties = hiddenMentions.map(m => penalties(m, true) - penalties(m, false)).toArray
+        val entityPenalty = penalties(hiddenEntity, true) - penalties(hiddenEntity, false)
+        val finalEntScore = entScore + entityPenalty
+        val penalizedMentionScores = scores.zip(mentionPenalties).map(pair => pair._1 + pair._2)
+        val activeMentions = penalizedMentionScores.map(_ > 0.0)
+
+
+        //check whether the score of all active mentions is higher than the negative entity score
+        //if so, the entity is active and we allow positive mentions, otherwise everything has to be inactive
+        val activeMentionScore = penalizedMentionScores.view.filter(_ > 0.0).sum
+        if (activeMentionScore > -finalEntScore) {
+          new ArgmaxResult {
+            def score = activeMentionScore + finalEntScore
+            def state = State(model.hiddenEntity +: model.hiddenMentions, true +: activeMentions)
+          }
+        } else {
+          new ArgmaxResult {
+            def score = 0.0
+            def state = State(model.hiddenEntity +: model.hiddenMentions, false +: Array.fill(n + 1)(false))
+          }
+        }
+      }
+    }
     override def defaultExpectator(cookbook: ExpectatorRecipe[Model]) = new Expectator {
       val model = latentModel
-      lazy val entScore = entFeats dot weights
-      lazy val scores = feats.map(_ dot weights)
 
       def expectations(penalties: Messages) = {
+        val entScore = entFeats dot weights
+        val scores = feats.map(_ dot weights)
         val n = mentions.size
         val logZs = Array.ofDim[Double](n)
         val logMentionMargs = Array.ofDim[Double](n)
@@ -146,7 +176,7 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
         //prepare messages---UGLY
         val mentionMsgs: Map[Variable[Any], Message[Boolean]] =
           Range(0, n).view.map(i => hiddenMentions(i) ->
-            Message.binary(hiddenMentions(i), logMentionMargs(i), tmpZ - logZs(i) - lZ)).toMap
+            Message.binary(hiddenMentions(i), logMentionMargs(i), log1p(-exp(logMentionMargs(i))))).toMap
         val entityMsg = Message.binary(hiddenEntity, logEntMarg, -lZ)
         val result = new Messages {
           def message[V](variable: Variable[V]) = variable match {

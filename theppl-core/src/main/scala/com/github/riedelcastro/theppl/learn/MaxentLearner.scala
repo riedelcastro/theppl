@@ -3,6 +3,7 @@ package com.github.riedelcastro.theppl.learn
 import com.github.riedelcastro.theppl.optimize.{LimitedMemoryBFGS, Objective}
 import com.github.riedelcastro.theppl.util.HasLogger
 import com.github.riedelcastro.theppl._
+import java.io.PrintStream
 
 
 /**
@@ -27,6 +28,9 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
     logger.info("Extracting gold features.")
     val goldFeatures: Seq[ParameterVector] = models.map({case (context, model) => targetExpectations(context, model)})
 
+    val target = new ParameterVector()
+    for (gf <- goldFeatures) target.add(gf,1.0)
+    
     logger.info("Counting features.")
     val qualified = for (h <- goldFeatures.view;
                          feat <- h.values.keys) yield feat -> 1
@@ -64,7 +68,7 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
       val gradient = new ParameterVector
       var objective = 0.0
       for (instance <- instances) {
-        val expectations = instance.expectator.expectations(Messages.empty)
+        val expectations = instance.expectator.expectations()
         val goldFeatures = instance.goldFeatures
         gradient.add(goldFeatures, 1.0)
         gradient.add(expectations.featureExpectations, -1.0)

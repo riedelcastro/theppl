@@ -88,7 +88,8 @@ class LimitedMemoryBFGS(val optimizable: OptimizableByValueAndGradient) extends 
         isConverged = true
         return true;
       }
-      direction *= 1.0 / direction.twoNorm
+      val oldDirectionNorm = direction.twoNorm
+      direction *= 1.0 / oldDirectionNorm
 
       // take a step in the direction
       step = lineMaximizer.optimize(direction, step)
@@ -97,6 +98,7 @@ class LimitedMemoryBFGS(val optimizable: OptimizableByValueAndGradient) extends 
         // give up and say converged
         g = null // reset search
         step = 1.0
+        logger.info("Direction norm was: " + oldDirectionNorm )
         logger.error("Line search could not step in the current direction. " +
                 "(This is not necessarily cause for alarm. Sometimes this happens close to the maximum," +
                 " where the function may be very flat.)")

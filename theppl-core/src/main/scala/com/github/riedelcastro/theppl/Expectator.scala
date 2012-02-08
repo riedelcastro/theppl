@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl
 
 import collection.mutable.HashMap
 import math._
+import util.HasLogger
 
 /**
  * @author sriedel
@@ -87,10 +88,10 @@ trait BFMarginalizer extends Marginalizer {
   }
 }
 
-trait BFExpectator extends Expectator {
+trait BFExpectator extends Expectator with HasLogger {
   val model: FeatureModel
   def expectations(penalties: Messages) = {
-
+    logger.trace("Bruteforce expectator used")
     val masses = new HashMap[(Variable[Any], Any), Double] {
       override def default(key: (Variable[Any], Any)) = 0.0
     }

@@ -33,7 +33,9 @@ class PRLearnerSpec extends ThePPLSpec {
       val prLearner = new PRLearner[Instance] {
         val q = qModule
         val p = pModule
-        def maxIterations = 4
+        def maxIterations = 5
+        override def maxQIterations = 5
+        override def maxPIterations = 5
         def targetExpectations(context: Instance, model: q.ModelType) = {
           val f = new ParameterVector()
           f(IndexedSeq(true,true)) = 0.7

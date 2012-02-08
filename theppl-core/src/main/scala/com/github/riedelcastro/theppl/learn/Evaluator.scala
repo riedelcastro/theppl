@@ -23,6 +23,8 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
     numInstances = 0
   }
 
+  def variables(model:module.ModelType) = model.hidden
+
   def total = fn + fp + tn + tp
   def totalGold = fn + tp
   def totalGuess = fp + tp
@@ -46,7 +48,7 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
       val gold = targetState(instance,model)
       val argmaxer = this.argmaxer(model)
       val guess = argmaxer.predict
-      for (hidden <- model.hidden) {
+      for (hidden <- variables(model)) {
         val default = hidden.domain.head
         val goldHidden = gold(hidden)
         val guessHidden = guess(hidden)

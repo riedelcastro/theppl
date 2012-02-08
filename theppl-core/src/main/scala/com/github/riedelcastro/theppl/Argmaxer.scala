@@ -1,5 +1,7 @@
 package com.github.riedelcastro.theppl
 
+import util.HasLogger
+
 /**
  * An object that can calculate the argmax state for a given model.
  * @author sriedel
@@ -48,11 +50,12 @@ trait MinimumBayesRiskArgmaxer extends Argmaxer {
   }
 }
 
-trait BruteForceArgmaxer extends Argmaxer {
+trait BruteForceArgmaxer extends Argmaxer with HasLogger {
 
   val model: Model
 
   def argmax(penalties: Messages) = {
+    logger.trace("Bruteforce argmaxer used")
     val states = model.allStates
     def scored = states.map(state => Scored(state, model.penalizedScore(penalties, state)))
     val result = scored.maxBy(_.score)

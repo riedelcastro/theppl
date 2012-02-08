@@ -1,13 +1,14 @@
 package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl._
+import util.HasLogger
 
 
 /**
  * PR regularization
  * @author sriedel
  */
-trait PRLearner[Context] {
+trait PRLearner[Context] extends HasLogger {
   pr =>
 
   val q: LinearModule[Context]
@@ -20,6 +21,10 @@ trait PRLearner[Context] {
   def instances: Seq[Context]
   
   def beta = 0.0
+  def alpha = 0.0
+
+  def maxQIterations = 10
+  def maxPIterations = 10
 
   def train() {
     val qPlusP = new LinearModuleWithBaseMeasure[Context] {
@@ -38,27 +43,45 @@ trait PRLearner[Context] {
 
     val qPlusPLearner = new MaxentLearner[Context] {
       val module = qPlusP
+      def instances = pr.instances
       def expectator(model: module.ModelType) = SumProductBPRecipe.expectator(model)
       def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.model)
-      def instances = pr.instances
       override def l2 = beta
+      override def iterations = maxQIterations
     }
 
 
+    val qPlusPLearners = for (group <- pr.instances.grouped(1000).toSeq) yield new MaxentLearner[Context] {
+      val module = qPlusP
+      def instances = group
+      def expectator(model: module.ModelType) = SumProductBPRecipe.expectator(model)
+      def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.model)
+      override def l2 = beta
+      override def iterations = maxQIterations
+    }
 
     val pLearner = new MaxentLearner[Context] {
       val module = p
-      def expectator(model: ModelType) = Expectator(model)
-      def targetExpectations(context: Context, model: ModelType) =
-        Expectator(pPlusQ.model(context)).expectations().featureExpectations
       def instances = pr.instances
+      def expectator(model: ModelType) = Expectator(model)
+      def targetExpectations(context: Context, model: ModelType) = {
+        val expectations = SumProductBPRecipe.expectator(pPlusQ.model(context)).expectations()
+        expectations.featureExpectations
+      }
+      override def l2 = alpha
+      override def iterations = maxPIterations
+
     }
 
     for (iteration <- 0 until maxIterations) {
+      logger.info("PR iteration " + iteration)
       //I-projection: train (q(w) + p_i-1) to match constraints of q. That is, train qPlusP based on q's target
-      qPlusPLearner.train()
+      //qPlusPLearner.train()
+      logger.info("I-Projection")
+      qPlusPLearners.foreach(_.train())
 
       //M-projection: train p_i to match q
+      logger.info("M-Projection")
       pLearner.train()
     }
   }
