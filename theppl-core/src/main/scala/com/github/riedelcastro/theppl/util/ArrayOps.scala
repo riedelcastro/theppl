@@ -79,6 +79,18 @@ trait ArrayImplicits {
     //def length = s.length
     //def apply(i:Int) = s(i)
     //def update(i:Int, d:Double): Unit = s(i) = d
+    def +(that:A, scale:Double = 1.0) = {
+      val copy = Array.ofDim[Double](s.length)
+      ArrayOps.incr(copy,s,scale)
+      ArrayOps.incr(copy,that,scale)
+      copy
+    }
+    def copy = {
+      val copy = Array.ofDim[Double](s.length)
+      System.arraycopy(s,0,copy,0,s.length)
+      copy
+    }
+    def -(that:A) = this + (that, -1.0)
     def oneNorm: Double = ArrayOps.oneNorm(s)
     def twoNorm: Double = ArrayOps.twoNorm(s)
     def twoNormSquared: Double = ArrayOps.twoNormSquared(s)
@@ -102,7 +114,7 @@ trait ArrayImplicits {
     def maxIndex: Int = ArrayOps.maxIndex(s)
     def isNaN: Boolean = ArrayOps.isNaN(s)
     def substitute(oldValue:Double, newValue:Double): Unit = ArrayOps.substitute(s, oldValue, newValue)
-    def copy: Array[Double] = ArrayOps.copy(s)
+//    def copy: Array[Double] = ArrayOps.copy(s)
     def set(t:A): Unit = ArrayOps.set(s, t)
   }
 

@@ -1,7 +1,8 @@
 package com.github.riedelcastro.theppl
 
-import util.StreamUtil
 import collection.mutable.HashMap
+import util.{ArrayImports, StreamUtil}
+import ArrayImports._
 
 /**
  * A message is a mapping from variable-value assignments to real numbers.
@@ -13,19 +14,57 @@ trait Messages {
   def msg[V](variable: Variable[V], value: V) = message(variable)(value)
   def apply[V](variable: Variable[V], value: V) = message(variable)(value)
 
-  def toArrays:(IndexedSeq[Variable[Any]],IndexedSeq[Array[Double]]) = null
-  
-  def toString(variables:TraversableOnce[Variable[Any]]) = {
-    variables.map(v => "%s\n%s".format(v,message(v).toString)).mkString("\n")
+  def toArrays: (IndexedSeq[Variable[Any]], IndexedSeq[Array[Double]]) = null
+
+  def toString(variables: TraversableOnce[Variable[Any]]) = {
+    variables.map(v => "%s\n%s".format(v, message(v).toString)).mkString("\n")
   }
-  
+}
+
+trait MessageVar[V] {
+  def variable: Variable[V]
+  def :=(msg: Message[V])
+  def :=(msgVar: MessageVar[V]) {this := msgVar()}
+  def apply(): Message[V]
+  def +=(msg: Message[V]) {this := apply() + msg}
+  def ++=(msgs: Iterable[Message[V]]) {this := msgs.foldLeft[Message[V]](Message.empty[V](variable))(_ + _)}
+}
+
+class ArrayMessage[V](val variable: Variable[V], array: Array[Double]) extends Message[V] {
+  lazy val value2index = variable.domain.zipWithIndex.toMap
+  def apply(value: V) = array(value2index(value))
+
+  override def +(that: Message[V]) = {
+    new ArrayMessage[V](variable, array + that.toArray)
+  }
+  override def -(that: Message[V]) = {
+    new ArrayMessage[V](variable, array - that.toArray)
+  }
+
+
+
+  override def dot(that: Message[V]) = array.dot(that.toArray)
+  override def map(f: (Double) => Double) = new ArrayMessage[V](variable, array.map(f(_)))
+
+  override def norm1 = array.absNormalize()
+  override def norm2 = array.twoNorm
+  override def toArray = array
+}
+
+class ArrayMessageVar[V](val variable: Variable[V]) extends MessageVar[V] {
+  val array = Array.ofDim[Double](variable.domain.size)
+  def apply() = new ArrayMessage[V](variable, array.copy)
+  def :=(msg: Message[V]) {array.set(msg.toArray)}
+  override def +=(msg: Message[V]) {array.incr(msg.toArray)}
+  override def ++=(msgs: Iterable[Message[V]]) {msgs.foreach(m => array.incr(m.toArray))}
 
 }
 
 trait Message[V] {
   self =>
   def variable: Variable[V]
-  def apply(value:V):Double
+  def apply(value: V): Double
+  def toArray: Array[Double] = variable.domain.map(apply(_)).toArray
   def +(that: Message[V]): Message[V] = {
     new Message[V] {
       def apply(value: V) = self.apply(value) + that(value)
@@ -45,64 +84,59 @@ trait Message[V] {
   }
   def normalize = {
     val normalizer = math.log(variable.domain.map(v => math.exp(this(v))).sum)
-    new Message[V] {
-      def apply(value: V) = self.apply(value) - normalizer
-      def variable = self.variable
-    }
+    this.map(_ - normalizer)
   }
-  
-  def map(f:Double=>Double) = {
+
+  def map(f: Double => Double) = {
     new Message[V] {
       def apply(value: V) = f(self(value))
       def variable = self.variable
     }
   }
-  
+
   def norm1 = variable.domain.view.map(v => math.abs(this(v))).sum
-  def norm2 = math.sqrt(variable.domain.view.map(v => math.pow(this(v),2.0)).sum)
+  def norm2 = math.sqrt(variable.domain.view.map(v => math.pow(this(v), 2.0)).sum)
 
 
   def entropy = variable.domain.view.map(v => {
     val score = this(v)
-    val prob =  math.exp(score)
+    val prob = math.exp(score)
     -prob * score
   }).sum
 
-  def dot(that:Message[V]) = {
+  def dot(that: Message[V]) = {
     variable.domain.view.map(v => this(v) * that(v)).sum
   }
 
   def argmax = variable.domain.maxBy(apply(_))
 
-  def offsetDefault(offset:Double) = new Message[V] {
+  def offsetDefault(offset: Double) = new Message[V] {
     def variable = self.variable
     def apply(value: V) = if (value == variable.default) self(value) + offset else self(value)
   }
 
   override def toString = {
-    variable.domain.view.map(v => "%20s %8.4f".format(v,this(v))).mkString("\n")
+    variable.domain.view.map(v => "%20s %8.4f".format(v, this(v))).mkString("\n")
   }
-  
+
 
   def materialize = new Message[V] {
     def variable = self.variable
-    val map = new HashMap[V,Double]
+    val map = new HashMap[V, Double]
     def apply(value: V) = map.getOrElseUpdate(value, self(value))
   }
 
 }
 
-  
-
 
 object Message {
 
-  def binary(v:Variable[Boolean], trueScore:Double, falseScore:Double = 0.0) = new Message[Boolean]{
+  def binary(v: Variable[Boolean], trueScore: Double, falseScore: Double = 0.0) = new Message[Boolean] {
     def variable = v
     def apply(value: Boolean) = if (value) trueScore else falseScore
   }
 
-  def empty[T](v:Variable[T]) = new Message[T] {
+  def empty[T](v: Variable[T]) = new Message[T] {
     override def +(that: Message[T]) = that
     override def -(that: Message[T]) = that.negate
     def apply(value: T) = 0.0
@@ -118,8 +152,8 @@ object Message {
 case class Scored[T](value: T, score: Double)
 
 object Messages {
-  
-  def fromArrays(variables:IndexedSeq[Variable[Any]], arrays:IndexedSeq[Array[Double]]) = {
+
+  def fromArrays(variables: IndexedSeq[Variable[Any]], arrays: IndexedSeq[Array[Double]]) = {
     val varMap = variables.zipWithIndex.toMap
     new Messages {
       def message[V](v: Variable[V]) = {
@@ -130,10 +164,10 @@ object Messages {
           def apply(value: V) = array(valMap(value))
         }
       }
-      override def toArrays = (variables,arrays)
+      override def toArrays = (variables, arrays)
     }
   }
-  
+
   val empty = new Messages {
     def message[V](variable: Variable[V]) = Message.empty(variable)
   }
