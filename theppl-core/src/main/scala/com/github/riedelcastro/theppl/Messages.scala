@@ -40,9 +40,7 @@ class ArrayMessage[V](val variable: Variable[V], array: Array[Double]) extends M
   override def -(that: Message[V]) = {
     new ArrayMessage[V](variable, array - that.toArray)
   }
-
-
-
+  override def materialize = this
   override def dot(that: Message[V]) = array.dot(that.toArray)
   override def map(f: (Double) => Double) = new ArrayMessage[V](variable, array.map(f(_)))
 
@@ -119,8 +117,7 @@ trait Message[V] {
     variable.domain.view.map(v => "%20s %8.4f".format(v, this(v))).mkString("\n")
   }
 
-
-  def materialize = new Message[V] {
+  def materialize:Message[V] = new Message[V] {
     def variable = self.variable
     val map = new HashMap[V, Double]
     def apply(value: V) = map.getOrElseUpdate(value, self(value))

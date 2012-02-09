@@ -1,12 +1,13 @@
 package com.github.riedelcastro.theppl.infer
 
 import com.github.riedelcastro.theppl._
+import util.HasLogger
 
 
 /**
  * @author sriedel
  */
-trait SumProductBP extends Expectator {
+trait SumProductBP extends Expectator with HasLogger {
 
   val fg: MessagePassingFactorGraph
 
@@ -25,8 +26,13 @@ trait SumProductBP extends Expectator {
     val incoming = incomingMessages(factor)
     val expectations = factor.expectator.expectations(incoming)
     for (edge <- factor.edges) {
+      edge.f2nOld = edge.f2n
       edge.f2n = (expectations.logMarginals.message(edge.node.variable) - edge.n2f)
     }
+  }
+  
+  def maxResidual():Double = {
+    fg.edges.view.map(e => (e.f2n - e.f2nOld).norm1).max
   }
 
   def msgV2Fs(node: fg.NodeType, penalties: Messages) {
@@ -41,18 +47,21 @@ trait SumProductBP extends Expectator {
     for (edge <- fg.edges) {
       edge.n2f = Message.empty(edge.node.variable)
       edge.f2n = Message.empty(edge.node.variable)
+      edge.f2nOld = Message.empty(edge.node.variable)
     }
     for (node <- fg.nodes) {
       node.belief = Message.empty(node.variable)
     }
-    for (i <- 0 until maxIterations) {
+    var index = 0
+    do {
       for (node <- fg.nodes) {
         msgV2Fs(node, penalties)
       }
       for (factor <- fg.factors) {
         msgF2Vs(factor)
       }
-    }
+      index += 1
+    } while (index < maxIterations && maxResidual() > 0.001)
   }
   def outgoingMarginals: Messages = {
     new Messages {
@@ -127,6 +136,7 @@ trait MessagePassingFactorGraph extends PotentialGraph {
   trait Edge extends super.Edge {
     var n2f: Message[Any] = _
     var f2n: Message[Any] = _
+    var f2nOld: Message[Any] = _
   }
   trait Node extends super.Node {
     var belief: Message[Any] = _

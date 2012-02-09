@@ -22,7 +22,7 @@ class SumProductBPSpec extends ThePPLSpec {
       val vars = Seq(A, B, C, D)
 
       class EdgePotential(x: Var, y: Var) extends LinearModel {
-        def features(state: State) = new ParameterVector(Feat(state(x), state(y)))
+        def features(state: State) = ParameterVector(state(x) -> state(y))
         def hidden = IndexedSeq(x, y)
         val weights = new ParameterVector()
         override def toString = (x, y).toString()
@@ -30,9 +30,9 @@ class SumProductBPSpec extends ThePPLSpec {
       val AB = new EdgePotential(A, B)
       val BC = new EdgePotential(B, C)
       val BD = new EdgePotential(B, D)
-      AB.weights(Feat('x1, 'x1)) = 1.0
-      BC.weights(Feat('x1, 'x1)) = 1.0
-      BD.weights(Feat('x1, 'x1)) = 1.0
+      AB.weights('x1 -> 'x1) = 1.0
+      BC.weights('x1 -> 'x1) = 1.0
+      BD.weights('x1 -> 'x1) = 1.0
 
       val sum = new FeatureSumModel {
 

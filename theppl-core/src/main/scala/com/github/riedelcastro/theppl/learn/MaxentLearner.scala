@@ -29,9 +29,6 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
     logger.info("Extracting gold features.")
     val goldFeatures: Seq[ParameterVector] = models.map({case (context, model) => targetExpectations(context, model)})
 
-    val target = new ParameterVector()
-    for (gf <- goldFeatures) target.add(gf,1.0)
-    
     logger.info("Counting features.")
     val qualified = for (h <- goldFeatures.view;
                          feat <- h.values.keys) yield feat -> 1

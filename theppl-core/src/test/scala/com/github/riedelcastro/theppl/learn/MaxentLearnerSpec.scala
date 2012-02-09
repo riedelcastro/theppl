@@ -21,8 +21,8 @@ class MaxentLearnerSpec extends ThePPLSpec {
         type LabelType = Boolean
         type LabelVariableType = LabelVar
         def variable(context: Data) = LabelVar(context)
-        def labelFeatures(label: LabelType) = vector(label)
-        def contextFeatures(context: Data) = vector(context.x)
+        def labelFeatures(label: LabelType) = ParameterVector(label)
+        def contextFeatures(context: Data) = ParameterVector(context.x)
       }
       val classifier = new TestClassifier
       val learner = new MaxentLearner[Data] with SupervisorByDeterministicExpectations[Data] {

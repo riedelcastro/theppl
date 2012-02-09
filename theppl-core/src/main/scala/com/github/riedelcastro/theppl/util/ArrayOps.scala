@@ -44,7 +44,8 @@ trait ArrayOps {
   def copy(s:A): Array[Double] = { val result = new Array[Double](s.length); set(result, s); result }
   def set(s:A, t:A): Unit = {
     require(s.length == t.length)
-    forIndex(t.length)(i => s(i) = t(i))
+    System.arraycopy(t,0,s,0,t.length)
+//    forIndex(t.length)(i => s(i) = t(i))
   }
   /** Exponentiate the elements of the array, and then normalize them to sum to one. */
   def expNormalize(a:Array[Double]): Double = {
