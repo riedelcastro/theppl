@@ -14,8 +14,6 @@ trait SumModel extends Model {
   def score(state: State) = args.map(_.score(state)).sum
 }
 
-
-
 trait FeatureSumModel extends SumModel with FeatureModel {
   def featureArgs: Iterable[FeatureModel]
   def otherArgs: Iterable[Model]

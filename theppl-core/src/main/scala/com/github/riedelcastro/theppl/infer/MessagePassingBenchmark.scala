@@ -37,6 +37,7 @@ object MessagePassingBenchmark {
       timer.time("features", expectations.featureExpectations)
 
     }
+    println(timer)
 
     println(timer)
     
