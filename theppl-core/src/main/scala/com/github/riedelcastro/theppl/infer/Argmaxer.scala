@@ -1,6 +1,7 @@
-package com.github.riedelcastro.theppl
+package com.github.riedelcastro.theppl.infer
 
-import util.HasLogger
+import com.github.riedelcastro.theppl.util.HasLogger
+import com.github.riedelcastro.theppl._
 
 /**
  * An object that can calculate the argmax state for a given model.

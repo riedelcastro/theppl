@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl._
+import infer.Argmaxer
 
 /**
  * The UpdateRule of an Online Learner defines how the prediction (guess) and

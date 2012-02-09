@@ -1,5 +1,6 @@
 package com.github.riedelcastro.theppl
 
+import infer.{Expectator, ExpectatorRecipe, BFExpectator}
 import java.io.{OutputStream, InputStream}
 
 /**

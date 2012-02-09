@@ -1,7 +1,8 @@
-package com.github.riedelcastro.theppl
+package com.github.riedelcastro.theppl.infer
 
 import collection.mutable.HashMap
 import math._
+import com.github.riedelcastro.theppl._
 import util.HasLogger
 
 /**
@@ -9,7 +10,7 @@ import util.HasLogger
  */
 trait Expectator extends Marginalizer {
 
-  val model:Model
+  val model: Model
 
   def expectations(penalties: Messages = Messages.empty): Expectations
   def marginalize(penalties: Messages): MarginalizeResult = expectations(penalties)
@@ -27,7 +28,7 @@ trait MarginalizerRecipe[-M <: Model] {
 
 object Marginalizer extends MarginalizerRecipe[Model] {
   def marginalizer(model: Model, cookbook: MarginalizerRecipe[Model]) = model.defaultMarginalizer(cookbook)
-  def apply(model:Model, cookbook:MarginalizerRecipe[Model] = this) = marginalizer(model, cookbook)
+  def apply(model: Model, cookbook: MarginalizerRecipe[Model] = this) = marginalizer(model, cookbook)
 }
 
 /**
@@ -51,11 +52,11 @@ trait ExpectatorRecipe[-M <: Model] {
   def expectator(model: M, cookbook: ExpectatorRecipe[Model] = Expectator): Expectator
 }
 
-object Expectator extends ExpectatorRecipe[Model]  {
+object Expectator extends ExpectatorRecipe[Model] {
 
 
   def expectator(model: Model, cookbook: ExpectatorRecipe[Model]) = model match {
-    case f:FeatureModel => f.defaultExpectator(cookbook)
+    case f: FeatureModel => f.defaultExpectator(cookbook)
     case m => sys.error("Cannot do inference in " + m)
   }
   def apply(model: Model, cookbook: ExpectatorRecipe[Model] = this) = cookbook.expectator(model, cookbook)

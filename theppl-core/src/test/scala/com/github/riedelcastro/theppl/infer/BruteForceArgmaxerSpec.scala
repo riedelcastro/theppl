@@ -1,6 +1,7 @@
-package com.github.riedelcastro.theppl
+package com.github.riedelcastro.theppl.infer
 
 import math._
+import com.github.riedelcastro.theppl._
 
 trait ExampleModels {
   case class Var(index: Int, domain: Seq[Int]) extends Variable[Int]

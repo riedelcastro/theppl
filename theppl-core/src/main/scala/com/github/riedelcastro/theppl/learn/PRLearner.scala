@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl._
+import infer.{SumProductBPRecipe, Expectator}
 import util.HasLogger
 
 
@@ -51,7 +52,7 @@ trait PRLearner[Context] extends HasLogger {
     }
 
 
-    val qPlusPLearners = for (group <- pr.instances.grouped(1000).toSeq) yield new MaxentLearner[Context] {
+    val qPlusPLearners = for (group <- pr.instances.grouped(300).toSeq) yield new MaxentLearner[Context] {
       val module = qPlusP
       def instances = group
       def expectator(model: module.ModelType) = SumProductBPRecipe.expectator(model)

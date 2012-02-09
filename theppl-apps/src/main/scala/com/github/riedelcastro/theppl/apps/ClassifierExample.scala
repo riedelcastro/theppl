@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.util.Util
+import infer.Argmaxer
 import io.Source
 import learn._
 import ParameterVector._

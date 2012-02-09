@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl._
+import infer.Expectator
 
 
 /**

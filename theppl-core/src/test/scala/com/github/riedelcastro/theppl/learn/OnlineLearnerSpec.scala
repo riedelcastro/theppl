@@ -4,6 +4,7 @@ import org.scalatest.Spec
 import org.scalatest.matchers.MustMatchers
 import com.github.riedelcastro.theppl._
 import Imports._
+import infer.Argmaxer
 
 /**
  * @author sriedel

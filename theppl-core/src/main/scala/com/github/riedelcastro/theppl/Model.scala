@@ -1,5 +1,6 @@
 package com.github.riedelcastro.theppl
 
+import infer._
 import logic.Term
 
 /**

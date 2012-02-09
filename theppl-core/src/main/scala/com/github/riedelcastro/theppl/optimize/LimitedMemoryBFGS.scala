@@ -99,10 +99,12 @@ class LimitedMemoryBFGS(val optimizable: OptimizableByValueAndGradient) extends 
         g = null // reset search
         step = 1.0
         logger.info("Direction norm was: " + oldDirectionNorm )
-        logger.error("Line search could not step in the current direction. " +
+        logger.warn("Line search could not step in the current direction. " +
                 "(This is not necessarily cause for alarm. Sometimes this happens close to the maximum," +
                 " where the function may be very flat.)")
-        throw new Error("Line search could not step in current direction.")
+        isConverged = true
+        return true;
+//        throw new Error("Line search could not step in current direction.")
       }
 
       optimizable.getOptimizableParameters(params)

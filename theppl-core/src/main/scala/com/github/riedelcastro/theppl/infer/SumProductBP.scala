@@ -1,4 +1,6 @@
-package com.github.riedelcastro.theppl
+package com.github.riedelcastro.theppl.infer
+
+import com.github.riedelcastro.theppl._
 
 
 /**
@@ -105,7 +107,7 @@ object SumProductBPRecipe extends ExpectatorRecipe[FeatureSumModel] {
     val factorGraph = new MessagePassingFactorGraph {
       def expectator(model: Model) = cookbook.expectator(model, cookbook)
     }
-    factorGraph.add(m.otherArgs,m.featureArgs)
+    factorGraph.add(m.otherArgs, m.featureArgs)
     new SumProductBP {
       val fg = factorGraph
       val model = m

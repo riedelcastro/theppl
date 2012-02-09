@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl.apps.distant
 
 import com.github.riedelcastro.theppl._
+import infer._
 import util.Util
 import Util._
 import math._

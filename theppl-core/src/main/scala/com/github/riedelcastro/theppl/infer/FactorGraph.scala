@@ -1,6 +1,7 @@
-package com.github.riedelcastro.theppl
+package com.github.riedelcastro.theppl.infer
 
 import collection.mutable.ArrayBuffer
+import com.github.riedelcastro.theppl.{FeatureModel, Model, Variable}
 
 /**
  * A factor graph representation of factorized models / sums.
@@ -50,8 +51,8 @@ trait MutableFactorGraph extends FactorGraph {
   }
 
   trait Edge extends super.Edge {
-    var node:NodeType = _
-    var factor:FactorType = _
+    var node: NodeType = _
+    var factor: FactorType = _
   }
 
 }
@@ -59,10 +60,10 @@ trait MutableFactorGraph extends FactorGraph {
 trait PotentialGraph extends MutableFactorGraph {
 
   trait Node extends super.Node {
-    var variable:Variable[Any] = _
+    var variable: Variable[Any] = _
   }
   trait Factor extends super.Factor {
-    var potential:Model = _
+    var potential: Model = _
   }
   trait FeatureFactor extends super.Factor {
   }
@@ -79,7 +80,7 @@ trait PotentialGraph extends MutableFactorGraph {
   def createNode(variable: Variable[Any]): NodeType
   def createEdge(potential: Model, variable: Variable[Any]): EdgeType
 
-  def add(otherPotentials:Iterable[Model], featurePotentials:Iterable[FeatureModel] = Seq.empty) {
+  def add(otherPotentials: Iterable[Model], featurePotentials: Iterable[FeatureModel] = Seq.empty) {
     val potentials = otherPotentials ++ featurePotentials
     val varModelPairs = potentials.flatMap(a => a.hidden.map(_ -> a))
     val var2model = varModelPairs.groupBy(_._1)
@@ -100,10 +101,10 @@ trait PotentialGraph extends MutableFactorGraph {
     })
     val model2factor = (otherModel2factor ++ featureModel2factor).toMap
 
-    val edges = for ((v,m) <- varModelPairs) yield {
+    val edges = for ((v, m) <- varModelPairs) yield {
       val node = var2node(v)
       val factor = model2factor(m)
-      val edge = createEdge(m,v)
+      val edge = createEdge(m, v)
       node.edges += edge
       factor.edges += edge
       edge.node = node
@@ -116,6 +117,6 @@ trait PotentialGraph extends MutableFactorGraph {
     this.edges ++= edges
 
   }
-  
+
 }
 

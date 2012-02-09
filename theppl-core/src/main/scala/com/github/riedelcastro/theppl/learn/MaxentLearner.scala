@@ -3,6 +3,7 @@ package com.github.riedelcastro.theppl.learn
 import com.github.riedelcastro.theppl.optimize.{LimitedMemoryBFGS, Objective}
 import com.github.riedelcastro.theppl.util.HasLogger
 import com.github.riedelcastro.theppl._
+import infer.Expectator
 import java.io.PrintStream
 
 
