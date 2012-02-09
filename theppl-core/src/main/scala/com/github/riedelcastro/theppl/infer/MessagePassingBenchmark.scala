@@ -34,13 +34,6 @@ object MessagePassingBenchmark {
       timer.time("infer",expectator.expectations())
     }
 
-
-    
-    
-
-    
-    
-    
   }
 
 }
