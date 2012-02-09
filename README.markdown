@@ -3,7 +3,7 @@ theppl
 
 theppl is a (p)robabilistic (p)rogramming (l)anguage/platform. It is designed to overcome
 the fundamental problem with probabilistic programming: the difficulty of scaling it up to real world
-applications. To achieve this, it relies modularity:
+applications. To achieve this, it relies on modularity:
 Developers can hierarchically compose modules into larger modules. Submodules can be designed in
 declarative ways (say, through MLNs), tailor-made (say, a parser using a dynamic program) or
 downloaded from other module providers. The modules can be orchestrated in various ways: pipelines,
