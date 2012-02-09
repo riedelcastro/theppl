@@ -14,9 +14,10 @@ object MessagePassingBenchmark {
     case class Var(id:Int) extends Variable[Int] {
       def domain = dom
     }
-    case class Edge(x:Var, y:Var, map:Map[(Int, Int),Double]) extends Model {
+    case class Edge(x:Var, y:Var, map:Map[(Int, Int),Double]) extends FeatureModel {
       val hidden = IndexedSeq(x,y)
       def score(state: State) = map(state(x)->state(y))
+      def features(state: State) = new ParameterVector()
     }
     
     def pot() = (for (i <- dom; j <- dom) yield (i, j) -> math.random).toMap
@@ -31,9 +32,14 @@ object MessagePassingBenchmark {
     val timer = new Timer
     for (iteration <- 0 until 100) {
       val expectator = timer.time("create",sum.defaultExpectator())
-      timer.time("infer",expectator.expectations())
+      val expectations = timer.time("infer",expectator.expectations())
+      timer.time("marginals", expectations.logMarginals)
+      timer.time("features", expectations.featureExpectations)
+
     }
 
+    println(timer)
+    
   }
 
 }

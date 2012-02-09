@@ -6,6 +6,12 @@ import java.io.{InputStream, OutputStream, PrintStream}
 import io.Source
 import annotation.tailrec
 
+
+//todo: eventually weights should become vector terms
+trait ParamVector extends Message[Any] {
+
+}
+
 /**
  * @author sriedel
  */

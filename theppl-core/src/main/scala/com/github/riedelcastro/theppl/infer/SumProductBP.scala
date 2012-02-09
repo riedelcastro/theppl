@@ -25,15 +25,15 @@ trait SumProductBP extends Expectator {
     val incoming = incomingMessages(factor)
     val expectations = factor.expectator.expectations(incoming)
     for (edge <- factor.edges) {
-      edge.f2n = expectations.logMarginals.message(edge.node.variable) - edge.n2f
+      edge.f2n = (expectations.logMarginals.message(edge.node.variable) - edge.n2f)
     }
   }
 
   def msgV2Fs(node: fg.NodeType, penalties: Messages) {
     node.belief =
-      node.edges.view.map(_.f2n).foldLeft[Message[Any]](penalties.message(node.variable))(_ + _).normalize
+      node.edges.view.map(_.f2n).foldLeft[Message[Any]](penalties.message(node.variable))(_ + _).normalize.materialize
     for (edge <- node.edges) {
-      edge.n2f = (node.belief - edge.f2n).normalize
+      edge.n2f = (node.belief - edge.f2n).normalize.materialize
     }
   }
 

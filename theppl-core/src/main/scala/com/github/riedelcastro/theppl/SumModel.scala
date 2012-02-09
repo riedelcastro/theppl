@@ -1,5 +1,8 @@
 package com.github.riedelcastro.theppl
 
+import infer.{SumProductBPRecipe, ExpectatorRecipe}
+
+
 /**
  * The sum of several argument models.
  * @author sriedel
@@ -22,5 +25,6 @@ trait FeatureSumModel extends SumModel with FeatureModel {
     for (arg <- featureArgs) result.add(arg.features(state), 1.0)
     result
   }
+  override def defaultExpectator(cookbook: ExpectatorRecipe[Model]) = SumProductBPRecipe.expectator(this,cookbook)
 }
 
