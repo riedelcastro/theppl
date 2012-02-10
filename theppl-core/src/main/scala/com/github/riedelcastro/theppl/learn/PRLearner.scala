@@ -62,7 +62,7 @@ trait PRLearner[Context] extends HasLogger {
       override def iterations = maxQIterations
     }
     
-    val log = new PrintStream("log/pr.log")
+    //val log = new PrintStream("log/pr.log")
 
     val pLearner = new MaxentLearner[Context] {
       val module = p
@@ -71,11 +71,11 @@ trait PRLearner[Context] extends HasLogger {
       def targetExpectations(context: Context, model: ModelType) = {
         val expectations = SumProductBPRecipe.expectator(pPlusQ.model(context)).expectations()
         val qExpectations = qPlusP.model(context).expectations
-        log.println("*****")
-        log.println(qExpectations.featureExpectations.values.map(pair => "%-20s %f %f".format(pair._1,pair._2, qPlusP.weights(pair._1))).mkString("\n"))
-        for (v <- model.hidden) {
-          log.println(v + "\n" + expectations.logMarginals.message(v).exp)
-        }
+//        log.println("*****")
+//        log.println(qExpectations.featureExpectations.values.map(pair => "%-20s %f %f".format(pair._1,pair._2, qPlusP.weights(pair._1))).mkString("\n"))
+//        for (v <- model.hidden) {
+//          log.println(v + "\n" + expectations.logMarginals.message(v).exp)
+//        }
         expectations.featureExpectations
       }
       override def l2 = alpha
