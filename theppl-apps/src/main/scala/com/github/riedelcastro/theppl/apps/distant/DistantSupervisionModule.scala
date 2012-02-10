@@ -136,8 +136,8 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
           }
         } else {
           new ArgmaxResult {
-            def score = 0.0
-            def state = State(model.hiddenEntity +: model.hiddenMentions, false +: Array.fill(n + 1)(false))
+            def score = math.max(finalEntScore, 0.0)
+            def state = State(model.hiddenEntity +: model.hiddenMentions, (finalEntScore > 0) +: Array.fill(n)(false))
           }
         }
       }
@@ -153,22 +153,29 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
         val logMentionMargs = Array.ofDim[Double](n)
 
         //convert penalties into array
+        val mentionPenaltiesTrue = hiddenMentions.map(m => penalties(m, true)).toArray
+        val mentionPenaltiesFalse = hiddenMentions.map(m => penalties(m, false)).toArray
+        val allInactiveMentionScore = mentionPenaltiesFalse.sum
         val mentionPenalties = hiddenMentions.map(m => penalties(m, true) - penalties(m, false)).toArray
         val entityPenalty = penalties(hiddenEntity, true) - penalties(hiddenEntity, false)
-        var tmpZ = entScore + entityPenalty
+        val entityPenaltyTrue = penalties(hiddenEntity, true)
+        val entityPenaltyFalse = penalties(hiddenEntity, false)
+        val allInactiveScore = allInactiveMentionScore + entityPenaltyFalse
+
+        var tmpZ = entScore + entityPenaltyTrue
 
         //log partition function and local log partition functions
         forIndex(n) {
           i =>
-            logZs(i) = log1p(exp(scores(i) + mentionPenalties(i)))
+            logZs(i) = log1p(exp(scores(i) + mentionPenaltiesTrue(i)) + exp(mentionPenaltiesFalse(i)) - 1)
             tmpZ += logZs(i)
         }
-        val lZ = log1p(exp(tmpZ))
+        val lZ = log1p(exp(tmpZ) + exp(entityPenaltyFalse) - 1)
 
         //mention marginals
         forIndex(n) {
           i =>
-            logMentionMargs(i) = tmpZ - logZs(i) + scores(i) + mentionPenalties(i) - lZ
+            logMentionMargs(i) = tmpZ - logZs(i) + scores(i) + mentionPenaltiesTrue(i) - lZ
         }
 
         //entity marginal
@@ -178,7 +185,7 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
         val mentionMsgs: Map[Variable[Any], Message[Boolean]] =
           Range(0, n).view.map(i => hiddenMentions(i) ->
             Message.binary(hiddenMentions(i), logMentionMargs(i), log1p(-exp(logMentionMargs(i))))).toMap
-        val entityMsg = Message.binary(hiddenEntity, logEntMarg, -lZ)
+        val entityMsg = Message.binary(hiddenEntity, logEntMarg, log1p(-exp(logEntMarg)))
         val result = new Messages {
           def message[V](variable: Variable[V]) = variable match {
             case x if (x == hiddenEntity) => entityMsg.asInstanceOf[Message[V]]
@@ -214,10 +221,10 @@ trait SomeFractionActive[EntityType] extends LatentDistantSupervisionModule[Enti
   def reliability(entity: EntityType): Double
 
   def entityFeatures(entity: EntityType) =
-    ParameterVector.fromMap(Map(entity -> (mentions(entity).size * fractionActive), ('target, entity) -> reliability(entity)))
+    ParameterVector.fromMap(Map(entity -> (mentions(entity).size * 0.0), ('target, entity) -> reliability(entity)))
 
   def mentionFeatures(mention: MentionType, entity: EntityType) =
-    ParameterVector.fromMap(Map(entity -> -1.0))
+    ParameterVector.fromMap(Map(entity -> -0.0))
 
 }
 

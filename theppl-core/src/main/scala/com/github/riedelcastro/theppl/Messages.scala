@@ -91,6 +91,7 @@ trait Message[V] {
       def variable = self.variable
     }
   }
+  def exp = map(math.exp(_))
 
   def norm1 = variable.domain.view.map(v => math.abs(this(v))).sum
   def norm2 = math.sqrt(variable.domain.view.map(v => math.pow(this(v), 2.0)).sum)

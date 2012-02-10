@@ -1,8 +1,9 @@
 package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl._
-import infer.{SumProductBPRecipe, Expectator}
+import infer.{BruteForceExpectator, SumProductBPRecipe, Expectator}
 import util.HasLogger
+import java.io.PrintStream
 
 
 /**
@@ -52,14 +53,16 @@ trait PRLearner[Context] extends HasLogger {
     }
 
 
-    val qPlusPLearners = for (group <- pr.instances.grouped(300).toSeq) yield new MaxentLearner[Context] {
+    val qPlusPLearners = for (group <- pr.instances.grouped(1).toSeq) yield new MaxentLearner[Context] {
       val module = qPlusP
       def instances = group
-      def expectator(model: module.ModelType) = SumProductBPRecipe.expectator(model)
+      def expectator(model: module.ModelType) = SumProductBPRecipe.expectator(model) // BruteForceExpectator.expectator(model)//
       def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.model)
       override def l2 = beta
       override def iterations = maxQIterations
     }
+    
+    val log = new PrintStream("log/pr.log")
 
     val pLearner = new MaxentLearner[Context] {
       val module = p
@@ -67,6 +70,12 @@ trait PRLearner[Context] extends HasLogger {
       def expectator(model: ModelType) = Expectator(model)
       def targetExpectations(context: Context, model: ModelType) = {
         val expectations = SumProductBPRecipe.expectator(pPlusQ.model(context)).expectations()
+        val qExpectations = qPlusP.model(context).expectations
+        log.println("*****")
+        log.println(qExpectations.featureExpectations.values.map(pair => "%-20s %f %f".format(pair._1,pair._2, qPlusP.weights(pair._1))).mkString("\n"))
+        for (v <- model.hidden) {
+          log.println(v + "\n" + expectations.logMarginals.message(v).exp)
+        }
         expectations.featureExpectations
       }
       override def l2 = alpha

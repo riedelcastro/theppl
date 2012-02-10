@@ -40,12 +40,14 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
   def mcc = nanTo0((tp.toDouble * tn - fp.toDouble * fn) /
     math.sqrt((tp.toDouble + fp) * (tp.toDouble + fn) * (tn.toDouble + fp) * (tn.toDouble + fn)))
 
+  def hook(context:Context, model:module.ModelType) {}
   def hook(variable:Variable[Any], gold:Any, guess:Any) {}
   
   def evaluate(instances: Seq[Context]) {
     reset()
     for (instance <- instances) {
       val model = module.model(instance)
+      hook(instance,model)
       val gold = targetState(instance,model)
       val argmaxer = this.argmaxer(model)
       val guess = argmaxer.predict
