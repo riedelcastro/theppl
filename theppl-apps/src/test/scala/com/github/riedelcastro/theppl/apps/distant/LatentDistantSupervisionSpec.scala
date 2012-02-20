@@ -55,6 +55,55 @@ class LatentDistantSupervisionSpec extends ThePPLSpec {
       bf.featureExpectations(Feat("entity")) must be (default.featureExpectations(Feat("entity")) plusOrMinus eps)
 
     }
+
+    it("should provide exact bidirectional expectations with the default expectator and brute force expectator") {
+      case class Mention(index: Int, feats: Seq[String])
+      case class Entity(feats: Seq[String], mentions: Seq[Mention])
+      case class Var[Id](id: Id) extends BoolVariable
+
+      val mentions = Range(0, 2).map(i => Mention(i, Seq("mention")))
+      val entity = Entity(Seq("entity"), mentions)
+
+      trait Module extends LatentDistantSupervisionModule[Entity] {
+        type MentionType = Mention
+        type EntityVariableType = Var[Entity]
+        type MentionVariableType = Var[Mention]
+        def entityVariable(entity: Entity) = Var(entity)
+        def entityFeatures(entity: Entity) = new ParameterVector(entity.feats)
+        def mentions(entity: Entity) = entity.mentions
+        def mentionFeatures(mention: MentionType, entity:Entity) = new ParameterVector(mention.feats)
+        def mentionVariable(mention: MentionType) = Var(mention)
+        override def bidirectional = true
+      }
+      val module = new Module {}
+      module.weights("mention") = 1.0
+      module.weights("entity") = 1.0
+      val model = module.model(entity)
+      val bf = BruteForceExpectator.expectator(model).expectations()
+      val default = model.defaultExpectator().expectations()
+
+      import math._
+      val logZ = log(1 + 2 * exp(2) + exp(3))
+      val logProbE = log(2 * exp(2) + exp(3)) - logZ
+      val logProbM = log(exp(2) + exp(3)) - logZ
+
+      bf.logZ must be(logZ plusOrMinus eps)
+      default.logZ must be(logZ plusOrMinus eps)
+
+      bf.logMarginals(model.hiddenEntity, true) must be(logProbE plusOrMinus eps)
+      default.logMarginals(model.hiddenEntity, true) must be(logProbE plusOrMinus eps)
+
+      for (i <- 0 until entity.mentions.size) {
+        bf.logMarginals(model.hiddenMentions(i), true) must be(logProbM plusOrMinus eps)
+        default.logMarginals(model.hiddenMentions(i), true) must be(logProbM plusOrMinus eps)
+      }
+
+      bf.featureExpectations(Feat("mention")) must be (default.featureExpectations(Feat("mention")) plusOrMinus eps)
+      bf.featureExpectations(Feat("entity")) must be (default.featureExpectations(Feat("entity")) plusOrMinus eps)
+
+    }
+
   }
 
 }
+

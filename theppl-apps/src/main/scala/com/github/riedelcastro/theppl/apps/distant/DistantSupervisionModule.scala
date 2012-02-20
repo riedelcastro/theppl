@@ -104,14 +104,21 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
 
   def model(context: EntityType) = new LatentModel {def entity = context}
 
+  def bidirectional = false
+
   trait LatentModel extends EntityMentionModel {
     latentModel =>
 
-
-    override def score(state: State) = {
-      if (!state(hiddenEntity) && hiddenMentions.exists(state(_))) Double.NegativeInfinity else super.score(state)
+    def check(state: State) = {
+      if (bidirectional)
+        hiddenMentions.exists(state(_)) == state(hiddenEntity)
+      else
+        !hiddenMentions.exists(state(_)) || state(hiddenEntity)
     }
 
+    override def score(state: State) = {
+      if (!check(state)) Double.NegativeInfinity else super.score(state)
+    }
 
     override def defaultArgmaxer(cookbook: ArgmaxRecipe[Model]) = new Argmaxer {
       val model = latentModel
@@ -142,6 +149,21 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
         }
       }
     }
+
+    def atLeastOnceArgmax(gold: Boolean): State = {
+      val scores = feats.map(_ dot weights)
+      if (gold) {
+        //we choose at least one mention to be active
+        val mentionStates = scores.map(_ > 0.0)
+        val maxMention = scores.indices.maxBy(scores(_))
+        mentionStates(maxMention) = true
+        State(this.hiddenEntity +: this.hiddenMentions, true +: mentionStates)
+      } else {
+        State(this.hiddenEntity +: this.hiddenMentions, false +: Array.fill(scores.size)(false))
+      }
+    }
+
+
     override def defaultExpectator(cookbook: ExpectatorRecipe[Model]) = new Expectator {
       val model = latentModel
 
@@ -155,12 +177,8 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
         //convert penalties into array
         val mentionPenaltiesTrue = hiddenMentions.map(m => penalties(m, true)).toArray
         val mentionPenaltiesFalse = hiddenMentions.map(m => penalties(m, false)).toArray
-        val allInactiveMentionScore = mentionPenaltiesFalse.sum
-        val mentionPenalties = hiddenMentions.map(m => penalties(m, true) - penalties(m, false)).toArray
-        val entityPenalty = penalties(hiddenEntity, true) - penalties(hiddenEntity, false)
         val entityPenaltyTrue = penalties(hiddenEntity, true)
         val entityPenaltyFalse = penalties(hiddenEntity, false)
-        val allInactiveScore = allInactiveMentionScore + entityPenaltyFalse
 
         var tmpZ = entScore + entityPenaltyTrue
 
@@ -170,16 +188,23 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
             logZs(i) = log1p(exp(scores(i) + mentionPenaltiesTrue(i)) + exp(mentionPenaltiesFalse(i)) - 1)
             tmpZ += logZs(i)
         }
-        val lZ = log1p(exp(tmpZ) + exp(entityPenaltyFalse) - 1)
+        var lZ = log1p(exp(tmpZ) + exp(entityPenaltyFalse) - 1)
+
+        //entity marginal
+        var logEntMarg = tmpZ - lZ
+
+        if (bidirectional) {
+          //substract score of active entity but no active mentions
+          val impossible = entScore + entityPenaltyTrue + mentionPenaltiesFalse.sum
+          lZ = log(exp(lZ) - exp(impossible))
+          logEntMarg = log(exp(tmpZ) - exp(impossible)) - lZ
+        }
 
         //mention marginals
         forIndex(n) {
           i =>
             logMentionMargs(i) = tmpZ - logZs(i) + scores(i) + mentionPenaltiesTrue(i) - lZ
         }
-
-        //entity marginal
-        val logEntMarg = tmpZ - lZ
 
         //prepare messages---UGLY
         val mentionMsgs: Map[Variable[Any], Message[Boolean]] =
@@ -220,11 +245,13 @@ trait SomeFractionActive[EntityType] extends LatentDistantSupervisionModule[Enti
 
   def reliability(entity: EntityType): Double
 
+  def howManyActive(entity: EntityType): Double = mentions(entity).size * fractionActive
+
   def entityFeatures(entity: EntityType) =
-    ParameterVector.fromMap(Map(entity -> (mentions(entity).size * 0.0), ('target, entity) -> reliability(entity)))
+    ParameterVector.fromMap(Map(entity -> howManyActive(entity), ('target, entity) -> reliability(entity)))
 
   def mentionFeatures(mention: MentionType, entity: EntityType) =
-    ParameterVector.fromMap(Map(entity -> -0.0))
+    ParameterVector.fromMap(Map(entity -> -1.0))
 
 }
 

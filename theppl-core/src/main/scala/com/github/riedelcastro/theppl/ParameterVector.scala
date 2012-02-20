@@ -32,7 +32,16 @@ class ParameterVector {
 
   def values: Map[Any, Double] = _values
 
+  def keys = _values.keys
+
   def size = values.size
+
+  def filterByKey(keys: Iterable[Any]): ParameterVector = {
+    val result = new ParameterVector()
+    for (key <- keys) result(key) = this(key)
+    result
+  }
+
 
   def update(key: Any, value: Double) = {
     _values(key) = value

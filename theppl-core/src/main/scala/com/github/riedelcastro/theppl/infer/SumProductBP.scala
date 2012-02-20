@@ -43,6 +43,8 @@ trait SumProductBP extends Expectator with HasLogger {
     }
   }
 
+  def residualThreshold = 0.001
+
   def calculateMarginals(penalties: Messages) {
     for (edge <- fg.edges) {
       edge.n2f = Message.empty(edge.node.variable)
@@ -53,6 +55,7 @@ trait SumProductBP extends Expectator with HasLogger {
       node.belief = Message.empty(node.variable)
     }
     var index = 0
+    var res = Double.PositiveInfinity
     do {
       for (node <- fg.nodes) {
         msgV2Fs(node, penalties)
@@ -61,7 +64,9 @@ trait SumProductBP extends Expectator with HasLogger {
         msgF2Vs(factor)
       }
       index += 1
-    } while (index < maxIterations && maxResidual() > 0.001)
+      res = maxResidual()
+      logger.trace(lazyString("Max residual at iteration %d: %f".format(index,res)))
+    } while (index < maxIterations && res > residualThreshold)
   }
   def outgoingMarginals: Messages = {
     new Messages {
@@ -111,7 +116,7 @@ trait SumProductBP extends Expectator with HasLogger {
   }
 }
 
-object SumProductBPRecipe extends ExpectatorRecipe[FeatureSumModel] {
+class SumProductBPRecipe(iterations:Int = 6, residual:Double = 0.001) extends ExpectatorRecipe[FeatureSumModel] {
   def expectator(m: FeatureSumModel, cookbook: ExpectatorRecipe[Model] = Expectator) = {
     val factorGraph = new MessagePassingFactorGraph {
       def expectator(model: Model) = cookbook.expectator(model, cookbook)
@@ -120,10 +125,12 @@ object SumProductBPRecipe extends ExpectatorRecipe[FeatureSumModel] {
     new SumProductBP {
       val fg = factorGraph
       val model = m
-      def maxIterations = 6
+      def maxIterations = iterations
+      override def residualThreshold = residual
     }
   }
 }
+object SumProductBPRecipe extends SumProductBPRecipe(10, 0.001)
 
 
 trait MessagePassingFactorGraph extends PotentialGraph {

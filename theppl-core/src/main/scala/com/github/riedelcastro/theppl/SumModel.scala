@@ -23,6 +23,7 @@ trait FeatureSumModel extends SumModel with FeatureModel {
     for (arg <- featureArgs) result.add(arg.features(state), 1.0)
     result
   }
-  override def defaultExpectator(cookbook: ExpectatorRecipe[Model]) = SumProductBPRecipe.expectator(this,cookbook)
+  override def defaultExpectator(cookbook: ExpectatorRecipe[Model]) =
+    new SumProductBPRecipe(10).expectator(this,cookbook)
 }
 

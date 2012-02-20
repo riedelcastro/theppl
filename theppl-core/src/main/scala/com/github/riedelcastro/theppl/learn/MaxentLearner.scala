@@ -20,7 +20,7 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
 
   def expectator(model: module.ModelType): Expectator
 
-  def l2:Double = 0.0
+  def l2: Double = 0.0
 
   def train() {
     logger.info("Creating models.")
@@ -62,22 +62,37 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
         module.weights(feat) = parameters(index)
       }
 
+//      println("-----")
+//      println(module.weights)
+
       //calculate gradient
       val gradient = new ParameterVector
       var objective = 0.0
       for (instance <- instances) {
         val expectations = instance.expectator.expectations()
         val goldFeatures = instance.goldFeatures
+        val guessFeatures = expectations.featureExpectations
         gradient.add(goldFeatures, 1.0)
-        gradient.add(expectations.featureExpectations, -1.0)
+        gradient.add(guessFeatures, -1.0)
         objective += (goldFeatures dot module.weights) - expectations.logZ
+//        println("****")
+//        println(expectations.featureExpectations)
+//        println(objective)
+
       }
+
+//      println("Gradient: \n--------")
+//      println(gradient)
 
       //L2 normalizer
       if (l2 != 0.0) {
         objective -= l2 * module.weights.norm2Sq
-        gradient.add(module.weights, -2.0 * l2)
+        gradient.add(module.weights.filterByKey(mapping.forward.keys), -2.0 * l2)
       }
+
+      val log = new PrintStream("log/maxent")
+      log.println("Gradient (regularized): \n--------")
+      log.println(gradient)
 
       //convert
       val arrayGradient = Array.ofDim[Double](domainSize)
