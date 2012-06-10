@@ -196,8 +196,11 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
         if (bidirectional) {
           //substract score of active entity but no active mentions
           val impossible = entScore + entityPenaltyTrue + mentionPenaltiesFalse.sum
-          lZ = log(exp(lZ) - exp(impossible))
+          val oldLz = lZ
+          lZ = log1p(exp(lZ) - exp(impossible) - 1)
+          assert(!lZ.isInfinity)
           logEntMarg = log(exp(tmpZ) - exp(impossible)) - lZ
+          assert(!logEntMarg.isNaN)
         }
 
         //mention marginals
