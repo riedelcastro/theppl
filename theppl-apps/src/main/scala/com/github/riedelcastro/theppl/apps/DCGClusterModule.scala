@@ -1,33 +1,33 @@
 package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl.util.StreamUtil
-import com.github.riedelcastro.theppl.{Model, State, Variable, Module}
+import com.github.riedelcastro.theppl.{Potential, State, Variable, Template}
 
 
 /**
- * A clustering module that uses delayed column generation for inference
+ * A clustering template that uses delayed column generation for inference
  * @author sriedel
  */
-trait DCGClusterModule[Context] extends Module[Context] {
-  thisModule =>
+trait DCGClusterTemplate[Context] extends Template[Context] {
+  thisTemplate =>
 
   type Instance
-  type ModelType <: DCGClusterModel with Model { type Instance = thisModule.Instance}
-  type SlaveModule <: Module[Context]
-  def slaveModule:SlaveModule
+  type PotentialType <: DCGClusterPotential with Potential { type Instance = thisTemplate.Instance}
+  type SlaveTemplate <: Template[Context]
+  def slaveTemplate:SlaveTemplate
 
 }
 
 /**
- * A clustering model that uses a slave model to score each cluster in isolation,
+ * A clustering potential that uses a slave potential to score each cluster in isolation,
  * and that enforces consistency between active clusters. Argmaxing
  * is done through delayed column generation.
  */
-trait DCGClusterModel extends Model {
+trait DCGClusterPotential extends Potential {
   type Instance
-  type SlaveModel <: Model
+  type SlavePotential <: Potential
   def instances:Seq[Instance]
-  def slaveModel:SlaveModel
+  def slavePotential:SlavePotential
 
   /**
    * Defines the variables to use for representing a cluster. These variables

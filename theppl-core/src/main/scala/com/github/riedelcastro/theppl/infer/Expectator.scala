@@ -10,25 +10,25 @@ import util.HasLogger
  */
 trait Expectator extends Marginalizer {
 
-  val model: Model
+  val potential: Potential
 
   def expectations(penalties: Messages = Messages.empty): Expectations
   def marginalize(penalties: Messages): MarginalizeResult = expectations(penalties)
 }
 
-trait Marginalizer extends HasModel {
+trait Marginalizer extends HasPotential {
 
   def marginalize(penalties: Messages = Messages.empty): MarginalizeResult
 
 }
 
-trait MarginalizerRecipe[-M <: Model] {
-  def marginalizer(model: M, cookbook: MarginalizerRecipe[Model]): Marginalizer
+trait MarginalizerRecipe[-M <: Potential] {
+  def marginalizer(potential: M, cookbook: MarginalizerRecipe[Potential]): Marginalizer
 }
 
-object Marginalizer extends MarginalizerRecipe[Model] {
-  def marginalizer(model: Model, cookbook: MarginalizerRecipe[Model]) = model.defaultMarginalizer(cookbook)
-  def apply(model: Model, cookbook: MarginalizerRecipe[Model] = this) = marginalizer(model, cookbook)
+object Marginalizer extends MarginalizerRecipe[Potential] {
+  def marginalizer(potential: Potential, cookbook: MarginalizerRecipe[Potential]) = potential.defaultMarginalizer(cookbook)
+  def apply(potential: Potential, cookbook: MarginalizerRecipe[Potential] = this) = marginalizer(potential, cookbook)
 }
 
 /**
@@ -41,45 +41,45 @@ trait MarginalizeResult {
 
 
 /**
- * The result of marginalizing a linear model also contains expectations of the features/sufficient statistics.
+ * The result of marginalizing a linear potential also contains expectations of the features/sufficient statistics.
  */
 trait Expectations extends MarginalizeResult {
   def featureExpectations: ParameterVector
 }
 
 
-trait ExpectatorRecipe[-M <: Model] {
-  def expectator(model: M, cookbook: ExpectatorRecipe[Model] = Expectator): Expectator
+trait ExpectatorRecipe[-M <: Potential] {
+  def expectator(potential: M, cookbook: ExpectatorRecipe[Potential] = Expectator): Expectator
 }
 
-object Expectator extends ExpectatorRecipe[Model] {
+object Expectator extends ExpectatorRecipe[Potential] {
 
 
-  def expectator(model: Model, cookbook: ExpectatorRecipe[Model]) = model match {
-    case f: FeatureModel => f.defaultExpectator(cookbook)
+  def expectator(potential: Potential, cookbook: ExpectatorRecipe[Potential]) = potential match {
+    case f: FeaturePotential => f.defaultExpectator(cookbook)
     case m => sys.error("Cannot do inference in " + m)
   }
-  def apply(model: Model, cookbook: ExpectatorRecipe[Model] = this) = cookbook.expectator(model, cookbook)
+  def apply(potential: Potential, cookbook: ExpectatorRecipe[Potential] = this) = cookbook.expectator(potential, cookbook)
 }
 
 
-object BruteForceExpectator extends ExpectatorRecipe[FeatureModel] {
-  def expectator(fm: FeatureModel, cookbook: ExpectatorRecipe[Model]) = new BFExpectator {
-    val model = fm
+object BruteForceExpectator extends ExpectatorRecipe[FeaturePotential] {
+  def expectator(fm: FeaturePotential, cookbook: ExpectatorRecipe[Potential]) = new BFExpectator {
+    val potential = fm
   }
 }
 trait BFMarginalizer extends Marginalizer {
 
-  val model: Model
+  val potential: Potential
 
   def marginalize(penalties: Messages) = {
     val masses = new HashMap[(Variable[Any], Any), Double] {
       override def default(key: (Variable[Any], Any)) = 0.0
     }
     var total = 0.0
-    for (state <- model.allStates) {
-      val mass = math.exp(model.penalizedScore(penalties, state))
-      for (v <- model.hidden) masses(v -> state(v)) = masses(v -> state(v)) + mass
+    for (state <- potential.allStates) {
+      val mass = math.exp(potential.penalizedScore(penalties, state))
+      for (v <- potential.hidden) masses(v -> state(v)) = masses(v -> state(v)) + mass
       total += mass
     }
     new MarginalizeResult {
@@ -90,7 +90,7 @@ trait BFMarginalizer extends Marginalizer {
 }
 
 trait BFExpectator extends Expectator with HasLogger {
-  val model: FeatureModel
+  val potential: FeaturePotential
   def expectations(penalties: Messages) = {
     logger.trace("Bruteforce expectator used")
     val masses = new HashMap[(Variable[Any], Any), Double] {
@@ -98,11 +98,11 @@ trait BFExpectator extends Expectator with HasLogger {
     }
     val featExp = new ParameterVector()
     var total = 0.0
-    for (state <- model.allStates) {
-      val mass = math.exp(model.penalizedScore(penalties, state))
-      for (v <- model.hidden) masses(v -> state(v)) = masses(v -> state(v)) + mass
+    for (state <- potential.allStates) {
+      val mass = math.exp(potential.penalizedScore(penalties, state))
+      for (v <- potential.hidden) masses(v -> state(v)) = masses(v -> state(v)) + mass
       total += mass
-      featExp.add(model.features(state), mass)
+      featExp.add(potential.features(state), mass)
     }
     featExp.scale(1.0 / total)
     new Expectations {

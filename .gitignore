@@ -1,5 +1,5 @@
 *.lyx~
 .idea/
-.idea_modules/
+.idea_templates/
 target/
 .history

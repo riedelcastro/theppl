@@ -4,10 +4,10 @@ import com.github.riedelcastro.theppl.util.HasLogger
 import com.github.riedelcastro.theppl._
 
 /**
- * An object that can calculate the argmax state for a given model.
+ * An object that can calculate the argmax state for a given potential.
  * @author sriedel
  */
-trait Argmaxer extends HasModel {
+trait Argmaxer extends HasPotential {
 
   def argmax(penalties: Messages = Messages.empty): ArgmaxResult
   def predict = argmax(Messages.empty).state
@@ -23,15 +23,15 @@ trait ArgmaxResult {
 }
 
 
-trait ArgmaxRecipe[-ModelType <: Model] {
-  def argmaxer(model: ModelType, cookbook: ArgmaxRecipe[Model] = Argmaxer): Argmaxer
+trait ArgmaxRecipe[-PotentialType <: Potential] {
+  def argmaxer(potential: PotentialType, cookbook: ArgmaxRecipe[Potential] = Argmaxer): Argmaxer
 }
 
-object Argmaxer extends ArgmaxRecipe[Model] {
+object Argmaxer extends ArgmaxRecipe[Potential] {
 
-  def argmaxer(model: Model, cookbook: ArgmaxRecipe[Model]) = model.defaultArgmaxer(cookbook)
-  def apply(model: Model, cookbook: ArgmaxRecipe[Model] = this) =
-    cookbook.argmaxer(model, cookbook)
+  def argmaxer(potential: Potential, cookbook: ArgmaxRecipe[Potential]) = potential.defaultArgmaxer(cookbook)
+  def apply(potential: Potential, cookbook: ArgmaxRecipe[Potential] = this) =
+    cookbook.argmaxer(potential, cookbook)
 }
 
 trait MinimumBayesRiskArgmaxer extends Argmaxer {
@@ -42,7 +42,7 @@ trait MinimumBayesRiskArgmaxer extends Argmaxer {
   def argmax(penalties: Messages) = {
     val marginals = marginalizer.marginalize(penalties).logMarginals
     new ArgmaxResult {
-      lazy val score = model.score(state)
+      lazy val score = potential.score(state)
       lazy val state = new State {
         def get[V](variable: Variable[V]) =
           Some(marginals.message(variable).map(math.exp(_)).offsetDefault(-threshold).argmax)
@@ -53,12 +53,12 @@ trait MinimumBayesRiskArgmaxer extends Argmaxer {
 
 trait BruteForceArgmaxer extends Argmaxer with HasLogger {
 
-  val model: Model
+  val potential: Potential
 
   def argmax(penalties: Messages) = {
     logger.trace("Bruteforce argmaxer used")
-    val states = model.allStates
-    def scored = states.map(state => Scored(state, model.penalizedScore(penalties, state)))
+    val states = potential.allStates
+    def scored = states.map(state => Scored(state, potential.penalizedScore(penalties, state)))
     val result = scored.maxBy(_.score)
     new ArgmaxResult {
       def state = result.value

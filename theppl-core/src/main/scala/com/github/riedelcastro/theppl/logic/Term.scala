@@ -18,7 +18,7 @@ trait Term[+V] {
   def isConstant = variables.isEmpty
 
   /**
-   * Iterates over all states for the hidden variables of this model.
+   * Iterates over all states for the hidden variables of this potential.
    */
   def allStates = {
     val variables = this.variables.toSeq
@@ -384,7 +384,7 @@ object LogicPlayground {
   def main(args: Array[String]) {
     val Person = Dom('persons, Range(0, 3))
     val smokes = new Pred1('smokes, Person, Bool) {
-      //can be any client-side defined variable that is reused in other modules
+      //can be any client-side defined variable that is reused in other templates
       override def mapping(a1: Int) = GroundAtom1(name, a1, Bool)
     }
     val cancer = 'cancer := Person -> Bool

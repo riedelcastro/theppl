@@ -11,7 +11,7 @@ import infer.Expectator
 class MaxentLearnerSpec extends ThePPLSpec {
 
   describe("A MaxentLearner") {
-    it("should yield a model that has the same expectations as the training data") {
+    it("should yield a potential that has the same expectations as the training data") {
       case class Data(x: Int, y: Boolean)
       case class LabelVar(data: Data) extends BoolVariable
       val data1 = Data(0, true)
@@ -26,19 +26,19 @@ class MaxentLearnerSpec extends ThePPLSpec {
       }
       val classifier = new TestClassifier
       val learner = new MaxentLearner[Data] with SupervisorByDeterministicExpectations[Data] {
-        val module = classifier
-        def expectator(model: module.ModelType) = Expectator(model)
+        val template = classifier
+        def expectator(potential: template.PotentialType) = Expectator(potential)
         def instances = tokens
-        def targetState(context: Data, model: module.ModelType) = model.labelVariable -> context.y
+        def targetState(context: Data, potential: template.PotentialType) = potential.labelVariable -> context.y
       }
       learner.train()
 
       val delta = new ParameterVector()
 
-      for (i <- tokens; model = learner.module.model(i)) {
-        val goldState = learner.targetState(i, model)
-        val gold = model.features(goldState)
-        val expectator = learner.expectator(model)
+      for (i <- tokens; potential = learner.template.potential(i)) {
+        val goldState = learner.targetState(i, potential)
+        val gold = potential.features(goldState)
+        val expectator = learner.expectator(potential)
         val guess = expectator.expectations().featureExpectations
         delta.add(gold, 1.0)
         delta.add(guess, -1.0)

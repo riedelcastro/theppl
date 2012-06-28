@@ -1,10 +1,10 @@
 package com.github.riedelcastro.theppl.infer
 
 import collection.mutable.ArrayBuffer
-import com.github.riedelcastro.theppl.{FeatureModel, Model, Variable}
+import com.github.riedelcastro.theppl.{FeaturePotential, Potential, Variable}
 
 /**
- * A factor graph representation of factorized models / sums.
+ * A factor graph representation of factorized potentials / sums.
  * @author sriedel
  */
 trait FactorGraph {
@@ -63,7 +63,7 @@ trait PotentialGraph extends MutableFactorGraph {
     var variable: Variable[Any] = _
   }
   trait Factor extends super.Factor {
-    var potential: Model = _
+    var potential: Potential = _
   }
   trait FeatureFactor extends super.Factor {
   }
@@ -75,35 +75,35 @@ trait PotentialGraph extends MutableFactorGraph {
   type FactorType <: Factor
   type FeatureFactorType <: FeatureFactor with FactorType
 
-  def createFactor(potential: Model): FactorType
-  def createFeatureFactor(potential: Model): FeatureFactorType
+  def createFactor(potential: Potential): FactorType
+  def createFeatureFactor(potential: Potential): FeatureFactorType
   def createNode(variable: Variable[Any]): NodeType
-  def createEdge(potential: Model, variable: Variable[Any]): EdgeType
+  def createEdge(potential: Potential, variable: Variable[Any]): EdgeType
 
-  def add(otherPotentials: Iterable[Model], featurePotentials: Iterable[FeatureModel] = Seq.empty) {
+  def add(otherPotentials: Iterable[Potential], featurePotentials: Iterable[FeaturePotential] = Seq.empty) {
     val potentials = otherPotentials ++ featurePotentials
-    val varModelPairs = potentials.flatMap(a => a.hidden.map(_ -> a))
-    val var2model = varModelPairs.groupBy(_._1)
-    val var2node = var2model.keys.map(v => v -> {
+    val varPotentialPairs = potentials.flatMap(a => a.hidden.map(_ -> a))
+    val var2potential = varPotentialPairs.groupBy(_._1)
+    val var2node = var2potential.keys.map(v => v -> {
       val node = createNode(v)
       node.variable = v
       node
     }).toMap
-    val otherModel2factor = otherPotentials.map(p => p -> {
+    val otherPotential2factor = otherPotentials.map(p => p -> {
       val factor = createFactor(p)
       factor.potential = p
       factor
     })
-    val featureModel2factor = featurePotentials.map(p => p -> {
+    val featurePotential2factor = featurePotentials.map(p => p -> {
       val factor = createFeatureFactor(p)
       factor.potential = p
       factor
     })
-    val model2factor = (otherModel2factor ++ featureModel2factor).toMap
+    val potential2factor = (otherPotential2factor ++ featurePotential2factor).toMap
 
-    val edges = for ((v, m) <- varModelPairs) yield {
+    val edges = for ((v, m) <- varPotentialPairs) yield {
       val node = var2node(v)
-      val factor = model2factor(m)
+      val factor = potential2factor(m)
       val edge = createEdge(m, v)
       node.edges += edge
       factor.edges += edge
@@ -111,8 +111,8 @@ trait PotentialGraph extends MutableFactorGraph {
       edge.factor = factor
       edge
     }
-    this.factors ++= model2factor.values
-    this.featureFactors ++= featureModel2factor.map(_._2)
+    this.factors ++= potential2factor.values
+    this.featureFactors ++= featurePotential2factor.map(_._2)
     this.nodes ++= var2node.values
     this.edges ++= edges
 

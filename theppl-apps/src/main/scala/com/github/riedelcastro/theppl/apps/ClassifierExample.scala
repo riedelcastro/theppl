@@ -42,17 +42,17 @@ object ClassifierExample {
     val testTokens = tokens.drop(tokens.size / 2)
 
     val evaluator = new Evaluator[Token] {
-      val module = classifier
-      def targetState(context: Token, model: module.ModelType) = model.labelVariable -> context.chunk
-      def argmaxer(model: ModelType) = Argmaxer(model)
+      val template = classifier
+      def targetState(context: Token, potential: template.PotentialType) = potential.labelVariable -> context.chunk
+      def argmaxer(potential: PotentialType) = Argmaxer(potential)
     }
 
     println(evaluator.evaluate(trainTokens))
 
     val learner = new OnlineLearner[Token] with PerceptronUpdate {
-      val module = classifier
-      def targetState(context: Token, model: module.ModelType) = model.labelVariable -> context.chunk
-      def argmaxer(model: module.ModelType) = Argmaxer(model)
+      val template = classifier
+      def targetState(context: Token, potential: template.PotentialType) = potential.labelVariable -> context.chunk
+      def argmaxer(potential: template.PotentialType) = Argmaxer(potential)
       def instances = trainTokens
     }
 

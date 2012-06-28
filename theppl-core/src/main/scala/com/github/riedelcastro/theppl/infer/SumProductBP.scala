@@ -116,15 +116,15 @@ trait SumProductBP extends Expectator with HasLogger {
   }
 }
 
-class SumProductBPRecipe(iterations:Int = 6, residual:Double = 0.001) extends ExpectatorRecipe[FeatureSumModel] {
-  def expectator(m: FeatureSumModel, cookbook: ExpectatorRecipe[Model] = Expectator) = {
+class SumProductBPRecipe(iterations:Int = 6, residual:Double = 0.001) extends ExpectatorRecipe[FeatureSumPotential] {
+  def expectator(m: FeatureSumPotential, cookbook: ExpectatorRecipe[Potential] = Expectator) = {
     val factorGraph = new MessagePassingFactorGraph {
-      def expectator(model: Model) = cookbook.expectator(model, cookbook)
+      def expectator(potential: Potential) = cookbook.expectator(potential, cookbook)
     }
     factorGraph.add(m.otherArgs, m.featureArgs)
     new SumProductBP {
       val fg = factorGraph
-      val model = m
+      val potential = m
       def maxIterations = iterations
       override def residualThreshold = residual
     }
@@ -135,7 +135,7 @@ object SumProductBPRecipe extends SumProductBPRecipe(10, 0.001)
 
 trait MessagePassingFactorGraph extends PotentialGraph {
   fg =>
-  def expectator(model: Model): Expectator
+  def expectator(potential: Potential): Expectator
   type FactorType = OtherFactor
   type FeatureFactorType = FeatureFactor
   type NodeType = Node
@@ -161,14 +161,14 @@ trait MessagePassingFactorGraph extends PotentialGraph {
     def marginalizer: Marginalizer
   }
 
-  def createFeatureFactor(potential: Model) = new FeatureFactor {
+  def createFeatureFactor(potential: Potential) = new FeatureFactor {
     def expectator = fg.expectator(potential)
   }
 
-  def createFactor(potential: Model) = new OtherFactor {
+  def createFactor(potential: Potential) = new OtherFactor {
     def expectator = fg.expectator(potential)
   }
   def createNode(variable: Variable[Any]) = new Node {}
-  def createEdge(potential: Model, variable: Variable[Any]) = new Edge {}
+  def createEdge(potential: Potential, variable: Variable[Any]) = new Edge {}
 }
 

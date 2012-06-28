@@ -13,12 +13,12 @@ import java.io.PrintStream
 trait PRLearner[Context] extends HasLogger {
   pr =>
 
-  val q: LinearModule[Context]
-  val p: LinearModule[Context]
+  val q: LinearTemplate[Context]
+  val p: LinearTemplate[Context]
 
   def maxIterations: Int
 
-  def targetExpectations(context: Context, model: q.ModelType): ParameterVector
+  def targetExpectations(context: Context, potential: q.PotentialType): ParameterVector
 
   def instances: Seq[Context]
 
@@ -29,35 +29,35 @@ trait PRLearner[Context] extends HasLogger {
   def maxPIterations = 10
 
   def train() {
-    val qPlusP = new LinearModuleWithBaseMeasure[Context] {
-      type ModuleType = q.type
+    val qPlusP = new LinearTemplateWithBaseMeasure[Context] {
+      type TemplateType = q.type
       type BaseType = p.type
-      def module = q
+      def template = q
       def base = p
     }
 
-    val pPlusQ = new LinearModuleWithBaseMeasure[Context] {
-      type ModuleType = p.type
+    val pPlusQ = new LinearTemplateWithBaseMeasure[Context] {
+      type TemplateType = p.type
       type BaseType = q.type
-      def module = p
+      def template = p
       def base = q
     }
 
     val qPlusPLearner = new MaxentLearner[Context] {
-      val module = qPlusP
+      val template = qPlusP
       def instances = pr.instances
-      def expectator(model: module.ModelType) = new SumProductBPRecipe(10).expectator(model)
-      def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.model)
+      def expectator(potential: template.PotentialType) = new SumProductBPRecipe(10).expectator(potential)
+      def targetExpectations(context: Context, potential: template.PotentialType) = pr.targetExpectations(context, potential.potential)
       override def l2 = beta
       override def iterations = maxQIterations
     }
 
 
     val qPlusPLearners = for (group <- pr.instances.grouped(1).toSeq) yield new MaxentLearner[Context] {
-      val module = qPlusP
+      val template = qPlusP
       def instances = group
-      def expectator(model: module.ModelType) = BruteForceExpectator.expectator(model) //  new SumProductBPRecipe(20,0.000001).expectator(model) //
-      def targetExpectations(context: Context, model: module.ModelType) = pr.targetExpectations(context, model.model)
+      def expectator(potential: template.PotentialType) = BruteForceExpectator.expectator(potential) //  new SumProductBPRecipe(20,0.000001).expectator(potential) //
+      def targetExpectations(context: Context, potential: template.PotentialType) = pr.targetExpectations(context, potential.potential)
       override def l2 = beta
       override def iterations = maxQIterations
     }
@@ -65,15 +65,15 @@ trait PRLearner[Context] extends HasLogger {
 //    val log = new PrintStream("log/pr.log")
 
     val pLearner = new MaxentLearner[Context] {
-      val module = p
+      val template = p
       def instances = pr.instances
-      def expectator(model: ModelType) = Expectator(model)
-      def targetExpectations(context: Context, model: ModelType) = {
-        val expectations = new SumProductBPRecipe().expectator(pPlusQ.model(context)).expectations()
-//        val qExpectations = qPlusP.model(context).expectations
+      def expectator(potential: PotentialType) = Expectator(potential)
+      def targetExpectations(context: Context, potential: PotentialType) = {
+        val expectations = new SumProductBPRecipe().expectator(pPlusQ.potential(context)).expectations()
+//        val qExpectations = qPlusP.potential(context).expectations
 //        log.println("*****")
 //        log.println(qExpectations.featureExpectations.values.map(pair => "%-20s %f %f".format(pair._1, pair._2, qPlusP.weights(pair._1))).mkString("\n"))
-//        for (v <- model.hidden) {
+//        for (v <- potential.hidden) {
 //          log.println(v + "\n" + expectations.logMarginals.message(v).exp)
 //        }
         expectations.featureExpectations
@@ -100,12 +100,12 @@ trait PRLearner[Context] extends HasLogger {
 
 trait SimplePRLearner[Context] extends HasLogger {
   self =>
-  val p: LinearModule[Context]
-  val q: LinearModule[Context]
+  val p: LinearTemplate[Context]
+  val q: LinearTemplate[Context]
 
   def instances: Seq[Context]
 
-  def targetExpectations(context: Context, model: q.ModelType): ParameterVector
+  def targetExpectations(context: Context, potential: q.PotentialType): ParameterVector
 
   def beta = 0.0
   def alpha = 0.0
@@ -122,20 +122,20 @@ trait SimplePRLearner[Context] extends HasLogger {
 
     val qTrainer = new MaxentLearner[Context] {
       def instances = self.instances
-      val module: q.type = q
-      def expectator(model: module.ModelType) = model.defaultExpectator()
-      def targetExpectations(context: Context, model: module.ModelType) = self.targetExpectations(context, model)
+      val template: q.type = q
+      def expectator(potential: template.PotentialType) = potential.defaultExpectator()
+      def targetExpectations(context: Context, potential: template.PotentialType) = self.targetExpectations(context, potential)
       override def iterations = maxQIterations
       override def l2 = beta
     }
 
 
     val pTrainer = new MaxentLearner[Context] {
-      val module = p
+      val template = p
       def instances = self.instances
-      def expectator(model: module.ModelType) = model.defaultExpectator()
-      def targetExpectations(context: Context, model: module.ModelType) = {
-        q.model(context).expectations.featureExpectations.filterByKey(pWeightKeys(context))
+      def expectator(potential: template.PotentialType) = potential.defaultExpectator()
+      def targetExpectations(context: Context, potential: template.PotentialType) = {
+        q.potential(context).expectations.featureExpectations.filterByKey(pWeightKeys(context))
       }
       override def iterations = maxPIterations
       override def l2 = alpha
@@ -159,27 +159,27 @@ trait SimplePRLearner[Context] extends HasLogger {
 }
 
 
-trait LinearModuleWithBaseMeasure[Context] extends LinearModule[Context] {
+trait LinearTemplateWithBaseMeasure[Context] extends LinearTemplate[Context] {
   self =>
 
-  type ModuleType <: LinearModule[Context]
-  type BaseType <: Module[Context]
+  type TemplateType <: LinearTemplate[Context]
+  type BaseType <: Template[Context]
 
-  def module: ModuleType
+  def template: TemplateType
   def base: BaseType
 
-  type ModelType = Overlay
-  trait Overlay extends FeatureSumModel with LinearModel {
+  type PotentialType = Overlay
+  trait Overlay extends FeatureSumPotential with LinearPotential {
     def context: Context
-    lazy val model = module.model(context)
-    lazy val baseModel = base.model(context)
+    lazy val potential = template.potential(context)
+    lazy val basePotential = base.potential(context)
 
-    def featureArgs = IndexedSeq(model)
-    def otherArgs = IndexedSeq(baseModel)
-    override def score(state: State) = super[FeatureSumModel].score(state)
+    def featureArgs = IndexedSeq(potential)
+    def otherArgs = IndexedSeq(basePotential)
+    override def score(state: State) = super[FeatureSumPotential].score(state)
   }
-  def model(c: Context) = new Overlay {
+  def potential(c: Context) = new Overlay {
     def context = c
   }
-  def weights = module.weights
+  def weights = template.weights
 }

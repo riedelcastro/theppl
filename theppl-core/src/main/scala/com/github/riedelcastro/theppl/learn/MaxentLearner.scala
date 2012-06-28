@@ -14,20 +14,20 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
 
   def iterations = 10
 
-  val module: LinearModule[Context]
+  val template: LinearTemplate[Context]
 
   case class Mapping(forward: Map[Any, Int], reverse: Map[Int, Any])
 
-  def expectator(model: module.ModelType): Expectator
+  def expectator(potential: template.PotentialType): Expectator
 
   def l2: Double = 0.0
 
   def train() {
-    logger.info("Creating models.")
-    val models = instances.map(i => i -> module.model(i))
+    logger.info("Creating potentials.")
+    val potentials = instances.map(i => i -> template.potential(i))
 
     logger.info("Extracting gold features.")
-    val goldFeatures: Seq[ParameterVector] = models.map({case (context, model) => targetExpectations(context, model)})
+    val goldFeatures: Seq[ParameterVector] = potentials.map({case (context, potential) => targetExpectations(context, potential)})
 
     logger.info("Counting features.")
     val qualified = for (h <- goldFeatures.view;
@@ -41,7 +41,7 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
     val mapping = Mapping(forward, backward)
 
 
-    val llInstances = models.zip(goldFeatures).map {
+    val llInstances = potentials.zip(goldFeatures).map {
       case ((i, m), f) => LLInstance(i, m, expectator(m), f)
     }
     val objective = new LLObjective(llInstances, mapping)
@@ -51,7 +51,7 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
     optimizer.optimize(iterations)
   }
 
-  case class LLInstance(instance: Context, model: module.ModelType, expectator: Expectator, goldFeatures: ParameterVector)
+  case class LLInstance(instance: Context, potential: template.PotentialType, expectator: Expectator, goldFeatures: ParameterVector)
 
   class LLObjective(instances: Seq[LLInstance], mapping: Mapping) extends Objective {
     def domainSize = mapping.forward.size
@@ -59,11 +59,11 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
 
       //set weights
       for ((feat, index) <- mapping.forward) {
-        module.weights(feat) = parameters(index)
+        template.weights(feat) = parameters(index)
       }
 
 //      println("-----")
-//      println(module.weights)
+//      println(template.weights)
 
       //calculate gradient
       val gradient = new ParameterVector
@@ -74,7 +74,7 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
         val guessFeatures = expectations.featureExpectations
         gradient.add(goldFeatures, 1.0)
         gradient.add(guessFeatures, -1.0)
-        objective += (goldFeatures dot module.weights) - expectations.logZ
+        objective += (goldFeatures dot template.weights) - expectations.logZ
 //        println("****")
 //        println(expectations.featureExpectations)
 //        println(objective)
@@ -86,8 +86,8 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
 
       //L2 normalizer
       if (l2 != 0.0) {
-        objective -= l2 * module.weights.norm2Sq
-        gradient.add(module.weights.filterByKey(mapping.forward.keys), -2.0 * l2)
+        objective -= l2 * template.weights.norm2Sq
+        gradient.add(template.weights.filterByKey(mapping.forward.keys), -2.0 * l2)
       }
 
       val log = new PrintStream("log/maxent")

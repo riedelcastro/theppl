@@ -10,11 +10,11 @@ import math._
 /**
  * @author sriedel
  */
-trait DistantSupervisionModule[EntityType] extends LinearModule[EntityType] {
+trait DistantSupervisionTemplate[EntityType] extends LinearTemplate[EntityType] {
   self =>
   type MentionType
   type EntityVariableType <: Variable[Boolean]
-  type ModelType <: DistantSupervisionModel
+  type PotentialType <: DistantSupervisionPotential
 
   val weights = new ParameterVector
 
@@ -26,7 +26,7 @@ trait DistantSupervisionModule[EntityType] extends LinearModule[EntityType] {
   def entityFeatures(entity: EntityType): ParameterVector
   def mentionFeatures(mention: MentionType, entity: EntityType): ParameterVector
 
-  trait DistantSupervisionModel extends super.LinearModel {
+  trait DistantSupervisionPotential extends super.LinearPotential {
 
     def entity: EntityType
 
@@ -41,11 +41,11 @@ trait DistantSupervisionModule[EntityType] extends LinearModule[EntityType] {
 /**
  * @author sriedel
  */
-trait DistantSupervisionClassifier[EntityType] extends DistantSupervisionModule[EntityType] {
+trait DistantSupervisionClassifier[EntityType] extends DistantSupervisionTemplate[EntityType] {
 
-  type ModelType = ClassifierModel
+  type PotentialType = ClassifierPotential
 
-  trait ClassifierModel extends DistantSupervisionModel {
+  trait ClassifierPotential extends DistantSupervisionPotential {
 
     lazy val hidden = Seq(hiddenEntity)
     def features(state: State) = {
@@ -60,24 +60,24 @@ trait DistantSupervisionClassifier[EntityType] extends DistantSupervisionModule[
     }
   }
 
-  def model(c: EntityType) = new ClassifierModel {
+  def potential(c: EntityType) = new ClassifierPotential {
     def entity = c
   }
 
 }
 
-trait EntityMentionModule[EntityType] extends DistantSupervisionModule[EntityType] {
-  module =>
+trait EntityMentionTemplate[EntityType] extends DistantSupervisionTemplate[EntityType] {
+  template =>
   type MentionVariableType <: Variable[Boolean]
 
   def mentionVariable(mention: MentionType): MentionVariableType
 
-  type ModelType <: EntityMentionModel
+  type PotentialType <: EntityMentionPotential
 
-  trait EntityMentionModel extends DistantSupervisionModel {
-    latentModel =>
+  trait EntityMentionPotential extends DistantSupervisionPotential {
+    latentPotential =>
 
-    lazy val mentions = module.mentions(entity).toIndexedSeq
+    lazy val mentions = template.mentions(entity).toIndexedSeq
     lazy val hiddenMentions = mentions.map(mentionVariable(_))
     lazy val hidden = (hiddenMentions :+ hiddenEntity)
     lazy val entFeats = entityFeatures(entity)
@@ -94,20 +94,20 @@ trait EntityMentionModule[EntityType] extends DistantSupervisionModule[EntityTyp
   }
 
 }
-trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[EntityType] {
-  module =>
+trait LatentDistantSupervisionTemplate[EntityType] extends EntityMentionTemplate[EntityType] {
+  template =>
 
 
-  type ModelType = LatentModel
+  type PotentialType = LatentPotential
 
   def mentionVariable(mention: MentionType): MentionVariableType
 
-  def model(context: EntityType) = new LatentModel {def entity = context}
+  def potential(context: EntityType) = new LatentPotential {def entity = context}
 
   def bidirectional = false
 
-  trait LatentModel extends EntityMentionModel {
-    latentModel =>
+  trait LatentPotential extends EntityMentionPotential {
+    latentPotential =>
 
     def check(state: State) = {
       if (bidirectional)
@@ -120,8 +120,8 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
       if (!check(state)) Double.NegativeInfinity else super.score(state)
     }
 
-    override def defaultArgmaxer(cookbook: ArgmaxRecipe[Model]) = new Argmaxer {
-      val model = latentModel
+    override def defaultArgmaxer(cookbook: ArgmaxRecipe[Potential]) = new Argmaxer {
+      val potential = latentPotential
       def argmax(penalties: Messages) = {
         val entScore = entFeats dot weights
         val scores = feats.map(_ dot weights)
@@ -139,12 +139,12 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
         if (activeMentionScore > -finalEntScore) {
           new ArgmaxResult {
             def score = activeMentionScore + finalEntScore
-            def state = State(model.hiddenEntity +: model.hiddenMentions, true +: activeMentions)
+            def state = State(potential.hiddenEntity +: potential.hiddenMentions, true +: activeMentions)
           }
         } else {
           new ArgmaxResult {
             def score = math.max(finalEntScore, 0.0)
-            def state = State(model.hiddenEntity +: model.hiddenMentions, (finalEntScore > 0) +: Array.fill(n)(false))
+            def state = State(potential.hiddenEntity +: potential.hiddenMentions, (finalEntScore > 0) +: Array.fill(n)(false))
           }
         }
       }
@@ -164,8 +164,8 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
     }
 
 
-    override def defaultExpectator(cookbook: ExpectatorRecipe[Model]) = new Expectator {
-      val model = latentModel
+    override def defaultExpectator(cookbook: ExpectatorRecipe[Potential]) = new Expectator {
+      val potential = latentPotential
 
       def expectations(penalties: Messages) = {
         val entScore = entFeats dot weights
@@ -243,7 +243,7 @@ trait LatentDistantSupervisionModule[EntityType] extends EntityMentionModule[Ent
 
 }
 
-trait SomeFractionActive[EntityType] extends LatentDistantSupervisionModule[EntityType] {
+trait SomeFractionActive[EntityType] extends LatentDistantSupervisionTemplate[EntityType] {
   def fractionActive = 0.3
 
   def reliability(entity: EntityType): Double

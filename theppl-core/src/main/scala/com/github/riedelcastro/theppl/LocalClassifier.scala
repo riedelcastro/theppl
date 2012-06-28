@@ -7,15 +7,15 @@ import Imports._
 /**
  * @author sriedel
  */
-trait LocalClassifier[Context] extends LinearLeafModule[Context] {
-  module =>
+trait LocalClassifier[Context] extends LinearLeafTemplate[Context] {
+  template =>
   type LabelType
   type LabelVariableType <: Variable[LabelType]
-  type ModelType <: LocalModel
+  type PotentialType <: LocalPotential
 
   val weights = new ParameterVector()
 
-  trait LocalModel extends LinearModel  {
+  trait LocalPotential extends LinearPotential  {
     def labelFeatures(label: LabelType): ParameterVector
     def contextFeatures: ParameterVector
     def labelVariable: LabelVariableType
@@ -32,19 +32,19 @@ trait LocalClassifier[Context] extends LinearLeafModule[Context] {
 trait Classifier[Context] extends LocalClassifier[Context] {
   self =>
 
-  type ModelType = DefaultLocalModel
+  type PotentialType = DefaultLocalPotential
   def labelFeatures(label: LabelType): ParameterVector
   def contextFeatures(context: Context): ParameterVector
   def variable(context: Context): LabelVariableType
 
-  class DefaultLocalModel(val context: Context)
-    extends LocalModel {
+  class DefaultLocalPotential(val context: Context)
+    extends LocalPotential {
     val labelVariable = self.variable(context)
     val contextFeatures = self.contextFeatures(context)
     def labelFeatures(label: LabelType) = self.labelFeatures(label)
   }
 
-  def model(c: Context): ModelType = new DefaultLocalModel(c)
+  def potential(c: Context): PotentialType = new DefaultLocalPotential(c)
 
 }
 

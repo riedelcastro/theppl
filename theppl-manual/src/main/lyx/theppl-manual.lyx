@@ -146,20 +146,20 @@ Introduction
 \end_layout
 
 \begin_layout Section
-Modules and Models
+Templates and Potentials
 \end_layout
 
 \begin_layout Standard
 A 
 \emph on
-Model 
+Potential
 \emph default
 is a scoring function that maps possible worlds/states to real values.
  A 
 \emph on
-Module
+Template
 \emph default
- is a parametrized model: it can create a model for a given 
+ is a parametrized potential: it can create a potential for a given
 \emph on
 context
 \emph default
@@ -168,7 +168,7 @@ context
 \end_layout
 
 \begin_layout LyX-Code
-trait Module {
+trait Template {
 \end_layout
 
 \begin_layout LyX-Code
@@ -176,7 +176,7 @@ trait Module {
 \end_layout
 
 \begin_layout LyX-Code
-  trait Model {
+  trait Potential {
 \end_layout
 
 \begin_layout LyX-Code
@@ -192,7 +192,7 @@ trait Module {
 \end_layout
 
 \begin_layout LyX-Code
-  def model(context:Context):Model
+  def potential(context:Context):Potential
 \end_layout
 
 \begin_layout LyX-Code
@@ -201,12 +201,12 @@ trait Module {
 
 \begin_layout Standard
 A simple context could be a nominal variable.
- A module could take this variable, and create a simple uniform scoring
+ A template could take this variable, and create a simple uniform scoring
  function over this variable:
 \end_layout
 
 \begin_layout LyX-Code
-class UniformModule {
+class UniformTemplate {
 \end_layout
 
 \begin_layout LyX-Code
@@ -214,7 +214,7 @@ class UniformModule {
 \end_layout
 
 \begin_layout LyX-Code
-  class UniformModel(variable) extends Model {
+  class UniformPotential(variable) extends Potential {
 \end_layout
 
 \begin_layout LyX-Code
@@ -230,7 +230,7 @@ class UniformModule {
 \end_layout
 
 \begin_layout LyX-Code
-  def model(variable:Variable) = new UniformModel(variable)
+  def potential(variable:Variable) = new UniformPotential(variable)
 \end_layout
 
 \begin_layout LyX-Code

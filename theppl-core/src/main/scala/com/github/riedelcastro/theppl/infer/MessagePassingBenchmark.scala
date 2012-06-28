@@ -14,7 +14,7 @@ object MessagePassingBenchmark {
     case class Var(id:Int) extends Variable[Int] {
       def domain = dom
     }
-    case class Edge(x:Var, y:Var, map:Map[(Int, Int),Double]) extends FeatureModel {
+    case class Edge(x:Var, y:Var, map:Map[(Int, Int),Double]) extends FeaturePotential {
       val hidden = IndexedSeq(x,y)
       def score(state: State) = map(state(x)->state(y))
       def features(state: State) = new ParameterVector()
@@ -25,7 +25,7 @@ object MessagePassingBenchmark {
     val variables = for (i <- 0 until 5) yield Var(i)
     val edges = for (v1 <- variables; v2 <- variables; if (v1.id < v2.id)) yield Edge(v1,v2,pot())
 
-    val sum = new FeatureSumModel {
+    val sum = new FeatureSumPotential {
       def featureArgs = Seq.empty
       def otherArgs = edges
     }

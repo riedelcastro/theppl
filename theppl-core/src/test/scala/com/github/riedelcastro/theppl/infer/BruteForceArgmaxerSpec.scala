@@ -3,14 +3,14 @@ package com.github.riedelcastro.theppl.infer
 import math._
 import com.github.riedelcastro.theppl._
 
-trait ExampleModels {
+trait ExamplePotentials {
   case class Var(index: Int, domain: Seq[Int]) extends Variable[Int]
 
   /**
-   * A model with integer variables that scores each state
+   * A potential with integer variables that scores each state
    * by summing up the integer values associated with the variables.
    */
-  abstract class ExampleModel(varCount: Int = 3, domainSize: Int = 3) extends Model {
+  abstract class ExamplePotential(varCount: Int = 3, domainSize: Int = 3) extends Potential {
     override lazy val hidden = Range(0, varCount).map(V(_))
     lazy val domain = Range(0, domainSize)
     def V(index: Int) = Var(index, domain)
@@ -19,17 +19,17 @@ trait ExampleModels {
   /**
    * Scores by summing up the integer values associated with the variables.
    */
-  trait SumScore extends Model {
-    this: ExampleModel =>
+  trait SumScore extends Potential {
+    this: ExamplePotential =>
     def score(state: State) = hidden.map(v => state(v)).sum
   }
 
   /**
-   * A linear model with one feature per (variable-value) combination for all hidden variables. The weight
+   * A linear potential with one feature per (variable-value) combination for all hidden variables. The weight
    * vector is 1.0 iff the value associated to the variable corresponds to the index of the variable.
    */
-  trait LinearScore extends LinearModel {
-    this: ExampleModel =>
+  trait LinearScore extends LinearPotential {
+    this: ExamplePotential =>
 
     def features(state: State) =
       ParameterVector.fromPairIterable(hidden.map(v => v -> state(v)))
@@ -52,28 +52,28 @@ trait ExampleModels {
 /**
  * @author sriedel
  */
-class BruteForceArgmaxerSpec extends ThePPLSpec with ExampleModels {
+class BruteForceArgmaxerSpec extends ThePPLSpec with ExamplePotentials {
 
 
   describe("A BruteForceArgmaxer") {
     it("should calculate the exact argmax") {
-      val model = new ExampleModel() with SumScore
-      val argmaxer = Argmaxer(model)
-      import model._
+      val potential = new ExamplePotential() with SumScore
+      val argmaxer = Argmaxer(potential)
+      import potential._
       val message = exampleMessage()
       val result = argmaxer.argmax(message)
       val expected = State.fromFunction(Map(V(0) -> 1, V(1) -> 1, V(2) -> 1))
-      model.hidden.foreach(v => result.state(v) must be(expected(v)))
+      potential.hidden.foreach(v => result.state(v) must be(expected(v)))
     }
   }
 
 }
 
-class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
+class BruteForceMarginalizerSpec extends ThePPLSpec with ExamplePotentials {
   describe("A BruteForceMarginalizer") {
     it("should calculate exact marginals") {
-      val m = new ExampleModel(2, 2) with SumScore
-      val marginalizer = new BFMarginalizer {val model = m}
+      val m = new ExamplePotential(2, 2) with SumScore
+      val marginalizer = new BFMarginalizer {val potential = m}
       val message = exampleMessage(1, -1)
       val result = marginalizer.marginalize(message)
 
@@ -86,13 +86,13 @@ class BruteForceMarginalizerSpec extends ThePPLSpec with ExampleModels {
   }
 }
 
-class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExampleModels {
+class BruteForceExpectationCalculatorSpec extends ThePPLSpec with ExamplePotentials {
   describe("A BruteForceExpectator") {
-    it("should calculate exact expectations in linear models") {
-      val model = new ExampleModel(2, 2) with LinearScore
-      import model._
+    it("should calculate exact expectations in linear potentials") {
+      val potential = new ExamplePotential(2, 2) with LinearScore
+      import potential._
       val message = exampleMessage(1, -1)
-      val expectator = BruteForceExpectator.expectator(model)
+      val expectator = BruteForceExpectator.expectator(potential)
       val result = expectator.expectations(message)
       val Z = exp(1) + exp(1) + exp(-1) + exp(-1)
 

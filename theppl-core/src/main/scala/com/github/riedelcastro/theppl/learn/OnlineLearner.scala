@@ -7,8 +7,8 @@ import infer.Argmaxer
  * The UpdateRule of an Online Learner defines how the prediction (guess) and
  * the gold data are used to update the weights.
  */
-trait UpdateRule extends HasModule[Nothing] {
-  def updateRule(model: module.ModelType, gold: State, guess: State)
+trait UpdateRule extends HasTemplate[Nothing] {
+  def updateRule(potential: template.PotentialType, gold: State, guess: State)
 }
 
 trait OnlineLearner[Context] extends Learner[Context] with SuperviseByState[Context] {
@@ -16,16 +16,16 @@ trait OnlineLearner[Context] extends Learner[Context] with SuperviseByState[Cont
 
   var epochs: Int = 2
 
-  def argmaxer(model:module.ModelType):Argmaxer
+  def argmaxer(potential:template.PotentialType):Argmaxer
 
   def train() {
     for (epoch <- 0 until epochs) {
       for (instance <- instances) {
-        val model = module.model(instance)
-        val argmaxer = this.argmaxer(model)
-        val gold = targetState(instance, model)
+        val potential = template.potential(instance)
+        val argmaxer = this.argmaxer(potential)
+        val gold = targetState(instance, potential)
         val guess = argmaxer.argmax().state
-        updateRule(model, gold, guess)
+        updateRule(potential, gold, guess)
       }
     }
   }
@@ -40,12 +40,12 @@ trait OnlineLearner[Context] extends Learner[Context] with SuperviseByState[Cont
  */
 trait PerceptronUpdate extends UpdateRule {
 
-  val module:LinearModule[Nothing]
+  val template:LinearTemplate[Nothing]
   var learningRate = 1.0
 
-  def updateRule(model: module.ModelType, gold: State, guess: State) {
-    val delta = model.featureDelta(gold, guess)
-    this.module.weights.add(delta, learningRate)
+  def updateRule(potential: template.PotentialType, gold: State, guess: State) {
+    val delta = potential.featureDelta(gold, guess)
+    this.template.weights.add(delta, learningRate)
   }
 
 
@@ -53,38 +53,38 @@ trait PerceptronUpdate extends UpdateRule {
 
 
 trait Supervisor {
-  this: Module[Nothing] =>
-  def target(model: ModelType): State
+  this: Template[Nothing] =>
+  def target(potential: PotentialType): State
 }
 
 trait ExpectationSupervisor {
-  this:Module[Nothing] =>
-  def targetExpectations(model:ModelType):ParameterVector
+  this:Template[Nothing] =>
+  def targetExpectations(potential:PotentialType):ParameterVector
 }
 
 trait ExpectationFromStateSupervisor extends ExpectationSupervisor with Supervisor {
-  this:Module[Nothing] { type ModelType <: LinearModel } =>
-  def targetExpectations(model: ModelType) = {
-    model.features(target(model))
+  this:Template[Nothing] { type PotentialType <: LinearPotential } =>
+  def targetExpectations(potential: PotentialType) = {
+    potential.features(target(potential))
   }
 }
 
 
-trait SuperviseByState[Context] extends HasModule[Context] {
-  def targetState(context:Context,  model:module.ModelType):State
+trait SuperviseByState[Context] extends HasTemplate[Context] {
+  def targetState(context:Context,  potential:template.PotentialType):State
 }
-trait SuperviseByExpectations[Context] extends HasModule[Context] {
-  def targetExpectations(context:Context,  model:module.ModelType):ParameterVector
+trait SuperviseByExpectations[Context] extends HasTemplate[Context] {
+  def targetExpectations(context:Context,  potential:template.PotentialType):ParameterVector
 }
 
 trait SupervisorByDeterministicExpectations[Context] extends SuperviseByExpectations[Context] with SuperviseByState[Context] {
-  val module:LinearModule[Context]
-  def targetExpectations(context:Context,  model:module.ModelType):ParameterVector = 
-    model.features(targetState(context,model))
+  val template:LinearTemplate[Context]
+  def targetExpectations(context:Context,  potential:template.PotentialType):ParameterVector =
+    potential.features(targetState(context,potential))
 }
 
 
-trait Learner[Context] extends HasModule[Context] {
+trait Learner[Context] extends HasTemplate[Context] {
 
   def instances:Seq[Context]
   def train()

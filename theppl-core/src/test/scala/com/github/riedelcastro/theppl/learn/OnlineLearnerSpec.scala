@@ -29,16 +29,16 @@ class OnlineLearnerSpec extends Spec with MustMatchers {
 
       val classifier = new TestClassifier {}
       val learner = new OnlineLearner[Data] with PerceptronUpdate {
-        val module = classifier
-        def targetState(context: Data, model: module.ModelType) = model.labelVariable -> context.y
-        def argmaxer(model: module.ModelType) = Argmaxer(model)
+        val template = classifier
+        def targetState(context: Data, potential: template.PotentialType) = potential.labelVariable -> context.y
+        def argmaxer(potential: template.PotentialType) = Argmaxer(potential)
         def instances = tokens
       }
 
       learner.train()
 
-      Argmaxer(classifier.model(data1)).predict(LabelVar(data1)) must be (data1.y)
-      Argmaxer(classifier.model(data2)).predict(LabelVar(data2)) must be (data2.y)
+      Argmaxer(classifier.potential(data1)).predict(LabelVar(data1)) must be (data1.y)
+      Argmaxer(classifier.potential(data2)).predict(LabelVar(data2)) must be (data2.y)
     }
   }
 

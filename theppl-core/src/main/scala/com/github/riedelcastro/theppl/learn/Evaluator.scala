@@ -14,7 +14,7 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
   var tn = 0
   var numInstances = 0
 
-  def argmaxer(model:module.ModelType):Argmaxer
+  def argmaxer(potential:template.PotentialType):Argmaxer
 
   def reset() {
     fn = 0
@@ -24,7 +24,7 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
     numInstances = 0
   }
 
-  def variables(model:module.ModelType) = model.hidden
+  def variables(potential:template.PotentialType) = potential.hidden
 
   def total = fn + fp + tn + tp
   def totalGold = fn + tp
@@ -40,18 +40,18 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
   def mcc = nanTo0((tp.toDouble * tn - fp.toDouble * fn) /
     math.sqrt((tp.toDouble + fp) * (tp.toDouble + fn) * (tn.toDouble + fp) * (tn.toDouble + fn)))
 
-  def hook(context:Context, model:module.ModelType) {}
+  def hook(context:Context, potential:template.PotentialType) {}
   def hook(variable:Variable[Any], gold:Any, guess:Any) {}
   
   def evaluate(instances: Seq[Context]) {
     reset()
     for (instance <- instances) {
-      val model = module.model(instance)
-      hook(instance,model)
-      val gold = targetState(instance,model)
-      val argmaxer = this.argmaxer(model)
+      val potential = template.potential(instance)
+      hook(instance,potential)
+      val gold = targetState(instance,potential)
+      val argmaxer = this.argmaxer(potential)
       val guess = argmaxer.predict
-      for (hidden <- variables(model)) {
+      for (hidden <- variables(potential)) {
         val default = hidden.domain.head
         val goldHidden = gold(hidden)
         val guessHidden = guess(hidden)
