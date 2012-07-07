@@ -25,7 +25,7 @@ class MaxentLearnerSpec extends ThePPLSpec {
         def contextFeatures(context: Data) = ParameterVector(context.x)
       }
       val classifier = new TestClassifier
-      val learner = new MaxentLearner[Data] with SupervisorByDeterministicExpectations[Data] {
+      val learner = new MaxentLearner[Data] with SuperviseByDeterministicExpectations[Data] {
         val template = classifier
         def expectator(potential: template.PotentialType) = Expectator(potential)
         def instances = tokens

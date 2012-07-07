@@ -4,13 +4,12 @@ import collection.mutable.HashMap
 import math._
 import com.github.riedelcastro.theppl._
 import util.HasLogger
+import collection.mutable
 
 /**
  * @author sriedel
  */
 trait Expectator extends Marginalizer {
-
-  val potential: Potential
 
   def expectations(penalties: Messages = Messages.empty): Expectations
   def marginalize(penalties: Messages): MarginalizeResult = expectations(penalties)
@@ -93,7 +92,7 @@ trait BFExpectator extends Expectator with HasLogger {
   val potential: FeaturePotential
   def expectations(penalties: Messages) = {
     logger.trace("Bruteforce expectator used")
-    val masses = new HashMap[(Variable[Any], Any), Double] {
+    val masses = new mutable.HashMap[(Variable[Any], Any), Double] {
       override def default(key: (Variable[Any], Any)) = 0.0
     }
     val featExp = new ParameterVector()

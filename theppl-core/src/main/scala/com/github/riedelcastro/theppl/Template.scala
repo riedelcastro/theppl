@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl
 
-import java.util.UUID
+import infer.{ArgmaxResult, BruteForceArgmaxer, Argmaxer, ArgmaxRecipe}
 import java.io.{InputStream, OutputStream}
 import logic.Term
 
@@ -19,6 +19,9 @@ import logic.Term
 trait Template[-Context] extends Term[Context => Double] {
   thisTemplate =>
 
+  /**
+   * The type of potential this template creates.
+   */
   type PotentialType <: Potential
 
   /**
@@ -37,7 +40,30 @@ trait Template[-Context] extends Term[Context => Double] {
    * this method is generally not well defined.
    */
   def variables = sys.error("Potentially infinite number of variables")
+
+  /**
+   * Convenience method that returns the argmax for the potential corresponding to the
+   * given context and input penalties.
+   */
+  def argmax(context: Context, penalties: Messages = Messages.empty)
+            (implicit cookbook: ArgmaxRecipe[Potential] = Argmaxer): ArgmaxResult = {
+    cookbook.argmaxer(potential(context)).argmax(penalties)
+  }
+
+  /**
+   * Convenience method that returns state corresponding to argmax solution.
+   */
+  def predict(context: Context, penalties: Messages = Messages.empty)
+             (implicit cookbook: ArgmaxRecipe[Potential] = Argmaxer) = argmax(context, penalties)(cookbook).state
+
+
 }
+
+object EmptyTemplate extends Template[Nothing] {
+  type PotentialType = Potential
+  def potential(context: Nothing) = sys.error("Can't call with nothing as argument")
+}
+
 
 /**
  * An object that has a template it can use for computation of all sorts. One purpose of

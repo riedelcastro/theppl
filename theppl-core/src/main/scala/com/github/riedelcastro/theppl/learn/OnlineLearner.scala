@@ -11,6 +11,12 @@ trait UpdateRule extends HasTemplate[Nothing] {
   def updateRule(potential: template.PotentialType, gold: State, guess: State)
 }
 
+trait UpdateRule2[C,P <: Potential] {
+  type T = Template[C]{type PotentialType = P}
+  def updateRule(template:T, potential: P, gold: State, guess: State)
+}
+
+
 trait OnlineLearner[Context] extends Learner[Context] with SuperviseByState[Context] {
   this:UpdateRule =>
 
@@ -33,6 +39,38 @@ trait OnlineLearner[Context] extends Learner[Context] with SuperviseByState[Cont
 
 }
 
+trait OnlineLearner2[Context] extends Learner[Context] with SuperviseByState[Context] {
+  this:UpdateRule =>
+
+  var epochs: Int = 2
+
+  def argmaxer(potential:template.PotentialType):Argmaxer
+
+
+  def targetState(context: Context, potential: template.PotentialType) = null
+  def train() {
+    for (epoch <- 0 until epochs) {
+      for (instance <- instances) {
+        val potential = template.potential(instance)
+        val argmaxer = this.argmaxer(potential)
+        val gold = potential.truth
+        val guess = argmaxer.argmax().state
+        updateRule(potential, gold, guess)
+      }
+    }
+  }
+
+
+}
+
+
+trait HasTemplate2[Context,P <: Potential] {
+  type T = Template[Context] {type PotentialType = P}
+  def template:T
+}
+
+
+
 
 
 /**
@@ -50,6 +88,20 @@ trait PerceptronUpdate extends UpdateRule {
 
 
 }
+
+//trait PerceptronUpdate2[Context] extends UpdateRule2[Context,LinearPotential] {
+//
+//  val template:LinearTemplate[Nothing]
+//  var learningRate = 1.0
+//
+//  def updateRule(template:T, potential: LinearPotential, gold: State, guess: State) {
+//    val delta = potential.featureDelta(gold, guess)
+//    template.weights.add(delta, learningRate)
+//  }
+//
+//
+//}
+
 
 
 trait Supervisor {
@@ -71,15 +123,15 @@ trait ExpectationFromStateSupervisor extends ExpectationSupervisor with Supervis
 
 
 trait SuperviseByState[Context] extends HasTemplate[Context] {
-  def targetState(context:Context,  potential:template.PotentialType):State
+  def targetState(context:Context, potential:template.PotentialType):State
 }
 trait SuperviseByExpectations[Context] extends HasTemplate[Context] {
-  def targetExpectations(context:Context,  potential:template.PotentialType):ParameterVector
+  def targetExpectations(context:Context, potential:template.PotentialType):ParameterVector
 }
 
-trait SupervisorByDeterministicExpectations[Context] extends SuperviseByExpectations[Context] with SuperviseByState[Context] {
+trait SuperviseByDeterministicExpectations[Context] extends SuperviseByExpectations[Context] with SuperviseByState[Context] {
   val template:LinearTemplate[Context]
-  def targetExpectations(context:Context,  potential:template.PotentialType):ParameterVector =
+  def targetExpectations(context:Context, potential:template.PotentialType):ParameterVector =
     potential.features(targetState(context,potential))
 }
 
@@ -89,4 +141,11 @@ trait Learner[Context] extends HasTemplate[Context] {
   def instances:Seq[Context]
   def train()
 }
+
+trait Learner2[Context,P<:Potential] extends HasTemplate2[Context,P] {
+
+  def instances:Seq[Context]
+  def train()
+}
+
 

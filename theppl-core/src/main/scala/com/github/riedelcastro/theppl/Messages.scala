@@ -240,6 +240,8 @@ trait State extends Messages {
   self =>
   def apply[V](variable: Variable[V]): V = get(variable).get
 
+  def value[V](variable:Variable[V]) = apply(variable)
+
   def get[V](variable: Variable[V]): Option[V]
 
   def closed = new State {

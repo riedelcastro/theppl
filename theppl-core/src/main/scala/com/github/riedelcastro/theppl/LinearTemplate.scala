@@ -52,6 +52,7 @@ trait FeaturePotential extends Potential {
 trait LinearPotential extends FeaturePotential {
   def weights: ParameterVector
   def score(state: State) = features(state) dot weights
+  def targetExpectations = features(truth)
 }
 
 
