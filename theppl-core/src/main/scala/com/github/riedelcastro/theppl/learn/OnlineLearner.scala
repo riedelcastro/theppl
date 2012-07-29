@@ -22,7 +22,7 @@ trait OnlineLearner[Context] extends Learner[Context] {
 
   var epochs: Int = 2
 
-  def argmaxer(potential:template.PotentialType):Argmaxer
+  def argmaxer(potential:template.PotentialType):Argmaxer  = potential.defaultArgmaxer()
 
   def train() {
     for (epoch <- 0 until epochs) {

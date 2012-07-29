@@ -52,7 +52,6 @@ object ClassifierExample {
 
     val learner = new OnlineLearner[Token] with PerceptronUpdate {
       val template = classifier
-      def argmaxer(potential: template.PotentialType) = Argmaxer(potential)
       def instances = trainTokens
     }
 

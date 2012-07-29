@@ -2,8 +2,11 @@ package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl._
 import infer.Expectator
-import learn.{MaxentLearner2, SuperviseByDeterministicExpectations, MaxentLearner}
+import learn._
 import ParameterVector._
+import java.io.{FileInputStream, InputStream}
+import java.util.Scanner
+import util.Util
 
 /**
  * @author sriedel
@@ -53,9 +56,48 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
 
 }
 
-object Tokenizer {
+object TokenizerMain {
+
+  case class Doc(src: String, goldSplits: Option[Set[Int]])
+
+  /**
+   * Takes genia pos text file input and returns an iterator over Doc objects which can be used to train the tokenizer.
+   * @param geniaTxt input stream in
+   * @return
+   */
+  def loadGeniaDocs(geniaTxt: InputStream) = {
+    val sentences = Util.streamIterator(geniaTxt, "====================\n")
+    for (sentence <- sentences) yield {
+      val tokens = sentence.split("\n")
+      var txt = new StringBuffer()
+      var charPos = 0
+      var goldSplits: Set[Int] = Set.empty
+      for (token <- tokens) {
+        val word = token.substring(0,token.lastIndexOf('/'))
+        if (word == "." || word == "," || word == ";") {
+          goldSplits = goldSplits + charPos
+          charPos += word.length
+        } else if (charPos > 0) {
+          txt.append(" ")
+          charPos += 1
+        }
+        txt.append(word)
+        charPos += word.length
+      }
+      Doc(txt.toString,Some(goldSplits))
+    }
+
+  }
+
   def main(args: Array[String]) {
-    case class Doc(src: String, goldSplits:Option[Set[Int]])
+
+    val inputFile = "/Users/riedelcastro/corpora/genia/GENIAcorpus3.02.pos.txt"
+    val docs = loadGeniaDocs(new FileInputStream(inputFile)).take(10).toSeq
+
+    println(docs.mkString("\n"))
+
+    //theppl encourages clients to define/use their own variables, and configure the used modules/templates to use these
+    //variables.
     case class SplitVar(doc: Doc, index: Int) extends BoolVariable
 
     val tokenizer = new Tokenizer[Doc] {
@@ -67,16 +109,12 @@ object Tokenizer {
         SplitCandidate(doc, index)
     }
 
-    val learner = new MaxentLearner2[Doc] {
+    val learner = new OnlineLearner[Doc] with PerceptronUpdate {
       val template = tokenizer
-      def instances = Seq.empty
+      def instances = docs
     }
-//
-//    learner.train()
 
-    //learner.learn(tokenizer, docs)
-    //tokenizer.learn((doc,potential) -> doc.splits.map(i -> SplitVar(i)))
-    //tokenizer.argmax(doc) =
+    learner.train()
 
   }
 }

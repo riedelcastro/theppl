@@ -31,7 +31,6 @@ class OnlineLearnerSpec extends Spec with MustMatchers {
 
       val learner = new OnlineLearner[Data] with PerceptronUpdate {
         val template = classifier
-        def argmaxer(potential: template.PotentialType) = Argmaxer(potential)
         def instances = tokens
       }
 

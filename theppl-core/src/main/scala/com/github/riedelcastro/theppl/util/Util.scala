@@ -4,11 +4,25 @@ import java.io.{FileInputStream, InputStream, File}
 import io.Source
 import collection.mutable.ArrayBuffer
 import annotation.tailrec
+import collection.JavaConversions._
+import java.util.Scanner
 
 /**
  * @author sriedel
  */
 object Util extends HasLogger {
+
+
+  /**
+   * Returns an iterator over strings in the stream, as delimited by the given string
+   * @param in the input stream
+   * @param delim the delimiter string
+   * @return the input stream as iterator of strings, separated by the given delimiter.
+   */
+  def streamIterator(in:InputStream, delim:String="\n"):Iterator[String] = {
+    new Scanner(in).useDelimiter(delim)
+  }
+
   /**Recursively descend directory, returning a list of files. */
   def files(directory: File): Seq[File] = {
     if (!directory.exists) throw new Error("File " + directory + " does not exist")
@@ -102,6 +116,7 @@ object Util extends HasLogger {
   /**
    * Creates an iterator over input streams by splitting the source
    * input stream at the given delimiter.
+   * todo: this seems undone
    */
   abstract class InputStreamIterator(source:InputStream, delimiter:String) extends Iterator[InputStream] {
     private val bytes = delimiter.getBytes
@@ -158,7 +173,7 @@ object Util extends HasLogger {
   def loadStrings(file: String): Seq[String] = {
     val res = new ArrayBuffer[String]
     val source = Source.fromFile(file)
-    for (line <- source.getLines) {
+    for (line <- source.getLines()) {
       res += line
     }
     res
