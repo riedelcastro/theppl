@@ -59,9 +59,9 @@ trait Template[-Context] extends Term[Context => Double] {
 
 }
 
-object EmptyTemplate extends Template[Nothing] {
-  type PotentialType = Potential
-  def potential(context: Nothing) = sys.error("Can't call with nothing as argument")
+object EmptyTemplate extends Template[Any] {
+  type PotentialType = Nothing
+  def potential(context: Any) = sys.error("Template empty")
 }
 
 

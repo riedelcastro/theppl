@@ -35,6 +35,7 @@ object ClassifierExample {
       def variable(context: Token) = ChunkVar(context)
       def labelFeatures(label: LabelType) = fromFeats(Seq(Feat(label)) ++ label.split("-").map(Feat("split", _)))
       def contextFeatures(token: Token) = fromPairs("t" -> token.tag, "t-1" -> lifted(token.index - 1).map(_.tag))
+      override def truth(context: Token) = Some(context.chunk)
     }
 
 
@@ -51,7 +52,6 @@ object ClassifierExample {
 
     val learner = new OnlineLearner[Token] with PerceptronUpdate {
       val template = classifier
-      def targetState(context: Token, potential: template.PotentialType) = potential.labelVariable -> context.chunk
       def argmaxer(potential: template.PotentialType) = Argmaxer(potential)
       def instances = trainTokens
     }
@@ -69,7 +69,7 @@ object ClassifierExample {
     //    println(Evaluator.evaluate(copy, test))
 
 
-    //    val decorated = new classifier.Wrap with OnlineLearner with PerceptronUpdate
+    //    val decorated = new classifier.Wrap with OnlineLearnerOld with PerceptronUpdate
 
   }
 

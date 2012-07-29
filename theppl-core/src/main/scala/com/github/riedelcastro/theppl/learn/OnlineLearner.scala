@@ -17,37 +17,13 @@ trait UpdateRule2[C,P <: Potential] {
 }
 
 
-trait OnlineLearner[Context] extends Learner[Context] with SuperviseByState[Context] {
+trait OnlineLearner[Context] extends Learner[Context] {
   this:UpdateRule =>
 
   var epochs: Int = 2
 
   def argmaxer(potential:template.PotentialType):Argmaxer
 
-  def train() {
-    for (epoch <- 0 until epochs) {
-      for (instance <- instances) {
-        val potential = template.potential(instance)
-        val argmaxer = this.argmaxer(potential)
-        val gold = targetState(instance, potential)
-        val guess = argmaxer.argmax().state
-        updateRule(potential, gold, guess)
-      }
-    }
-  }
-
-
-}
-
-trait OnlineLearner2[Context] extends Learner[Context] with SuperviseByState[Context] {
-  this:UpdateRule =>
-
-  var epochs: Int = 2
-
-  def argmaxer(potential:template.PotentialType):Argmaxer
-
-
-  def targetState(context: Context, potential: template.PotentialType) = null
   def train() {
     for (epoch <- 0 until epochs) {
       for (instance <- instances) {

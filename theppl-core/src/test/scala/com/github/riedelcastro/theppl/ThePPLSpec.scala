@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl
 
-import org.scalatest.Spec
+import org.scalatest.{Ignore, Spec}
 import org.scalatest.matchers.MustMatchers
 
 /**

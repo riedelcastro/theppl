@@ -43,7 +43,7 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
   def hook(context:Context, potential:template.PotentialType) {}
   def hook(variable:Variable[Any], gold:Any, guess:Any) {}
   
-  def evaluate(instances: Seq[Context]) {
+  def evaluate(instances: Seq[Context]) = {
     reset()
     for (instance <- instances) {
       val potential = template.potential(instance)
@@ -65,6 +65,7 @@ trait Evaluator[Context] extends SuperviseByState[Context]{
       }
       numInstances += 1
     }
+    this
   }
 
   override def toString = {

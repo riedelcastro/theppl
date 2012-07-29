@@ -90,9 +90,9 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
         gradient.add(template.weights.filterByKey(mapping.forward.keys), -2.0 * l2)
       }
 
-      val log = new PrintStream("log/maxent")
-      log.println("Gradient (regularized): \n--------")
-      log.println(gradient)
+//      val log = new PrintStream("log/maxent")
+//      log.println("Gradient (regularized): \n--------")
+//      log.println(gradient)
 
       //convert
       val arrayGradient = Array.ofDim[Double](domainSize)

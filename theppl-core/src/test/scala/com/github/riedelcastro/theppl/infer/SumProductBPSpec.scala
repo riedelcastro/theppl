@@ -43,7 +43,7 @@ class SumProductBPSpec extends ThePPLSpec {
       val brute = BruteForceExpectator.expectator(sum)
       val bp = SumProductBPRecipe.expectator(sum)
 
-      val bfExp = brute.expectations()
+      val bfExp = brute.expectations(Messages.empty) //todo: an idea bug requires the explicit parameter
       val bpExp = bp.expectations()
 
       (bfExp.featureExpectations - bpExp.featureExpectations).norm1 must be(0.0 plusOrMinus eps)
@@ -89,9 +89,9 @@ class SumProductBPSpec extends ThePPLSpec {
       val brute = BruteForceExpectator.expectator(sum)
       val bp = SumProductBPRecipe.expectator(sum)
 
-      val bfExp = brute.expectations()
       val bpExp = bp.expectations()
-      
+      val bfExp = brute.expectations(Messages.empty) //todo: an idea bug requires the explicit parameter
+
       //calculate bethe
 //      var bethe = 0.0
 //      val edges = Seq(AB,BC,CA)
