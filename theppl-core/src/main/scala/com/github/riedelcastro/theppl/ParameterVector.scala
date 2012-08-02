@@ -36,14 +36,22 @@ class ParameterVector {
 
   def size = values.size
 
-  def filterByKey(keys: Iterable[Any]): ParameterVector = {
+  def filterKeys(keys: Iterable[Any]): ParameterVector = {
     val result = new ParameterVector()
     for (key <- keys) result(key) = this(key)
     result
   }
 
+  def isDefinedAt(k:Any) = _values.isDefinedAt(k)
 
-  def update(key: Any, value: Double) = {
+  def filterKeys(predicate:Any => Boolean): ParameterVector = {
+    val result = new ParameterVector()
+    for (key <- keys; if (predicate(key))) result(key) = this(key)
+    result
+  }
+
+
+  def update(key: Any, value: Double) {
     _values(key) = value
   }
 

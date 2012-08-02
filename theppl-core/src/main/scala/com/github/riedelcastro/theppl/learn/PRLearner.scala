@@ -135,7 +135,7 @@ trait SimplePRLearner[Context] extends HasLogger {
       def instances = self.instances
       def expectator(potential: template.PotentialType) = potential.defaultExpectator()
       def targetExpectations(context: Context, potential: template.PotentialType) = {
-        q.potential(context).expectations.featureExpectations.filterByKey(pWeightKeys(context))
+        q.potential(context).expectations.featureExpectations.filterKeys(pWeightKeys(context))
       }
       override def iterations = maxPIterations
       override def l2 = alpha

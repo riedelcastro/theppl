@@ -11,18 +11,13 @@ trait UpdateRule extends HasTemplate[Nothing] {
   def updateRule(potential: template.PotentialType, gold: State, guess: State)
 }
 
-trait UpdateRule2[C,P <: Potential] {
-  type T = Template[C]{type PotentialType = P}
-  def updateRule(template:T, potential: P, gold: State, guess: State)
-}
-
 
 trait OnlineLearner[Context] extends Learner[Context] {
   this:UpdateRule =>
 
   var epochs: Int = 2
 
-  def argmaxer(potential:template.PotentialType):Argmaxer  = potential.defaultArgmaxer()
+  def argmaxer(potential:template.PotentialType):Argmaxer = potential.defaultArgmaxer()
 
   def train() {
     for (epoch <- 0 until epochs) {
@@ -36,17 +31,7 @@ trait OnlineLearner[Context] extends Learner[Context] {
     }
   }
 
-
 }
-
-
-trait HasTemplate2[Context,P <: Potential] {
-  type T = Template[Context] {type PotentialType = P}
-  def template:T
-}
-
-
-
 
 
 /**
@@ -57,11 +42,14 @@ trait PerceptronUpdate extends UpdateRule {
   val template:LinearTemplate[Nothing]
   var learningRate = 1.0
 
-  def updateRule(potential: template.PotentialType, gold: State, guess: State) {
-    val delta = potential.featureDelta(gold, guess)
-    this.template.weights.add(delta, learningRate)
+  def featureDelta(potential: template.PotentialType, gold: State, guess: State) = {
+    potential.featureDelta(gold, guess)
   }
 
+  def updateRule(potential: template.PotentialType, gold: State, guess: State) {
+    val delta = featureDelta(potential, gold, guess)
+    template.weights.add(delta, learningRate)
+  }
 
 }
 
@@ -118,10 +106,5 @@ trait Learner[Context] extends HasTemplate[Context] {
   def train()
 }
 
-trait Learner2[Context,P<:Potential] extends HasTemplate2[Context,P] {
-
-  def instances:Seq[Context]
-  def train()
-}
 
 

@@ -1,17 +1,18 @@
 package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl._
-import infer.Expectator
-import learn._
+import com.github.riedelcastro.theppl.learn._
 import ParameterVector._
 import java.io.{FileInputStream, InputStream}
-import java.util.Scanner
-import util.Util
+import com.github.riedelcastro.theppl.util.Util
+import scala.Some
 
 /**
  * @author sriedel
  */
 trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
+
+  def digit = "\\d+".r
 
   type FeatureArgumentContext = SplitCandidate
   type OtherArgumentContext = Nothing
@@ -41,10 +42,20 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
     def labelFeatures(label: LabelType) = fromAny(Seq(label))
     def contextFeatures(context: SplitCandidate) = {
       val text = source(context.doc)
-      val current = text(context.offset)
+      val currentChar = text(context.offset)
+      val prevWordBuffer = new StringBuilder
+      var backwards = context.offset - 1
+      while (backwards >= 0 && text(backwards) != ' ') {
+        prevWordBuffer.insert(0,text(backwards))
+        backwards -= 1
+      }
+      val prevWord = prevWordBuffer.toString()
       fromPairs(
-        "c" -> current,
-        "c-u" -> current.isUpper
+        "bias" -> true,
+        "pw" -> prevWord,
+        "pn" -> digit.pattern.matcher(prevWord).matches(),
+        "c" -> currentChar,
+        "n2uc" -> text.lift(context.offset + 2).map(_.isUpper).getOrElse("END")
       )
     }
   }
@@ -59,11 +70,13 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
 object TokenizerMain {
 
   case class Doc(src: String, goldSplits: Option[Set[Int]])
+  val punctuation = Set(';',',','.')
+  val punctuationStrings = punctuation.map(_.toString)
 
   /**
    * Takes genia pos text file input and returns an iterator over Doc objects which can be used to train the tokenizer.
    * @param geniaTxt input stream in
-   * @return
+   * @return iterator of documents, one per sentence.
    */
   def loadGeniaDocs(geniaTxt: InputStream) = {
     val sentences = Util.streamIterator(geniaTxt, "====================\n")
@@ -74,9 +87,8 @@ object TokenizerMain {
       var goldSplits: Set[Int] = Set.empty
       for (token <- tokens) {
         val word = token.substring(0,token.lastIndexOf('/'))
-        if (word == "." || word == "," || word == ";") {
+        if (punctuationStrings(word)) {
           goldSplits = goldSplits + charPos
-          charPos += word.length
         } else if (charPos > 0) {
           txt.append(" ")
           charPos += 1
@@ -92,7 +104,7 @@ object TokenizerMain {
   def main(args: Array[String]) {
 
     val inputFile = "/Users/riedelcastro/corpora/genia/GENIAcorpus3.02.pos.txt"
-    val docs = loadGeniaDocs(new FileInputStream(inputFile)).take(10).toSeq
+    val docs = loadGeniaDocs(new FileInputStream(inputFile)).take(100).toSeq
 
     println(docs.mkString("\n"))
 
@@ -105,16 +117,35 @@ object TokenizerMain {
       def splitVar(splitCandidate: SplitCandidate) = SplitVar(splitCandidate.doc, splitCandidate.offset)
       def truthAt(splitCandidate: SplitCandidate) = splitCandidate.doc.goldSplits.map(_.apply(splitCandidate.offset))
 
-      def candidates(doc: Doc) = for (index <- 0 until doc.src.length; if (doc.src(index) == '.')) yield
+      def candidates(doc: Doc) = for (index <- 0 until doc.src.length; if (punctuation(doc.src(index)))) yield
         SplitCandidate(doc, index)
     }
+
+    //pre-collect gold features, but only use those from non-spliting punctuation
+    val filter = new ParameterVector
+    for (doc <- docs) {
+      val pot = tokenizer.potential(doc)
+      val truth = pot.truth
+      val feats = pot.features(truth).filterKeys( k =>  {k match {
+        case Seq(_,Seq('false)) => true
+        case _ => false
+      }})
+      filter.add(feats,1.0)
+    }
+    println(filter)
+    println("Done!")
 
     val learner = new OnlineLearner[Doc] with PerceptronUpdate {
       val template = tokenizer
       def instances = docs
+      override def featureDelta(potential: PotentialType, gold: State, guess: State) =
+        super.featureDelta(potential, gold, guess).filterKeys(f => filter.isDefinedAt(f))
     }
 
+    learner.epochs = 2
     learner.train()
+
+    println(tokenizer.weights)
 
   }
 }

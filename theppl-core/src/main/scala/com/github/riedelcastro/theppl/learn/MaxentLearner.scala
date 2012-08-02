@@ -87,7 +87,7 @@ trait MaxentLearner[Context] extends Learner[Context] with SuperviseByExpectatio
       //L2 normalizer
       if (l2 != 0.0) {
         objective -= l2 * template.weights.norm2Sq
-        gradient.add(template.weights.filterByKey(mapping.forward.keys), -2.0 * l2)
+        gradient.add(template.weights.filterKeys(mapping.forward.keys), -2.0 * l2)
       }
 
 //      val log = new PrintStream("log/maxent")
@@ -183,7 +183,7 @@ trait MaxentLearner2[Context] extends Learner[Context] with HasLogger {
       //L2 normalizer
       if (l2 != 0.0) {
         objective -= l2 * template.weights.norm2Sq
-        gradient.add(template.weights.filterByKey(mapping.forward.keys), -2.0 * l2)
+        gradient.add(template.weights.filterKeys(mapping.forward.keys), -2.0 * l2)
       }
 
       val log = new PrintStream("log/maxent")
