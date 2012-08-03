@@ -104,9 +104,7 @@ object TokenizerMain {
   def main(args: Array[String]) {
 
     val inputFile = "/Users/riedelcastro/corpora/genia/GENIAcorpus3.02.pos.txt"
-    val docs = loadGeniaDocs(new FileInputStream(inputFile)).take(100).toSeq
-
-    println(docs.mkString("\n"))
+    val docs = loadGeniaDocs(new FileInputStream(inputFile)).toSeq
 
     //theppl encourages clients to define/use their own variables, and configure the used modules/templates to use these
     //variables.
