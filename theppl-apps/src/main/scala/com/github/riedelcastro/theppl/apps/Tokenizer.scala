@@ -2,7 +2,7 @@ package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.learn._
-import infer.{NaiveFactoredArgmaxerRecipe, ArgmaxRecipe}
+import infer.{Argmaxer, NaiveFactoredArgmaxerRecipe, ArgmaxRecipe}
 import ParameterVector._
 import java.io.{FileInputStream, InputStream}
 import com.github.riedelcastro.theppl.util.Util
@@ -67,6 +67,11 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
       NaiveFactoredArgmaxerRecipe.argmaxer(this,cookbook)
   }
 
+  def predictSplits(doc:Doc) = {
+    val predicted = predict(doc)
+    candidates(doc).filter(c => predicted(splitVar(c))).map(_.offset)
+  }
+
 
 }
 
@@ -108,6 +113,7 @@ object TokenizerMain {
 
     val inputFile = "/Users/riedelcastro/corpora/genia/GENIAcorpus3.02.pos.txt"
     val docs = loadGeniaDocs(new FileInputStream(inputFile)).toSeq
+    val (trainSet,testSet) = docs.splitAt(docs.size / 2)
 
     //theppl encourages clients to define/use their own variables, and configure the used modules/templates to use these
     //variables.
@@ -138,7 +144,7 @@ object TokenizerMain {
 
     val learner = new OnlineLearner[Doc] with PerceptronUpdate {
       val template = tokenizer
-      def instances = docs
+      def instances = trainSet
       override def featureDelta(potential: PotentialType, gold: State, guess: State) =
         super.featureDelta(potential, gold, guess).filterKeys(f => filter.isDefinedAt(f))
     }
@@ -146,7 +152,16 @@ object TokenizerMain {
     learner.epochs = 2
     learner.train()
 
-    println(tokenizer.weights)
+    for (doc <- testSet) {
+      val result = tokenizer.predictSplits(doc)
+      println(doc.src)
+      println(doc.goldSplits)
+      println(result)
+
+    }
+
+
+    //    println(tokenizer.weights)
 
   }
 }
