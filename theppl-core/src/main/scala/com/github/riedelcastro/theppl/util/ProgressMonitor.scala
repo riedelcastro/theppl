@@ -33,8 +33,8 @@ class ProgressMonitor {
 
     def printProgress() {
       val fineInterval = math.max(stepsMax / 100, 1)
-      val coarseInterval = fineInterval * 5
-      if (stepsCurrent % fineInterval == 0) print("\r" + progressString(stepsCurrent / stepsMax.toDouble, 40))
+      if (stepsCurrent % fineInterval == 0 || stepsCurrent == stepsMax)
+        print("\r" + progressString(stepsCurrent / stepsMax.toDouble, 40))
         //print(".")
 //      if (stepsCurrent % coarseInterval == 0) print(" ")
 
