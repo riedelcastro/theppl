@@ -2,24 +2,27 @@ package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.learn._
-import infer.{Argmaxer, NaiveFactoredArgmaxerRecipe, ArgmaxRecipe}
+import infer.{NaiveFactoredArgmaxerRecipe, ArgmaxRecipe}
 import ParameterVector._
 import java.io.{FileInputStream, InputStream}
 import com.github.riedelcastro.theppl.util.Util
 import scala.Some
+import collection.mutable.ArrayBuffer
 
 /**
+ * This tokenizer predicts characters that serve as punctuation tokens.
  * @author sriedel
  */
 trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
-
-  def digit = "\\d+".r
 
   type FeatureArgumentContext = SplitCandidate
   type OtherArgumentContext = Nothing
   type PotentialType = TokenizerPotential
 
   case class SplitCandidate(doc: Doc, offset: Int)
+  case class Token(doc:Doc,beginChar:Int,endChar:Int) {
+    def word = source(doc).substring(beginChar,endChar)
+  }
 
   def source(doc: Doc): String
   def splitVar(splitCandidate: SplitCandidate): Variable[Boolean]
@@ -34,6 +37,8 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
   def potential(c: Doc) = new TokenizerPotential {
     def context = c
   }
+
+  private def digit = "\\d+".r
 
   lazy val classifier = new Classifier[SplitCandidate] {
 
@@ -53,10 +58,11 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
       val prevWord = prevWordBuffer.toString()
       fromPairs(
         "bias" -> true,
-        "pw" -> prevWord,
-        "pn" -> digit.pattern.matcher(prevWord).matches(),
+        "p1_w" -> prevWord,
+        "p1_c_n" -> digit.pattern.matcher(prevWord).matches(),
         "c" -> currentChar,
-        "n2uc" -> text.lift(context.offset + 2).map(_.isUpper).getOrElse("END")
+        "n2_c_uc" -> text.lift(context.offset + 2).map(_.isUpper).getOrElse("END"),
+        "n1_c_whitespace" -> text.lift(context.offset + 1).map(_.isWhitespace).getOrElse("END")
       )
     }
   }
@@ -67,9 +73,39 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
       NaiveFactoredArgmaxerRecipe.argmaxer(this,cookbook)
   }
 
-  def predictSplits(doc:Doc) = {
+  /**
+   * Predicts all character offsets at which there is a character that serves as punctuation.
+   * @param doc the input document.
+   * @return a sequence of character offsets that serve as
+   */
+  def predictPunctuation(doc:Doc) = {
     val predicted = predict(doc)
     candidates(doc).filter(c => predicted(splitVar(c))).map(_.offset)
+  }
+
+  /**
+   * Based on the predicted punctuation, this returns a sequence of tokens.
+   * @param doc the input document.
+   * @return sequence of tokens.
+   */
+  def predictTokens(doc:Doc):Seq[Token] = {
+    val src = source(doc)
+    val splits = predictPunctuation(doc).toSet
+    val result = new ArrayBuffer[Token]
+    var start = 0
+    for (index <- 0 until src.length) {
+      if (src(index).isWhitespace) {
+        if (index == 0 || !src(index-1).isWhitespace) {
+          result += Token(doc,start,index)
+        }
+        start = index + 1
+      } else if (splits(index)) {
+        result += Token(doc,start,index)
+        start = index
+      }
+    }
+    if (!src.last.isWhitespace) result += Token(doc,start,src.length)
+    result
   }
 
 
@@ -115,15 +151,12 @@ object TokenizerMain {
     val docs = loadGeniaDocs(new FileInputStream(inputFile)).toSeq
     val (trainSet,testSet) = docs.splitAt(docs.size / 2)
 
-    //theppl encourages clients to define/use their own variables, and configure the used modules/templates to use these
-    //variables.
     case class SplitVar(doc: Doc, index: Int) extends BoolVariable
 
     val tokenizer = new Tokenizer[Doc] {
       def source(doc: Doc) = doc.src
       def splitVar(splitCandidate: SplitCandidate) = SplitVar(splitCandidate.doc, splitCandidate.offset)
       def truthAt(splitCandidate: SplitCandidate) = splitCandidate.doc.goldSplits.map(_.apply(splitCandidate.offset))
-
       def candidates(doc: Doc) = for (index <- 0 until doc.src.length; if (punctuation(doc.src(index)))) yield
         SplitCandidate(doc, index)
     }
@@ -153,13 +186,13 @@ object TokenizerMain {
     learner.train()
 
     for (doc <- testSet) {
-      val result = tokenizer.predictSplits(doc)
+      val result = tokenizer.predictPunctuation(doc)
+      val tokens = tokenizer.predictTokens(doc)
       println(doc.src)
+      println(tokens.map(_.word).mkString(" "))
       println(doc.goldSplits)
       println(result)
-
     }
-
 
     //    println(tokenizer.weights)
 
