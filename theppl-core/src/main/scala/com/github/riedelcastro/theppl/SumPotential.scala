@@ -8,7 +8,6 @@ import infer.{SumProductBPRecipe, ExpectatorRecipe}
  * @author sriedel
  */
 trait SumPotential extends Potential {
-
   def args: Iterable[Potential]
   def hidden = args.flatMap(_.hidden).toSet.toIndexedSeq
   def score(state: State) = args.map(_.score(state)).sum

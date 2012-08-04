@@ -31,4 +31,5 @@ trait BoolVariable extends Variable[Boolean] {
   def domain = Bool.values
 }
 
+case class BoolVar[Id](id:Id) extends BoolVariable
 

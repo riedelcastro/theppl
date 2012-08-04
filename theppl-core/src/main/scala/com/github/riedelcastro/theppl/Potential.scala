@@ -75,12 +75,33 @@ trait Potential extends Term[Double] {
 
 }
 
+/**
+ * A potential that uses a mapping from tuples to scores for its scoring function.
+ * @param hidden the hidden variables.
+ * @param scores the scores assigned to assignments of hidden variables. The order of each tuple has to correspond
+ *               to the order of the hidden variables.
+ * @param default the default score to return if no matching tuple can be found.
+ */
+case class TablePotential(hidden: Seq[Variable[Any]], scores: Map[Seq[Any], Double], default: Double = 0.0)
+  extends Potential {
+
+  def score(state: State) = scores.getOrElse(hidden.view.map(v => state(v)), default)
+}
+
 object Potential {
+
+  def table(hidden: Seq[Variable[Any]], scores: Map[Seq[Any], Double], default: Double = 0.0) =
+    TablePotential(hidden,scores,default)
+
+  def sum(sumArgs:Seq[Potential]) = new SumPotential {
+    def args = sumArgs
+  }
+
   val zero = new Potential {
     def hidden = Seq.empty
-
     def score(state: State) = 0.0
   }
+
 }
 
 /**

@@ -213,7 +213,7 @@ class Feat extends ArrayBuffer[Symbol] {
     feat ++= that
     feat
   }
-  override def toString() = map(_.name).mkString("F[","\t","]")
+  override def toString() = map(_.name).mkString("\t")
 }
 
 object Feat {
