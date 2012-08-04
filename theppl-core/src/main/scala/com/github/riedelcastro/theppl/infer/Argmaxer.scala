@@ -34,6 +34,11 @@ object Argmaxer extends ArgmaxRecipe[Potential] {
     cookbook.argmaxer(potential, cookbook)
 }
 
+/**
+ * Argmaxer that finds the assignment with minimum Bayes Risk by
+ * choosing, for each variable, the assignment with maximum marginal probability. This requires
+ * an underlying marginalizer.
+ */
 trait MinimumBayesRiskArgmaxer extends Argmaxer {
 
   def marginalizer: Marginalizer
@@ -51,9 +56,12 @@ trait MinimumBayesRiskArgmaxer extends Argmaxer {
   }
 }
 
-trait BruteForceArgmaxer extends Argmaxer with HasLogger {
 
-  val potential: Potential
+/**
+ * Finds the argmax by explicitly searching through all possible assignments to the hidden variables
+ * of a potential.
+ */
+trait BruteForceArgmaxer extends Argmaxer with HasLogger {
 
   def argmax(penalties: Messages) = {
     logger.trace("Bruteforce argmaxer used")
@@ -66,5 +74,25 @@ trait BruteForceArgmaxer extends Argmaxer with HasLogger {
     }
   }
 
-
 }
+
+/**
+ * Creates argmaxers which maximize each factor in isolation.
+ */
+object NaiveFactoredArgmaxerRecipe extends ArgmaxRecipe[SumPotential] {
+  def argmaxer(pot: SumPotential, cookbook: ArgmaxRecipe[Potential]) = {
+    new Argmaxer {
+      val potential = pot
+      val argmaxers = pot.args.map(cookbook.argmaxer(_, cookbook))
+      def argmax(penalties: Messages) = {
+        var result: State = State.empty
+        for (argmaxer <- argmaxers) result = result + argmaxer.argmax(penalties).state
+        new ArgmaxResult {
+          def state = result
+          lazy val score = pot.score(state)
+        }
+      }
+    }
+  }
+}
+

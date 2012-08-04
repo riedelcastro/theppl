@@ -24,10 +24,10 @@ trait Messages {
 trait MessageVar[V] {
   def variable: Variable[V]
   def :=(msg: Message[V])
-  def :=(msgVar: MessageVar[V]) {this := msgVar()}
+  def :=(msgVar: MessageVar[V]) { this := msgVar() }
   def apply(): Message[V]
-  def +=(msg: Message[V]) {this := apply() + msg}
-  def ++=(msgs: Iterable[Message[V]]) {this := msgs.foldLeft[Message[V]](Message.empty[V](variable))(_ + _)}
+  def +=(msg: Message[V]) { this := apply() + msg }
+  def ++=(msgs: Iterable[Message[V]]) { this := msgs.foldLeft[Message[V]](Message.empty[V](variable))(_ + _) }
 }
 
 class ArrayMessage[V](val variable: Variable[V], array: Array[Double]) extends Message[V] {
@@ -52,9 +52,9 @@ class ArrayMessage[V](val variable: Variable[V], array: Array[Double]) extends M
 class ArrayMessageVar[V](val variable: Variable[V]) extends MessageVar[V] {
   val array = Array.ofDim[Double](variable.domain.size)
   def apply() = new ArrayMessage[V](variable, array.copy)
-  def :=(msg: Message[V]) {array.set(msg.toArray)}
-  override def +=(msg: Message[V]) {array.incr(msg.toArray)}
-  override def ++=(msgs: Iterable[Message[V]]) {msgs.foreach(m => array.incr(m.toArray))}
+  def :=(msg: Message[V]) { array.set(msg.toArray) }
+  override def +=(msg: Message[V]) { array.incr(msg.toArray) }
+  override def ++=(msgs: Iterable[Message[V]]) { msgs.foreach(m => array.incr(m.toArray)) }
 
 }
 
@@ -118,7 +118,7 @@ trait Message[V] {
     variable.domain.view.map(v => "%20s %8.4f".format(v, this(v))).mkString("\n")
   }
 
-  def materialize:Message[V] = new Message[V] {
+  def materialize: Message[V] = new Message[V] {
     def variable = self.variable
     val map = new HashMap[V, Double]
     def apply(value: V) = map.getOrElseUpdate(value, self(value))
@@ -238,15 +238,33 @@ object State {
  */
 trait State extends Messages {
   self =>
+
   def apply[V](variable: Variable[V]): V = get(variable).get
 
-  def value[V](variable:Variable[V]) = apply(variable)
+  def value[V](variable: Variable[V]) = apply(variable)
 
   def get[V](variable: Variable[V]): Option[V]
 
+  /**
+   * By default states have open world semantics: variables without an assignment return None as result
+   * of calling get. This method returns a closed world version of a state: for unassigned variables
+   * get returns Some([default state for that variable].
+   * @return a closed world version of the given state.
+   */
   def closed = new State {
     def get[V](variable: Variable[V]) = self.get(variable).orElse(Some(variable.default))
   }
+
+  /**
+   * Overlays this state over the given state. This may not be a good idea to use when adding several states.
+   * @param state the state to "underlay".
+   * @return A state that returns the value assigned to the variable, if such value exists,
+   *         or the value assigned to the variable in the passed state.
+   */
+  def +(state: State) = new State {
+    def get[V](variable: Variable[V]) = self.get(variable).orElse(state.get(variable))
+  }
+
   def message[V](v: Variable[V]) = new Message[V] {
     thisMsg =>
     def apply(value: V) = if (get(v) == Some(value)) 1.0 else 0.0

@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.learn._
+import infer.{NaiveFactoredArgmaxerRecipe, ArgmaxRecipe}
 import ParameterVector._
 import java.io.{FileInputStream, InputStream}
 import com.github.riedelcastro.theppl.util.Util
@@ -62,6 +63,8 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
 
   trait TokenizerPotential extends TemplatedFeatureSumPotential {
     override lazy val truth = State(featureContexts.flatMap({case c => truthAt(c).map(splitVar(c) -> _)}).toMap)
+    override def defaultArgmaxer(cookbook: ArgmaxRecipe[Potential]) =
+      NaiveFactoredArgmaxerRecipe.argmaxer(this,cookbook)
   }
 
 

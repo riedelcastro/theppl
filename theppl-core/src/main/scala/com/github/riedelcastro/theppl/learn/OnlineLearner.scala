@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl._
 import infer.Argmaxer
+import util.ProgressMonitor
 
 /**
  * The UpdateRule of an Online Learner defines how the prediction (guess) and
@@ -13,13 +14,14 @@ trait UpdateRule extends HasTemplate[Nothing] {
 
 
 trait OnlineLearner[Context] extends Learner[Context] {
-  this:UpdateRule =>
+  this: UpdateRule =>
 
   var epochs: Int = 2
 
-  def argmaxer(potential:template.PotentialType):Argmaxer = potential.defaultArgmaxer()
+  def argmaxer(potential: template.PotentialType): Argmaxer = potential.defaultArgmaxer()
 
   def train() {
+    ProgressMonitor.start(this, "OnlineLearner", instances.size, epochs)
     for (epoch <- 0 until epochs) {
       for (instance <- instances) {
         val potential = template.potential(instance)
@@ -27,6 +29,7 @@ trait OnlineLearner[Context] extends Learner[Context] {
         val gold = potential.truth
         val guess = argmaxer.argmax().state
         updateRule(potential, gold, guess)
+        ProgressMonitor.progress(this)
       }
     }
   }
@@ -39,7 +42,7 @@ trait OnlineLearner[Context] extends Learner[Context] {
  */
 trait PerceptronUpdate extends UpdateRule {
 
-  val template:LinearTemplate[Nothing]
+  val template: LinearTemplate[Nothing]
   var learningRate = 1.0
 
   def featureDelta(potential: template.PotentialType, gold: State, guess: State) = {
@@ -67,19 +70,18 @@ trait PerceptronUpdate extends UpdateRule {
 //}
 
 
-
 trait Supervisor {
   this: Template[Nothing] =>
   def target(potential: PotentialType): State
 }
 
 trait ExpectationSupervisor {
-  this:Template[Nothing] =>
-  def targetExpectations(potential:PotentialType):ParameterVector
+  this: Template[Nothing] =>
+  def targetExpectations(potential: PotentialType): ParameterVector
 }
 
 trait ExpectationFromStateSupervisor extends ExpectationSupervisor with Supervisor {
-  this:Template[Nothing] { type PotentialType <: LinearPotential } =>
+  this: Template[Nothing] {type PotentialType <: LinearPotential} =>
   def targetExpectations(potential: PotentialType) = {
     potential.features(target(potential))
   }
@@ -87,22 +89,23 @@ trait ExpectationFromStateSupervisor extends ExpectationSupervisor with Supervis
 
 
 trait SuperviseByState[Context] extends HasTemplate[Context] {
-  def targetState(context:Context, potential:template.PotentialType):State
+  def targetState(context: Context, potential: template.PotentialType): State
 }
+
 trait SuperviseByExpectations[Context] extends HasTemplate[Context] {
-  def targetExpectations(context:Context, potential:template.PotentialType):ParameterVector
+  def targetExpectations(context: Context, potential: template.PotentialType): ParameterVector
 }
 
 trait SuperviseByDeterministicExpectations[Context] extends SuperviseByExpectations[Context] with SuperviseByState[Context] {
-  val template:LinearTemplate[Context]
-  def targetExpectations(context:Context, potential:template.PotentialType):ParameterVector =
-    potential.features(targetState(context,potential))
+  val template: LinearTemplate[Context]
+  def targetExpectations(context: Context, potential: template.PotentialType): ParameterVector =
+    potential.features(targetState(context, potential))
 }
 
 
 trait Learner[Context] extends HasTemplate[Context] {
 
-  def instances:Seq[Context]
+  def instances: Seq[Context]
   def train()
 }
 
