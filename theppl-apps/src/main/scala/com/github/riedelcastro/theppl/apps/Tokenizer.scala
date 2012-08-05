@@ -20,8 +20,9 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
   type PotentialType = TokenizerPotential
 
   case class SplitCandidate(doc: Doc, offset: Int)
-  case class Token(doc:Doc,beginChar:Int,endChar:Int) {
-    def word = source(doc).substring(beginChar,endChar)
+
+  case class Token(doc: Doc, beginChar: Int, endChar: Int) {
+    def word = source(doc).substring(beginChar, endChar)
   }
 
   def source(doc: Doc): String
@@ -52,7 +53,7 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
       val prevWordBuffer = new StringBuilder
       var backwards = context.offset - 1
       while (backwards >= 0 && text(backwards) != ' ') {
-        prevWordBuffer.insert(0,text(backwards))
+        prevWordBuffer.insert(0, text(backwards))
         backwards -= 1
       }
       val prevWord = prevWordBuffer.toString()
@@ -70,7 +71,7 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
   trait TokenizerPotential extends TemplatedFeatureSumPotential {
     override lazy val truth = State(featureContexts.flatMap({case c => truthAt(c).map(splitVar(c) -> _)}).toMap)
     override def defaultArgmaxer(cookbook: ArgmaxRecipe[Potential]) =
-      NaiveFactoredArgmaxerRecipe.argmaxer(this,cookbook)
+      NaiveFactoredArgmaxerRecipe.argmaxer(this, cookbook)
   }
 
   /**
@@ -78,7 +79,7 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
    * @param doc the input document.
    * @return a sequence of character offsets that serve as
    */
-  def predictPunctuation(doc:Doc) = {
+  def predictPunctuation(doc: Doc) = {
     val predicted = predict(doc)
     candidates(doc).filter(c => predicted(splitVar(c))).map(_.offset)
   }
@@ -88,23 +89,23 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
    * @param doc the input document.
    * @return sequence of tokens.
    */
-  def predictTokens(doc:Doc):Seq[Token] = {
+  def predictTokens(doc: Doc): Seq[Token] = {
     val src = source(doc)
     val splits = predictPunctuation(doc).toSet
     val result = new ArrayBuffer[Token]
     var start = 0
     for (index <- 0 until src.length) {
       if (src(index).isWhitespace) {
-        if (index == 0 || !src(index-1).isWhitespace) {
-          result += Token(doc,start,index)
+        if (index == 0 || !src(index - 1).isWhitespace) {
+          result += Token(doc, start, index)
         }
         start = index + 1
       } else if (splits(index)) {
-        result += Token(doc,start,index)
+        result += Token(doc, start, index)
         start = index
       }
     }
-    if (!src.last.isWhitespace) result += Token(doc,start,src.length)
+    if (src.length > 0 && !src.last.isWhitespace) result += Token(doc, start, src.length)
     result
   }
 
@@ -114,7 +115,8 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
 object TokenizerMain {
 
   case class Doc(src: String, goldSplits: Option[Set[Int]])
-  val punctuation = Set(';',',','.')
+
+  val punctuation = Set(';', ',', '.')
   val punctuationStrings = punctuation.map(_.toString)
 
   /**
@@ -130,7 +132,7 @@ object TokenizerMain {
       var charPos = 0
       var goldSplits: Set[Int] = Set.empty
       for (token <- tokens) {
-        val word = token.substring(0,token.lastIndexOf('/'))
+        val word = token.substring(0, token.lastIndexOf('/'))
         if (punctuationStrings(word)) {
           goldSplits = goldSplits + charPos
         } else if (charPos > 0) {
@@ -140,7 +142,7 @@ object TokenizerMain {
         txt.append(word)
         charPos += word.length
       }
-      Doc(txt.toString,Some(goldSplits))
+      Doc(txt.toString, Some(goldSplits))
     }
 
   }
@@ -149,7 +151,7 @@ object TokenizerMain {
 
     val inputFile = "/Users/riedelcastro/corpora/genia/GENIAcorpus3.02.pos.txt"
     val docs = loadGeniaDocs(new FileInputStream(inputFile)).toSeq
-    val (trainSet,testSet) = docs.splitAt(docs.size / 2)
+    val (trainSet, testSet) = docs.splitAt(docs.size / 2)
 
     case class SplitVar(doc: Doc, index: Int) extends BoolVariable
 
@@ -166,11 +168,14 @@ object TokenizerMain {
     for (doc <- docs) {
       val pot = tokenizer.potential(doc)
       val truth = pot.truth
-      val feats = pot.features(truth).filterKeys( k =>  {k match {
-        case Seq(_,Seq('false)) => true
-        case _ => false
-      }})
-      filter.add(feats,1.0)
+      val feats = pot.features(truth).filterKeys(k => {
+        k match {
+          case f:Feat if (f.last == 'false) => true
+          case Seq(_, Seq('false)) => true
+          case x => false
+        }
+      })
+      filter.add(feats, 1.0)
     }
     println(filter)
     println("Done!")

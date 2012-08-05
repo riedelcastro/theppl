@@ -57,7 +57,7 @@ class ParameterVector {
 
   def apply(key: Any): Double = _values(key)
 
-  def add(that: ParameterVector, scale: Double) = {
+  def add(that: ParameterVector, scale: Double) {
     for ((key, value) <- that.values) {
       _values(key) = _values(key) + scale * value
     }
@@ -66,7 +66,7 @@ class ParameterVector {
     for (f <- feats) this(f) = scale
   }
 
-  def scale(scale: Double) = {
+  def scale(scale: Double) {
     for ((key, value) <- values) {
       _values(key) = _values(key) * scale
     }
@@ -100,7 +100,11 @@ class ParameterVector {
   def conjoin(that: ParameterVector): ParameterVector = {
     val result = new ParameterVector
     for ((key, value) <- this.values; (thatKey, thatValue) <- that.values) {
-      result(IndexedSeq(key,thatKey)) = value * thatValue
+      val newKey = (key,thatKey) match {
+        case (f1:Feat,f2:Feat) => f1 & f2
+        case _ => IndexedSeq(key,thatKey)
+      }
+      result(newKey) = value * thatValue
     }
     result
   }
