@@ -3,14 +3,19 @@ package com.github.riedelcastro.theppl.apps
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.learn._
 import infer.{NaiveFactoredArgmaxerRecipe, ArgmaxRecipe}
+import nlp.{Token, Document}
 import ParameterVector._
-import java.io.{FileInputStream, InputStream}
+import java.io.{PrintStream, FileInputStream, InputStream}
 import com.github.riedelcastro.theppl.util.Util
 import scala.Some
 import collection.mutable.ArrayBuffer
 
 /**
- * This tokenizer predicts characters that serve as punctuation tokens.
+ * This tokenizer predicts characters that serve as punctuation tokens. It is designed to
+ * work with different underlying document representations. Please notice that the tokenizer
+ * itself is a template too, and generates a document-wide potential that touches all
+ * punctuation variables.
+ *
  * @author sriedel
  */
 trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
@@ -109,12 +114,35 @@ trait Tokenizer[Doc] extends FeatureSumTemplate[Doc] {
     result
   }
 
+}
+
+/**
+ * Tokenizer that works with the default nlp data structures.
+ */
+class DefaultTokenizer extends Tokenizer[Document] {
+  val punctuation = Set(';', ',', '.')
+  val punctuationStrings = punctuation.map(_.toString)
+
+  def source(doc: Document) = doc.source()
+  def truthAt(splitCandidate: SplitCandidate):Option[Boolean] = None
+  def splitVar(splitCandidate: SplitCandidate) = BoolVar(splitCandidate)
+
+  def candidates(doc: Document) = {
+    val source = doc.source()
+    for (index <- 0 until source.length; if (punctuation(source(index)))) yield SplitCandidate(doc, index)
+  }
+
+  def annotate(doc: Document) {
+    val tokens = predictTokens(doc)
+    doc.tokens := tokens.map(t => new nlp.Token().charBegin(t.beginChar).charEnd(t.endChar).word(t.word))
+  }
 
 }
 
-object TokenizerMain {
-
-  case class Doc(src: String, goldSplits: Option[Set[Int]])
+/**
+ * In this singleton we train the default tokenizer based on some Genia input corpus.
+ */
+object TrainDefaultTokenizer {
 
   val punctuation = Set(';', ',', '.')
   val punctuationStrings = punctuation.map(_.toString)
@@ -126,8 +154,9 @@ object TokenizerMain {
    */
   def loadGeniaDocs(geniaTxt: InputStream) = {
     val sentences = Util.streamIterator(geniaTxt, "====================\n")
-    for (sentence <- sentences) yield {
+    for ((sentence,index) <- sentences.zipWithIndex) yield {
       val tokens = sentence.split("\n")
+      val newTokens = new ArrayBuffer[Token]
       var txt = new StringBuffer()
       var charPos = 0
       var goldSplits: Set[Int] = Set.empty
@@ -140,11 +169,15 @@ object TokenizerMain {
           charPos += 1
         }
         txt.append(word)
+        newTokens += new Token().charBegin(charPos).charEnd(charPos + word.length).word(word)
         charPos += word.length
       }
-      Doc(txt.toString, Some(goldSplits))
+      new Document().source(txt.toString).tokens(newTokens).name(index.toString)
     }
+  }
 
+  def goldSplits(doc:Document) = {
+    doc.tokens().view.filter(t => punctuationStrings(t.word())).map(_.charBegin()).toSet
   }
 
   def main(args: Array[String]) {
@@ -153,34 +186,32 @@ object TokenizerMain {
     val docs = loadGeniaDocs(new FileInputStream(inputFile)).toSeq
     val (trainSet, testSet) = docs.splitAt(docs.size / 2)
 
-    case class SplitVar(doc: Doc, index: Int) extends BoolVariable
+    val goldOffsets = new collection.mutable.HashMap[Document,Set[Int]]
 
-    val tokenizer = new Tokenizer[Doc] {
-      def source(doc: Doc) = doc.src
-      def splitVar(splitCandidate: SplitCandidate) = SplitVar(splitCandidate.doc, splitCandidate.offset)
-      def truthAt(splitCandidate: SplitCandidate) = splitCandidate.doc.goldSplits.map(_.apply(splitCandidate.offset))
-      def candidates(doc: Doc) = for (index <- 0 until doc.src.length; if (punctuation(doc.src(index)))) yield
-        SplitCandidate(doc, index)
+    val tokenizer = new DefaultTokenizer {
+      override def truthAt(splitCandidate: SplitCandidate) = {
+        val splits = goldOffsets.getOrElseUpdate(splitCandidate.doc,goldSplits(splitCandidate.doc))
+        Some(splits(splitCandidate.offset))
+      }
     }
 
-    //pre-collect gold features, but only use those from non-spliting punctuation
+    //pre-collect gold features, but only use those from non-splitting punctuation
     val filter = new ParameterVector
     for (doc <- docs) {
       val pot = tokenizer.potential(doc)
       val truth = pot.truth
       val feats = pot.features(truth).filterKeys(k => {
         k match {
-          case f:Feat if (f.last == 'false) => true
-          case Seq(_, Seq('false)) => true
+          case f: Feat if (f.last == 'false) => true
           case x => false
         }
       })
       filter.add(feats, 1.0)
     }
-    println(filter)
-    println("Done!")
 
-    val learner = new OnlineLearner[Doc] with PerceptronUpdate {
+    filter.save(new PrintStream("/tmp/filter.weights"))
+
+    val learner = new OnlineLearner[Document] with PerceptronUpdate {
       val template = tokenizer
       def instances = trainSet
       override def featureDelta(potential: PotentialType, gold: State, guess: State) =
@@ -193,13 +224,29 @@ object TokenizerMain {
     for (doc <- testSet) {
       val result = tokenizer.predictPunctuation(doc)
       val tokens = tokenizer.predictTokens(doc)
-      println(doc.src)
+      println(doc.source())
       println(tokens.map(_.word).mkString(" "))
-      println(doc.goldSplits)
+      println(goldSplits(doc))
       println(result)
     }
 
-    //    println(tokenizer.weights)
+    tokenizer.weights.save(new PrintStream("/tmp/tokenizer.weights"))
 
   }
 }
+
+/**
+ * This code simply loads a previously trained tokenizer and applies it to some example text.
+ */
+object DefaultTokenizerTest {
+  def main(args: Array[String]) {
+    val doc = new Document().source("This is a test document (i.e. a document to test). Yeah.")
+    val tokenizer = new DefaultTokenizer
+    tokenizer.weights.load(new FileInputStream("/tmp/tokenizer.weights"))
+    tokenizer.annotate(doc)
+    println(doc.toJSON)
+
+  }
+}
+
+

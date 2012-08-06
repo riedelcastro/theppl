@@ -124,9 +124,9 @@ class ParameterVector {
     }
   }
 
-  def save(out: OutputStream) {
+  def save(out: OutputStream, filterZero:Boolean=true) {
     val ps = new PrintStream(out)
-    for ((feat, value) <- _values) {
+    for ((feat, value) <- _values; if (!filterZero || value != 0.0)) {
       ps.println(feat + "\t" + value)
     }
   }
