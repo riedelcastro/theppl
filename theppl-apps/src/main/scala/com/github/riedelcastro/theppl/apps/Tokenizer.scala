@@ -132,9 +132,10 @@ class DefaultTokenizer extends Tokenizer[Document] {
     for (index <- 0 until source.length; if (punctuation(source(index)))) yield SplitCandidate(doc, index)
   }
 
-  def annotate(doc: Document) {
+  def annotate(doc: Document) = {
     val tokens = predictTokens(doc)
     doc.tokens := tokens.map(t => new nlp.Token().charBegin(t.beginChar).charEnd(t.endChar).word(t.word))
+    doc
   }
 
 }
