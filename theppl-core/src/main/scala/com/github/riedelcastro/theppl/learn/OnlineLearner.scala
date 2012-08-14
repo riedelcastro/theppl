@@ -2,7 +2,7 @@ package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl._
 import infer.Argmaxer
-import util.ProgressMonitor
+import org.riedelcastro.nurupo.ProgressMonitor
 
 /**
  * The UpdateRule of an Online Learner defines how the prediction (guess) and

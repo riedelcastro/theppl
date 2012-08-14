@@ -5,6 +5,6 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-     "org.riedelcastro.frontlets" %% "frontlets" % "0.3.0-SNAPSHOT"
+     "org.riedelcastro.frontlets" %% "frontlets" % "0.4.0-SNAPSHOT"
 )
 

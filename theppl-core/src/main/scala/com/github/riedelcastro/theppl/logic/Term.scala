@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl.logic
 
 import com.github.riedelcastro.theppl.{Variable, State}
 import com.github.riedelcastro.theppl.util._
+import org.riedelcastro.nurupo.{BuilderN, Builder1}
 
 
 /**
@@ -64,7 +65,7 @@ object Substitution {
 case class Constant[+V](value: V) extends Term[V] {
   def eval(state: State) = Some(value)
   def variables = Seq.empty
-  override def toString = value.toString
+  override def toString = value.toString()
   override def isConstant = true
 }
 
