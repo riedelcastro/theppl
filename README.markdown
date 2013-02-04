@@ -11,8 +11,6 @@ as joint potentials, in isolation etc. Modularity allows developers to (a) injec
 if needed, (b) design and test their system in a divide-and-conquer manner, and (c) reuse existing
 components.
 
-For further details please have a look at the [manual](https://github.com/riedelcastro/riedelcastro-maven-repo/raw/master/snapshots/com/github/riedelcastro/theppl/theppl-manual/0.1.0-SNAPSHOT/theppl-manual-0.1.0-SNAPSHOT.pdf).
-
 Install
 --------
 theppl uses sbt for building and installation. If you don't have maven on your machine,
