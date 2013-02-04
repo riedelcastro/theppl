@@ -13,7 +13,7 @@ components.
 
 Install
 --------
-theppl uses sbt for building and installation. If you don't have maven on your machine,
+theppl uses sbt for building and installation. If you don't have sbt on your machine,
 get it [here](https://github.com/harrah/xsbt). Then run:
 
     sbt publish-local
