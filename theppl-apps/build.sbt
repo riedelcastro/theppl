@@ -1,10 +1,10 @@
 resolvers ++= Seq(
-    "IESL third party" at "https://dev-iesl.cs.umass.edu/nexus/content/repositories/thirdparty/",
-    "IESL snapshots" at "https://dev-iesl.cs.umass.edu/nexus/content/repositories/snapshots",
-    "IESL releases" at "https://dev-iesl.cs.umass.edu/nexus/content/repositories/releases"
+      "Homeniscient third party" at "http://homeniscient.cs.ucl.ac.uk:8081/nexus/content/repositories/thirdparty",
+      "Homeniscient snapshots" at "http://homeniscient.cs.ucl.ac.uk:8081/nexus/content/repositories/snapshots",
+      "Homeniscient releases" at "http://homeniscient.cs.ucl.ac.uk:8081/nexus/content/repositories/releases"
 )
 
 libraryDependencies ++= Seq(
-     "org.riedelcastro.frontlets" %% "frontlets" % "0.4.0-SNAPSHOT"
+     "org.riedelcastro.frontlets" %% "frontlets" % "0.5.0-SNAPSHOT"
 )
 

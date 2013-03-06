@@ -6,7 +6,7 @@ import Keys._
 object BuildSettings {
   val buildOrganization = "org.riedelcastro.theppl"
   val buildVersion = "0.1-SNAPSHOT"
-  val buildScalaVersion = "2.9.2"
+  val buildScalaVersion = "2.10.0"
 
   val ieslCredentials = Credentials(Path.userHome / ".ivy2" / ".credentials")
   val buildSettings = Defaults.defaultSettings ++ Seq(
