@@ -19,6 +19,8 @@ import logic.Term
 trait Template[-Context] extends Term[Context => Double] {
   thisTemplate =>
 
+  type C = Context
+
   /**
    * The type of potential this template creates.
    */

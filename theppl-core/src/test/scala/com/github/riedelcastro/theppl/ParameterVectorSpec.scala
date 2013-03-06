@@ -1,14 +1,14 @@
 package com.github.riedelcastro.theppl;
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-import org.scalatest.Spec
+import org.scalatest.FunSpec
 import org.scalatest.matchers.MustMatchers
 
 
 /*
 * @author sriedel
 */
-class ParameterVectorSpec extends Spec with MustMatchers {
+class ParameterVectorSpec extends FunSpec with MustMatchers {
 
   describe("A ParameterVector") {
     it("should store and load parameters") {

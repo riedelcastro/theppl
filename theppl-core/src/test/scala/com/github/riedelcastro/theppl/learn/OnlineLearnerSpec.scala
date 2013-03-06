@@ -1,15 +1,14 @@
 package com.github.riedelcastro.theppl.learn
 
-import org.scalatest.Spec
+import org.scalatest.FunSpec
 import org.scalatest.matchers.MustMatchers
 import com.github.riedelcastro.theppl._
 import Imports._
-import infer.Argmaxer
 
 /**
  * @author sriedel
  */
-class OnlineLearnerSpec extends Spec with MustMatchers {
+class OnlineLearnerSpec extends FunSpec with MustMatchers {
 
   describe("An OnlineLearner") {
     it("should separate separable data with the Perceptron update rule") {
