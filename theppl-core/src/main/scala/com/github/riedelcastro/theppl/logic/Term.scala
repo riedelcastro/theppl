@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl.logic
 
-import com.github.riedelcastro.theppl.{Variable, State}
+import com.github.riedelcastro.theppl.{Potential, Variable, State}
 import com.github.riedelcastro.theppl.util._
 import org.riedelcastro.nurupo.{BuilderN, Builder1}
 
@@ -181,7 +181,8 @@ object IntAdd extends Constant((x: Int, y: Int) => x + y) with InfixFun[Int, Int
 
 object DoubleAddN extends Constant((args:Seq[Double])=>args.sum)
 
-object $ extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with FunTerm1[Boolean, Double] {
+
+object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with FunTerm1[Boolean, Double] {
   override def toString = "$"
 }
 
@@ -204,10 +205,58 @@ case class SeqTerm[T](args:Seq[Term[T]]) extends Composite[Seq[T], SeqTerm[T]] {
 
 object Bool extends Dom('bools, Seq(false, true))
 
+trait GroundAtom[R] extends Variable[R] {
+  def range: Dom[R]
+  def domain = range.values
+  def name:Symbol
+  def args:Seq[Any]
+  override def toString = name + args.mkString("(",",",")")
+}
 
-object LogicPlayground {
+case class GroundAtom1[A1, R](name: Symbol, a1: A1, range: Dom[R]) extends GroundAtom[R] {
+  def args = Seq(a1)
+}
+case class GroundAtom2[A1, A2, R](name: Symbol, a1: A1, a2: A2, range: Dom[R]) extends GroundAtom[R]{
+  def args = Seq(a1,a2)
+}
 
 
+trait Pred[F, R] extends Term[F] {
+  def genericMapping(args: Seq[Any]): Variable[R]
+  def name: Symbol
+  def domains: Seq[Dom[Any]]
+  def variables = StreamUtil.allTuples(domains.map(_.values)).map(genericMapping(_))
+  override def toString = name.toString()
+  def c[T](t: Any) = t.asInstanceOf[T]
+}
+
+object Pred {
+  //    def unapply[R](pred:Pred1[_, R]) = Some((pred.dom1,(a1:Any) => pred.mapping(a1.asInstanceOf[Any])))
+}
+
+case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Bool)
+  extends FunTerm1[A1, R] with Pred[A1 => R, R] {
+
+  def domains = Seq(dom1)
+  def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)))
+  def mapping(a1: A1):GroundAtom1[A1,R] = GroundAtom1(name, a1, range)
+  def apply(a1: A1) = mapping(a1)
+  def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
+}
+
+case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: Dom[R] = Bool)
+  extends FunTerm2[A1, A2, R] with Pred[(A1, A2) => R, R] {
+
+  def domains = Seq(dom1, dom2)
+  def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)), c[A2](args(1)))
+  def mapping(a1: A1, a2: A2) = GroundAtom2(name, a1, a2, range)
+  def apply(a1: A1, a2: A2) = mapping(a1, a2)
+  def eval(state: State) = Some((a1: A1, a2: A2) => state(mapping(a1, a2)))
+}
+
+trait LogicImplicits {
+
+  def $ = Iverson
   //  case class FunApp2[A1,A2, R](f:Term[(A1,A2)=>R],a1:Term[A1],a2:Term[A2]) extends Term[R] {
   //    def eval(state: State) = f.eval(state)(a1.value(state),a2.value(state))
   //    def variables = (f.variables ++ a1.variables ++ a2.variables).toSet.toSeq
@@ -217,54 +266,11 @@ object LogicPlayground {
   //    def variables = (f.variables ++ a1.variables ++ a2.variables ++ a3.variables).toSet.toSeq
   //  }
 
-  trait GroundAtom[R] extends Variable[R] {
-    def range: Dom[R]
-    def domain = range.values
-    def name:Symbol
-    def args:Seq[Any]
-    override def toString =  "'" + name + args.mkString("(",",",")")
+  implicit def toPotential(term:Term[Double]):Potential = new Potential {
+    def hidden = term.variables
+    def score(state: State) = term.eval(state).get
   }
 
-  case class GroundAtom1[A1, R](name: Symbol, a1: A1, range: Dom[R]) extends GroundAtom[R] {
-    def args = Seq(a1)
-  }
-  case class GroundAtom2[A1, A2, R](name: Symbol, a1: A1, a2: A2, range: Dom[R]) extends GroundAtom[R]{
-    def args = Seq(a1,a2)
-  }
-
-
-  trait Pred[F, R] extends Term[F] {
-    def genericMapping(args: Seq[Any]): Variable[R]
-    def name: Symbol
-    def domains: Seq[Dom[Any]]
-    def variables = StreamUtil.allTuples(domains.map(_.values)).map(genericMapping(_))
-    override def toString = name.toString()
-    def c[T](t: Any) = t.asInstanceOf[T]
-  }
-  
-  object Pred {
-//    def unapply[R](pred:Pred1[_, R]) = Some((pred.dom1,(a1:Any) => pred.mapping(a1.asInstanceOf[Any])))
-  }
-  
-  case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Bool)
-    extends FunTerm1[A1, R] with Pred[A1 => R, R] {
-
-    def domains = Seq(dom1)
-    def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)))
-    def mapping(a1: A1):GroundAtom1[A1,R] = GroundAtom1(name, a1, range)
-    def apply(a1: A1) = mapping(a1)
-    def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
-  }
-
-  case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: Dom[R] = Bool)
-    extends FunTerm2[A1, A2, R] with Pred[(A1, A2) => R, R] {
-
-    def domains = Seq(dom1, dom2)
-    def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)), c[A2](args(1)))
-    def mapping(a1: A1, a2: A2) = GroundAtom2(name, a1, a2, range)
-    def apply(a1: A1, a2: A2) = mapping(a1, a2)
-    def eval(state: State) = Some((a1: A1, a2: A2) => state(mapping(a1, a2)))
-  }
 
   trait Quantification[T,R, This<:Quantification[T, R, This]] extends Term[R] {
     this:This =>
@@ -274,11 +280,11 @@ object LogicPlayground {
     def create(vars:Seq[Variable[Any]],newTerm:Term[T]): This
     def aggregator:Term[Seq[T]=>R]
     def eval(state:State) = {
-      val parts = State.allStates(variables).map(term.eval(_))
+      val parts = State.allStates(arguments).map(s => term.eval(s + state))
       val aggregator = this.aggregator.eval(state)
       if (aggregator.isEmpty || parts.exists(_.isEmpty)) None else Some(aggregator.get(parts.map(_.get)))
     }
-    def variables = (term.variables.toSet -- variables).toSeq
+    def variables = (term.variables.toSet -- arguments).toSeq
     override def substitute(substitution: Substitution) = {
       //todo: need to consider that substitutions have free variables
       val fresh = (substitution.variables -- arguments)
@@ -290,7 +296,7 @@ object LogicPlayground {
       FunApp1(aggregator,SeqTerm(parts))
     }
   }
-  
+
   case class Forall(arguments: Seq[Variable[Any]], term: Term[Boolean])
     extends Quantification[Boolean,Boolean, Forall] {
     def create(vars: Seq[Variable[Any]], newTerm: Term[Boolean]) = Forall(vars,newTerm)
@@ -328,14 +334,14 @@ object LogicPlayground {
     term match {
       case FunApp1(pred@Pred1(_,_,_),Constant(a1)) => pred.mapping(a1)
       case FunApp2(pred@Pred2(_,_,_,_),Constant(a1),Constant(a2)) => pred.mapping(a1,a2)
-      case c:Composite[_,_] => 
+      case c:Composite[_,_] =>
         val parts = c.parts.map(reduce(_))
         val constants = parts.collect({case Constant(x) => x})
         if (constants.size == parts.size) Constant(c.genericEval(constants)) else c.genericCreate(parts)
       case _ => term
     }
   }
-  
+
   //  implicit def toTT2[T1, T2](pair: (Term[T1], Term[T2])) = TupleTerm2(pair._1, pair._2)
 
   implicit def symbolToPredBuilder(name: Symbol) = {
@@ -378,6 +384,14 @@ object LogicPlayground {
   implicit def intToBuilder(x: Int) = new AnyRef {
     def +(that: Term[Int]) = IntAdd(Constant(x), that)
   }
+
+}
+
+object LogicImplicits extends LogicImplicits
+
+object LogicPlayground extends LogicImplicits {
+
+
 
 
 

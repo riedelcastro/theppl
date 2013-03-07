@@ -15,12 +15,12 @@ class Config(val properties: Properties) {
   def get[T](key: String)(implicit m: Manifest[T]): T = {
     val value = properties.getProperty(key)
     if (value == null) sys.error("No value associated with key " + key)
-    createBySimpleErasureName(m.erasure.getSimpleName, value)
+    createBySimpleErasureName(m.runtimeClass.getSimpleName, value)
   }
 
   def get[T](key: String, default: T)(implicit m: Manifest[T]): T = {
     val value = properties.getProperty(key)
-    if (value == null) default else createBySimpleErasureName(m.erasure.getSimpleName, value)
+    if (value == null) default else createBySimpleErasureName(m.runtimeClass.getSimpleName, value)
   }
 
   private def createBySimpleErasureName[T](name: String, untrimmed: String): T = {
@@ -63,14 +63,14 @@ object Config extends HasLogger {
     else try {
       Util.getStreamFromFileOrClassPath(name + ".properties")
     } catch {
-      case e =>
+      case e:Throwable =>
         logger.info("Cannot find %s.properties, backing-off".format(name))
         //try with username
 
         try {
           getConfStream(name.substring(0, name.lastIndexOf("-")))
         } catch {
-          case e1 =>
+          case e1:Throwable =>
             //try without username
             if (name.contains("@")) {
               val atIndex = name.lastIndexOf("@")
@@ -94,7 +94,7 @@ object Config extends HasLogger {
     try {
       InetAddress.getLocalHost.getHostName
     } catch {
-      case _ => "unknown"
+      case _:Throwable => "unknown"
     }
   }
 
@@ -102,7 +102,7 @@ object Config extends HasLogger {
     val result = try {
       InetAddress.getLocalHost.getHostName.toLowerCase
     } catch {
-      case _ => "unknown"
+      case _:Throwable => "unknown"
     }
     val lastDot = result.indexOf(".")
     if (lastDot < 0) result else result.substring(0, lastDot)

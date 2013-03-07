@@ -19,7 +19,6 @@ class OnlineLearnerSpec extends FunSpec with MustMatchers {
       val tokens = Seq(data1,data2)
 
       val classifier = new Classifier[Data] {
-        type Context = Data
         type LabelType = Boolean
         type LabelVariableType = LabelVar
         def labelFeatures(label: LabelType) = vector(label)

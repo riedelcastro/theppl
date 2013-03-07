@@ -208,12 +208,15 @@ object State {
 
   def apply(map: Map[Variable[Any], Any]): State = new State {
     def get[V](variable: Variable[V]) = map.get(variable).asInstanceOf[Option[V]]
+
+    override def toString = map.toString
   }
 
   def fromFunction(pf: PartialFunction[Variable[Any], Any]): State = new State {
     def get[V](variable: Variable[V]) = pf.lift(variable).asInstanceOf[Option[V]]
   }
 
+//  def apply(assignments:(Variable[Any],Any)*):State = apply(assignments.toMap)
 
   def apply(variables: Seq[Variable[Any]], tuple: Seq[Any]): State = {
     val map = variables.indices.map(i => variables(i) -> tuple(i)).toMap

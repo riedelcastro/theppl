@@ -110,7 +110,7 @@ trait Learner[Context] extends HasTemplate[Context] {
 }
 
 trait Learner2 {
-  def train[Context, T <: Template[Context]](template:T)(instances:Seq[template.C])
+  def train[Context, T <: Template[Context]](template:T)(instances:Seq[template.Context])
 }
 
 

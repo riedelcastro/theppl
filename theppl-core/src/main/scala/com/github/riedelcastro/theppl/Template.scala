@@ -16,10 +16,13 @@ import logic.Term
  * application objects and don't have to be assignments to variables.
  * @author sriedel
  */
-trait Template[-Context] extends Term[Context => Double] {
+trait Template[-C] extends Term[C => Double] {
   thisTemplate =>
 
-  type C = Context
+  /**
+   * The Context Type as type variable.
+   */
+  type Context = C
 
   /**
    * The type of potential this template creates.
@@ -30,12 +33,12 @@ trait Template[-Context] extends Term[Context => Double] {
    * For a given context i this method creates
    * a potential s_i(y).
    */
-  def potential(context: Context): PotentialType
+  def potential(context: C): PotentialType
 
   /**
    * A template is also a term that evaluates to a function from context to scores.
    */
-  def eval(state: State) = Some((c: Context) => potential(c).score(state))
+  def eval(state: State) = Some((c: C) => potential(c).score(state))
 
   /**
    * A template can potentially contain infinite amounts of variables, one set for every possible context. Hence
@@ -47,7 +50,7 @@ trait Template[-Context] extends Term[Context => Double] {
    * Convenience method that returns the argmax for the potential corresponding to the
    * given context and input penalties.
    */
-  def argmax(context: Context, penalties: Messages = Messages.empty)
+  def argmax(context: C, penalties: Messages = Messages.empty)
             (implicit cookbook: ArgmaxRecipe[Potential] = Argmaxer): ArgmaxResult = {
     cookbook.argmaxer(potential(context)).argmax(penalties)
   }
@@ -55,7 +58,7 @@ trait Template[-Context] extends Term[Context => Double] {
   /**
    * Convenience method that returns state corresponding to argmax solution.
    */
-  def predict(context: Context, penalties: Messages = Messages.empty)
+  def predict(context: C, penalties: Messages = Messages.empty)
              (implicit cookbook: ArgmaxRecipe[Potential] = Argmaxer) = argmax(context, penalties)(cookbook).state
 
 
