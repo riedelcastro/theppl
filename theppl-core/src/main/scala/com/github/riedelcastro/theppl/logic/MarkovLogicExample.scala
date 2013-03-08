@@ -43,6 +43,10 @@ object MarkovLogicExample {
     //let's do a first order term now
     val firstOrder = sum { for (p <- Person) yield $(smokes(p) ==> cancer(p)) }
 
+    //a weighted version
+    val weighted = sum { for (p <- Person) yield $(smokes(p) ==> cancer(p)) * -1.5}
+
+
     //ground atom variables involved in formula
     println(firstOrder.term.variables)
     println(firstOrder.variables)

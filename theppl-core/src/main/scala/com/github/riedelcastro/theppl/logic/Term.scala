@@ -179,7 +179,14 @@ object IntAdd extends Constant((x: Int, y: Int) => x + y) with InfixFun[Int, Int
   def symbol = "+"
 }
 
+object DoubleTimes extends Constant((x: Double, y: Double) => x * y) with InfixFun[Double, Double, Double] {
+  def symbol = "*"
+}
+
+
 object DoubleAddN extends Constant((args:Seq[Double])=>args.sum)
+object DoubleTimesN extends Constant((args:Seq[Double])=>args.product)
+
 
 
 object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with FunTerm1[Boolean, Double] {
@@ -370,12 +377,23 @@ trait LogicImplicits {
     def +(arg2: Term[Int]) = IntAdd(arg1, arg2)
   }
 
+  trait DoubleTermBuilder {
+    def arg1: Term[Double]
+    def *(arg2: Term[Double]) = DoubleTimes(arg1, arg2)
+    def *(arg2: Double) = DoubleTimes(arg1, Constant(arg2))
+
+  }
+
 
   implicit def boolTermToBuilder(term: Term[Boolean]): BooleanTermBuilder = new BooleanTermBuilder {
     def arg1 = term
   }
 
   implicit def intTermToBuilder(term: Term[Int]): IntTermBuilder = new IntTermBuilder {
+    def arg1 = term
+  }
+
+  implicit def doubleTermToBuilder(term: Term[Double]): DoubleTermBuilder = new DoubleTermBuilder {
     def arg1 = term
   }
 
