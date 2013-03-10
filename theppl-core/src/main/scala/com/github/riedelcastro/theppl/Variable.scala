@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import logic.{Bool, Substitution, Term}
+import util.Util
 
 
 /**
@@ -44,6 +45,10 @@ trait BoolVariable extends Variable[Boolean] {
 
 case class BoolVar[Id](id:Id) extends BoolVariable
 
+case class IntVar[Id](id:Id) extends Variable[Int] {
+  def domain = Util.infinity
+}
+
 case class VectorVar[Id](id:Id) extends Variable[ParameterVector] {
-  def domain = ???
+  def domain = Util.infinity
 }

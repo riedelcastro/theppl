@@ -7,7 +7,7 @@ import com.github.riedelcastro.theppl._
  * An object that can calculate the argmax state for a given potential.
  * @author sriedel
  */
-trait Argmaxer extends HasPotential {
+trait Argmaxer{
 
   def argmax(penalties: Messages = Messages.empty): ArgmaxResult
   def predict = argmax(Messages.empty).state
@@ -39,7 +39,7 @@ object Argmaxer extends ArgmaxRecipe[Potential] {
  * choosing, for each variable, the assignment with maximum marginal probability. This requires
  * an underlying marginalizer.
  */
-trait MinimumBayesRiskArgmaxer extends Argmaxer {
+trait MinimumBayesRiskArgmaxer extends Argmaxer with HasPotential {
 
   def marginalizer: Marginalizer
   def threshold: Double
@@ -61,7 +61,7 @@ trait MinimumBayesRiskArgmaxer extends Argmaxer {
  * Finds the argmax by explicitly searching through all possible assignments to the hidden variables
  * of a potential.
  */
-trait BruteForceArgmaxer extends Argmaxer with HasLogger {
+trait BruteForceArgmaxer extends Argmaxer with HasPotential with HasLogger {
 
   def argmax(penalties: Messages) = {
     logger.trace("Bruteforce argmaxer used")

@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl.logic
 
 import com.github.riedelcastro.theppl._
-import com.github.riedelcastro.theppl.infer.Argmaxer
+import infer.{BruteForceArgmaxer, Argmaxer}
 import com.github.riedelcastro.theppl.VectorVar
 
 
@@ -54,10 +54,23 @@ object MarkovLogicExample {
     val weighted = sum { for (p <- Persons) yield I(smokes(p) ==> cancer(p)) * -1.5 }
 
     //a feature vector with single
-    val feats = vector { for (p <- Persons) yield 'f --> I { smokes(p) ==> cancer(p) } }
+    val feats = vector {
+      for (p <- Persons) yield
+        'f --> I { smokes(p) ==> cancer(p) }
+    }
+
+    //peer pressure
+    val peer = vector {
+      for (p1 <- Persons; p2 <- Persons) yield
+        'peer --> I { smokes(p1) && friends(p1, p2) ==> smokes(p2) }
+    }
+
 
     //a bias
-    val bias = vector { for (p <- Persons) yield 'bias --> I { smokes(p) } }
+    val bias = vector {
+      for (p <- Persons) yield
+        'bias --> I { smokes(p) }
+    }
 
     println((feats + bias).eval(state))
 
@@ -90,37 +103,9 @@ object MarkovLogicExample {
       Target(smokes('Peter)) -> false,
       Target(cancer('Peter)) -> true))
 
-    val learned = Learner.learn(model)(Seq(state))
+    val learned = Learner.learn(model)(Seq(instance))
     println("Learned:")
     println(learned)
-
-
-    //state-dependent
-    //val persons = SetVar[Symbol]("persons")
-    //state = State(Map( persons -> Set('Anna,'Peter)), Target(smokes('Anna)) -> true )
-    //val weighted = sum { for (p <- persons) yield $(smokes(p) ==> cancer(p)) * -1.5}
-
-    //a feature function
-    //val feat = vector { for (s <- Strings) yield ('feat,s) -> sum {for (p <- persons) yield $(name(p) === s)}}
-    //val feat = sum { for (p <- persons) yield vector {name(p) -> 1.0}}
-    //val feat = sum { for (p <- Persons) yield vector {('f,name(p)) -> $(smokes(p) ==> cancer(p))}
-    //val feat = sum { for (p <- Persons) yield vector {'f -> $(smokes(p) ==> cancer(p))}
-    //val weights = vector { 'f -> -1.5 }
-    //val weights = VectorVar('weights)
-    //val model = feat dot weights + baseMeasure
-    //val potential = model.potential(state)
-    //learner.train(model) { Seq(state1,state2) }
-
-
-    //ground atom variables involved in formula
-    println(firstOrder.term.variables)
-    println(firstOrder.variables)
-    println(State.allStates(firstOrder.arguments))
-
-    //firstOrder formula should evaluate to 2.0
-    println(firstOrder.eval(state))
-    println(firstOrder.ground.eval(state))
-    println(weighted.eval(state))
 
 
   }
@@ -156,5 +141,13 @@ object Learner {
       }
     }
     weights
+  }
+}
+
+object ArgmaxCompiler {
+  def compile(model: Term[Double]): Argmaxer = model match {
+    //case c:Conditioned => compile(c.conditioned)
+    case Dot(feats, weights) => ???
+    case m => new BruteForceArgmaxer {val potential = LogicImplicits.toPotential(m)}
   }
 }
