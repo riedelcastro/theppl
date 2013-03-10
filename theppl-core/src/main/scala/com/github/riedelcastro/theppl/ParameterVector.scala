@@ -57,6 +57,19 @@ class ParameterVector {
 
   def apply(key: Any): Double = _values(key)
 
+  def +=(that:ParameterVector) = {
+    add(that,1.0)
+    this
+  }
+
+  def +(that:ParameterVector) = {
+    val result = new ParameterVector
+    result.add(this,1.0)
+    result.add(that,1.0)
+    result
+  }
+
+
   def add(that: ParameterVector, scale: Double) {
     for ((key, value) <- that.values) {
       _values(key) = _values(key) + scale * value

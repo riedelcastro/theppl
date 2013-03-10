@@ -26,7 +26,7 @@ trait FeatureSumPotential extends SumPotential with FeaturePotential {
     new SumProductBPRecipe(10).expectator(this,cookbook)
 }
 
-trait FeatureSumTemplate[Context] extends LinearTemplate[Context] { template =>
+trait FeatureSumTemplate[C] extends LinearTemplate[C] { template =>
 
   type FeatureArgumentContext
   type OtherArgumentContext

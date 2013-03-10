@@ -8,7 +8,7 @@ import com.github.riedelcastro.theppl._
  */
 class SumProductBPSpec extends ThePPLSpec {
 
-  describe("A Sum Product BP implementation") {
+  describe("A QuantifiedSum Product BP implementation") {
     it("should match results of exact inference on a tree") {
       val values = IndexedSeq('x1, 'x2)
       case class Var(name: Symbol) extends Variable[Symbol] {

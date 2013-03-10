@@ -8,7 +8,7 @@ import Imports._
  * A Local Classifier.
  * @author sriedel
  */
-trait Classifier[Context] extends LinearLeafTemplate[Context] {
+trait Classifier[C] extends LinearLeafTemplate[C] {
   self =>
 
   type LabelType

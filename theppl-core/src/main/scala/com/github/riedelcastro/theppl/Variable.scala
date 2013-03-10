@@ -27,9 +27,23 @@ trait Variable[+V] extends Term[V] {
   override def substitute(substitution: Substitution) = substitution.get(this).getOrElse(this)
 }
 
+/**
+ * A variable that represents the target state of another variable.
+ * @param variable the variable for which this variable represents the target state.
+ * @tparam V the type of the variable.
+ */
+case class Target[+V](variable:Variable[V]) extends Variable[V] {
+  def domain = variable.domain
+  override def default = variable.default
+}
+
+
 trait BoolVariable extends Variable[Boolean] {
   def domain = Bool.values
 }
 
 case class BoolVar[Id](id:Id) extends BoolVariable
 
+case class VectorVar[Id](id:Id) extends Variable[ParameterVector] {
+  def domain = ???
+}

@@ -12,6 +12,7 @@ import java.util.Scanner
  */
 object Util extends HasLogger {
 
+  def infinity = sys.error("Infinite data structure")
 
   /**
    * Returns an iterator over strings in the stream, as delimited by the given string

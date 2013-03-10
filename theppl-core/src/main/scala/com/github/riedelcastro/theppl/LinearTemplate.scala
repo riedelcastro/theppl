@@ -9,7 +9,7 @@ import java.io.{OutputStream, InputStream}
  *
  * @author sriedel
  */
-trait LinearTemplate[-Context] extends Template[Context] {
+trait LinearTemplate[-C] extends Template[C] {
   thisTemplate =>
 
   type PotentialType <: LinearTemplate[Context]#LinearPotential

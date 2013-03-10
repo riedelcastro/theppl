@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import collection.mutable.HashMap
-import util.{ArrayImports, StreamUtil}
+import util.{Util, ArrayImports, StreamUtil}
 import ArrayImports._
 
 /**
@@ -197,6 +197,7 @@ class SingletonState[Value](val variable: Variable[Value], val state: Value) ext
     if (variable == this.variable) Some(state.asInstanceOf[V]) else None
 
   override def toString = variable + " = " + state
+  override def variables = Set(variable)
 }
 
 object State {
@@ -210,6 +211,8 @@ object State {
     def get[V](variable: Variable[V]) = map.get(variable).asInstanceOf[Option[V]]
 
     override def toString = map.toString
+    override def variables = map.keySet
+
   }
 
   def fromFunction(pf: PartialFunction[Variable[Any], Any]): State = new State {
@@ -259,6 +262,15 @@ trait State extends Messages {
   }
 
   /**
+   * If a variable v has no assigned variable, this state returns its assigned Target value as
+   * denoted by the Target(v) variable binding.
+   * @return a target state.
+   */
+  def target = new State {
+    def get[V](variable: Variable[V]) = self.get(variable).orElse(self.get(Target(variable)))
+  }
+
+  /**
    * Overlays this state over the given state. This may not be a good idea to use when adding several states.
    * @param state the state to "underlay".
    * @return A state that returns the value assigned to the variable, if such value exists,
@@ -268,10 +280,27 @@ trait State extends Messages {
     def get[V](variable: Variable[V]) = self.get(variable).orElse(state.get(variable))
   }
 
+  /**
+   * Removes bindings for the given variables
+   * @param vars the variables to remove bindings for
+   * @return a state that returns None for the defined variables, and the original value otherwise.
+   */
+  def -(vars:Set[Variable[Any]]) = new State {
+    def get[V](variable: Variable[V]) = if (vars(variable)) None else self.get(variable)
+  }
+
+  /**
+   * Set of variables this state *explicitly* defines variables for.
+   * @return explicitly defined variables.
+   */
+  def variables:Set[Variable[Any]] = Util.infinity
+
   def message[V](v: Variable[V]) = new Message[V] {
     thisMsg =>
     def apply(value: V) = if (get(v) == Some(value)) 1.0 else 0.0
     def variable = v
   }
+
+
 }
 

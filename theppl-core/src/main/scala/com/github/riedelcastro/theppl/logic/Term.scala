@@ -1,8 +1,12 @@
 package com.github.riedelcastro.theppl.logic
 
-import com.github.riedelcastro.theppl.{Potential, Variable, State}
+import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.util._
 import org.riedelcastro.nurupo.{BuilderN, Builder1}
+import scala.util.Random
+import scala.Some
+import scala.Tuple3
+import scala.Tuple2
 
 
 /**
@@ -17,9 +21,11 @@ trait Term[+V] {
   def substitute(substitution: Substitution): Term[V] = this
   def ground: Term[V] = this
   def isConstant = variables.isEmpty
+  def |(condition:State) = Conditioned(this,Substitution(condition))
+  def |[T](assignment:(Variable[T],T)) = Conditioned(this,Substitution(Seq(assignment._1),Seq(assignment._2)))
 
   /**
-   * Iterates over all states for the hidden variables of this potential.
+   * Iterates over all states for the variables of this term.
    */
   def allStates = {
     val variables = this.variables.toSeq
@@ -29,25 +35,41 @@ trait Term[+V] {
     states
   }
 
-
 }
 
+case class Conditioned[+V](term:Term[V],condition:Substitution) extends Composite[V,Conditioned[V]]{
+  val conditioned = term.substitute(condition)
+  def parts = Seq(conditioned)
+  def genericCreate(p: Seq[Term[Any]]) = Conditioned(p(0).asInstanceOf[Term[V]],condition)
+  def genericEval(p: Seq[Any]) = p(0).asInstanceOf[V]
+}
+
+/**
+ * Mapping from variables to terms.
+ */
 trait Substitution {
   def get[T](variable: Variable[T]): Option[Term[T]]
-  def variables:Set[Variable[Any]]
-  def subset(vars:Set[Variable[Any]]):Substitution
+  def variables: Set[Variable[Any]]
+  def subset(vars: Set[Variable[Any]]): Substitution
 }
 
 object Substitution {
-  def apply(map: Map[Variable[Any], Term[Any]]):Substitution = new Substitution {
+  def apply(map: Map[Variable[Any], Term[Any]]): Substitution = new Substitution {
     def get[T](variable: Variable[T]) = map.get(variable).map(_.asInstanceOf[Term[T]])
     def variables = map.keySet
     def subset(vars: Set[Variable[Any]]) = apply(map.filter(e => vars(e._1)))
   }
+
+  def apply(state:State):Substitution = new Substitution {
+    def get[T](variable: Variable[T]) = state.get(variable).map(Constant(_))
+    def subset(vars: Set[Variable[Any]]) = apply(state - vars)
+    def variables = state.variables
+  }
+
   /**
    * Iterates over all states for the given variables
    */
-  def allGroundings(variables:Seq[Variable[Any]]) = {
+  def allGroundings(variables: Seq[Variable[Any]]) = {
     val domains = variables.map(_.domain).toSeq
     val tuples = StreamUtil.allTuples(domains)
     val substitutions = tuples.map(Substitution(variables, _))
@@ -62,6 +84,11 @@ object Substitution {
 
 }
 
+/**
+ * A constant evaluates to the same value in every world.
+ * @param value the value the term evaluates to.
+ * @tparam V the type of the value.
+ */
 case class Constant[+V](value: V) extends Term[V] {
   def eval(state: State) = Some(value)
   def variables = Seq.empty
@@ -69,7 +96,12 @@ case class Constant[+V](value: V) extends Term[V] {
   override def isConstant = true
 }
 
-trait Composite[T, This <: Composite[T, This]] extends Term[T] {
+/**
+ * A term that is composed of subterms.
+ * @tparam T the type of value this term describes
+ * @tparam This self type.
+ */
+trait Composite[+T, +This <: Composite[T, This]] extends Term[T] {
   def parts: Seq[Term[Any]]
   def variables = parts.flatMap(_.variables).toSet.toSeq
   def genericCreate(p: Seq[Term[Any]]): This
@@ -93,7 +125,7 @@ trait Composite[T, This <: Composite[T, This]] extends Term[T] {
 
 }
 
-trait FunApp[R, F, This <: FunApp[R, F, This]] extends Composite[R, This] {
+trait FunApp[+R,F, This <: FunApp[R, F, This]] extends Composite[R, This] {
   def f: Term[Any]
   def args: Seq[Term[Any]]
   def parts = f +: args
@@ -103,6 +135,7 @@ trait FunApp[R, F, This <: FunApp[R, F, This]] extends Composite[R, This] {
   def genericEval(p: Seq[Any]) = genericFunAppEval(p(0).asInstanceOf[F], p.drop(1))
 
 }
+
 
 case class FunApp1[A1, R](f: Term[A1 => R],
                           a1: Term[A1])
@@ -138,7 +171,7 @@ class UniqueVar[+T](name: String, val domain: Seq[T]) extends Variable[T] with T
 
 case class Dom[+T](name: Symbol, values: Seq[T]) extends Builder1[UniqueVar[T], Nothing] {
   private var count = 0
-  def newName() = {count += 1; "x" + count}
+  def newName() = { count += 1; "x" + count }
   def argument = new UniqueVar[T](newName(), values)
   def built = sys.error("empty")
   override def toString = name.toString()
@@ -150,6 +183,7 @@ case class Dom[+T](name: Symbol, values: Seq[T]) extends Builder1[UniqueVar[T], 
 trait FunTerm1[A1, R] extends Term[A1 => R] {
   def apply(a: Term[A1]): FunApp1[A1, R] = FunApp1(this, a)
 }
+
 trait FunTerm2[A1, A2, R] extends Term[(A1, A2) => R] {
   def apply(a1: Term[A1], a2: Term[A2]): FunApp2[A1, A2, R] = FunApp2(this, a1, a2)
 }
@@ -162,11 +196,12 @@ trait InfixFun[A1, A2, R] extends FunTerm2[A1, A2, R] {
 object And extends Constant((x: Boolean, y: Boolean) => x && y) with InfixFun[Boolean, Boolean, Boolean] {
   def symbol = "&&"
 }
-object AndN extends Constant((args:Seq[Boolean]) => args.forall(identity(_))) {
+
+object AndN extends Constant((args: Seq[Boolean]) => args.forall(identity(_))) {
   override def toString = "and"
 }
 
-object OrN extends Constant((args:Seq[Boolean]) => args.exists(identity(_)))
+object OrN extends Constant((args: Seq[Boolean]) => args.exists(identity(_)))
 
 object Implies extends Constant((x: Boolean, y: Boolean) => !x || y) with InfixFun[Boolean, Boolean, Boolean] {
   def symbol = "==>"
@@ -175,18 +210,29 @@ object Implies extends Constant((x: Boolean, y: Boolean) => !x || y) with InfixF
 object Eq extends Constant((a1: Any, a2: Any) => a1 == a2) with InfixFun[Any, Any, Boolean] {
   def symbol = "==="
 }
+
 object IntAdd extends Constant((x: Int, y: Int) => x + y) with InfixFun[Int, Int, Int] {
   def symbol = "+"
 }
+
+object VectorAdd extends Constant((x: Int, y: Int) => x + y) with InfixFun[Int, Int, Int] {
+  def symbol = "+"
+}
+
 
 object DoubleTimes extends Constant((x: Double, y: Double) => x * y) with InfixFun[Double, Double, Double] {
   def symbol = "*"
 }
 
 
-object DoubleAddN extends Constant((args:Seq[Double])=>args.sum)
-object DoubleTimesN extends Constant((args:Seq[Double])=>args.product)
+object DoubleAddN extends Constant((args: Seq[Double]) => args.sum)
 
+object DoubleTimesN extends Constant((args: Seq[Double]) => args.product)
+
+object ParameterVectorAddN
+  extends Constant((args: Seq[ParameterVector]) => args.fold(new ParameterVector)((l, r) => {l += r })) {
+  override def toString = "VSum"
+}
 
 
 object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with FunTerm1[Boolean, Double] {
@@ -203,28 +249,44 @@ case class TupleTerm2[T1, T2](arg1: Term[T1], arg2: Term[T2]) extends Composite[
 
 }
 
-case class SeqTerm[T](args:Seq[Term[T]]) extends Composite[Seq[T], SeqTerm[T]] {
+case class SeqTerm[+T](args: Seq[Term[T]]) extends Composite[Seq[T], SeqTerm[T]] {
   def parts = args
   def genericCreate(p: Seq[Term[Any]]) = SeqTerm(p.map(_.asInstanceOf[Term[T]]))
   def genericEval(p: Seq[Any]) = p.map(_.asInstanceOf[T])
-  override def toString = args.mkString("[",",","]")
+  def -->(value:Term[Double]) = SingletonVector(this,value)
+  def -->(value:Double) = SingletonVector(this,Constant(value))
+
+  override def toString = args.mkString("[", ",", "]")
+}
+
+case class SingletonVector(args: SeqTerm[Any], value: Term[Double]) extends Composite[ParameterVector, SingletonVector] {
+  def parts = Seq(args, value)
+  def genericCreate(p: Seq[Term[Any]]) = SingletonVector(p(0).asInstanceOf[SeqTerm[Any]], p(1).asInstanceOf[Term[Double]])
+  def genericEval(p: Seq[Any]) = {
+    val vector = new ParameterVector
+    vector(p(0)) = p(1).asInstanceOf[Double]
+    vector
+  }
 }
 
 object Bool extends Dom('bools, Seq(false, true))
 
+object Strings extends Dom('strings, Stream.continually(Random.alphanumeric.take(3).toString))
+
 trait GroundAtom[R] extends Variable[R] {
   def range: Dom[R]
   def domain = range.values
-  def name:Symbol
-  def args:Seq[Any]
-  override def toString = name + args.mkString("(",",",")")
+  def name: Symbol
+  def args: Seq[Any]
+  override def toString = name + args.mkString("(", ",", ")")
 }
 
 case class GroundAtom1[A1, R](name: Symbol, a1: A1, range: Dom[R]) extends GroundAtom[R] {
   def args = Seq(a1)
 }
-case class GroundAtom2[A1, A2, R](name: Symbol, a1: A1, a2: A2, range: Dom[R]) extends GroundAtom[R]{
-  def args = Seq(a1,a2)
+
+case class GroundAtom2[A1, A2, R](name: Symbol, a1: A1, a2: A2, range: Dom[R]) extends GroundAtom[R] {
+  def args = Seq(a1, a2)
 }
 
 
@@ -246,7 +308,7 @@ case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Bool)
 
   def domains = Seq(dom1)
   def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)))
-  def mapping(a1: A1):GroundAtom1[A1,R] = GroundAtom1(name, a1, range)
+  def mapping(a1: A1): GroundAtom1[A1, R] = GroundAtom1(name, a1, range)
   def apply(a1: A1) = mapping(a1)
   def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
 }
@@ -261,157 +323,26 @@ case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: D
   def eval(state: State) = Some((a1: A1, a2: A2) => state(mapping(a1, a2)))
 }
 
-trait LogicImplicits {
+case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends Composite[Double,Dot] {
 
-  def $ = Iverson
-  //  case class FunApp2[A1,A2, R](f:Term[(A1,A2)=>R],a1:Term[A1],a2:Term[A2]) extends Term[R] {
-  //    def eval(state: State) = f.eval(state)(a1.value(state),a2.value(state))
-  //    def variables = (f.variables ++ a1.variables ++ a2.variables).toSet.toSeq
-  //  }
-  //  case class FunApp3[A1,A2,A3, R](f:Term[(A1,A2,A3)=>R],a1:Term[A1],a2:Term[A2],a3:Term[A3]) extends Term[R] {
-  //    def eval(state: State) = f.eval(state)(a1.value(state),a2.value(state),a3.value(state))
-  //    def variables = (f.variables ++ a1.variables ++ a2.variables ++ a3.variables).toSet.toSeq
-  //  }
-
-  implicit def toPotential(term:Term[Double]):Potential = new Potential {
-    def hidden = term.variables
-    def score(state: State) = term.eval(state).get
+  //todo: evaluate for each state to get a real vector, then dot product with weights
+  //todo: feat = (value1,value2,..)
+  def parts = Seq(arg1,arg2)
+  def genericCreate(p: Seq[Term[Any]]) = Dot(p(0).asInstanceOf[Term[ParameterVector]],p(1).asInstanceOf[Term[ParameterVector]])
+  def genericEval(p: Seq[Any]) = {
+    val v1 = p(0).asInstanceOf[ParameterVector]
+    val v2 = p(1).asInstanceOf[ParameterVector]
+    v1.dot(v2)
   }
-
-
-  trait Quantification[T,R, This<:Quantification[T, R, This]] extends Term[R] {
-    this:This =>
-
-    def arguments:Seq[Variable[Any]]
-    def term:Term[T]
-    def create(vars:Seq[Variable[Any]],newTerm:Term[T]): This
-    def aggregator:Term[Seq[T]=>R]
-    def eval(state:State) = {
-      val parts = State.allStates(arguments).map(s => term.eval(s + state))
-      val aggregator = this.aggregator.eval(state)
-      if (aggregator.isEmpty || parts.exists(_.isEmpty)) None else Some(aggregator.get(parts.map(_.get)))
-    }
-    def variables = (term.variables.toSet -- arguments).toSeq
-    override def substitute(substitution: Substitution) = {
-      //todo: need to consider that substitutions have free variables
-      val fresh = (substitution.variables -- arguments)
-      val subset = substitution.subset(fresh)
-      create(arguments, term.substitute(subset))
-    }
-    override def ground = {
-      val parts = Substitution.allGroundings(arguments).map(term.substitute(_).ground)
-      FunApp1(aggregator,SeqTerm(parts))
-    }
-  }
-
-  case class Forall(arguments: Seq[Variable[Any]], term: Term[Boolean])
-    extends Quantification[Boolean,Boolean, Forall] {
-    def create(vars: Seq[Variable[Any]], newTerm: Term[Boolean]) = Forall(vars,newTerm)
-    def aggregator = AndN
-  }
-  case class Exists(arguments: Seq[Variable[Any]], term: Term[Boolean])
-    extends Quantification[Boolean,Boolean, Exists] {
-    def create(vars: Seq[Variable[Any]], newTerm: Term[Boolean]) = Exists(vars,newTerm)
-    def aggregator = OrN
-  }
-  case class Sum(arguments: Seq[Variable[Any]], term: Term[Double])
-    extends Quantification[Double,Double, Sum] {
-    def create(vars: Seq[Variable[Any]], newTerm: Term[Double]) = Sum(vars,newTerm)
-    def aggregator = DoubleAddN
-  }
-
-
-  def forall(builder: BuilderN[Variable[Any], Term[Boolean]]) = {
-    Forall(builder.arguments, builder.built)
-  }
-
-  def sum(builder: BuilderN[Variable[Any], Term[Double]]) = Sum(builder.arguments, builder.built)
-
-  case class Dot(variables: Seq[Variable[Any]], term: Term[Double]) extends Term[Double] {
-    //todo: evaluate for each state to get a real vector, then dot product with weights
-    //todo: feat = (value1,value2,..)
-    def eval(state: State) = null
-  }
-
-  def dot(builder: BuilderN[Variable[Any], Term[Double]]) = {
-    null
-  }
-
-  def reduce[T](term:Term[T]):Term[T] = {
-    term match {
-      case FunApp1(pred@Pred1(_,_,_),Constant(a1)) => pred.mapping(a1)
-      case FunApp2(pred@Pred2(_,_,_,_),Constant(a1),Constant(a2)) => pred.mapping(a1,a2)
-      case c:Composite[_,_] =>
-        val parts = c.parts.map(reduce(_))
-        val constants = parts.collect({case Constant(x) => x})
-        if (constants.size == parts.size) Constant(c.genericEval(constants)) else c.genericCreate(parts)
-      case _ => term
-    }
-  }
-
-  //  implicit def toTT2[T1, T2](pair: (Term[T1], Term[T2])) = TupleTerm2(pair._1, pair._2)
-
-  implicit def symbolToPredBuilder(name: Symbol) = {
-    new AnyRef {
-      def :=[T, R](doms: (Dom[T], Dom[R])) = Pred1(name, doms._1, doms._2)
-      def :=[A1, A2, R](doms: (Dom[A1], Dom[A2], Dom[R])) = Pred2(name, doms._1, doms._2, doms._3)
-    }
-  }
-
-  implicit def dom2ToTuple3[D1, D2](dom2: Tuple2[Dom[D1], Dom[D2]]) = new AnyRef {
-    def ->[R](range: Dom[R]) = (dom2._1, dom2._2, range)
-  }
-  implicit def dom3ToTuple3[D1, D2, D3](dom: Tuple3[Dom[D1], Dom[D2], Dom[D3]]) = new AnyRef {
-    def ->[R](range: Dom[R]) = (dom._1, dom._2, dom._3, range)
-  }
-
-  trait BooleanTermBuilder {
-    def arg1: Term[Boolean]
-    def &&(arg2: Term[Boolean]) = And(arg1, arg2)
-    def ==>(arg2: Term[Boolean]) = Implies(arg1, arg2)
-
-  }
-
-  trait IntTermBuilder {
-    def arg1: Term[Int]
-    def +(arg2: Term[Int]) = IntAdd(arg1, arg2)
-  }
-
-  trait DoubleTermBuilder {
-    def arg1: Term[Double]
-    def *(arg2: Term[Double]) = DoubleTimes(arg1, arg2)
-    def *(arg2: Double) = DoubleTimes(arg1, Constant(arg2))
-
-  }
-
-
-  implicit def boolTermToBuilder(term: Term[Boolean]): BooleanTermBuilder = new BooleanTermBuilder {
-    def arg1 = term
-  }
-
-  implicit def intTermToBuilder(term: Term[Int]): IntTermBuilder = new IntTermBuilder {
-    def arg1 = term
-  }
-
-  implicit def doubleTermToBuilder(term: Term[Double]): DoubleTermBuilder = new DoubleTermBuilder {
-    def arg1 = term
-  }
-
-  implicit def intToConstant(x: Int) = Constant(x)
-
-  implicit def intToBuilder(x: Int) = new AnyRef {
-    def +(that: Term[Int]) = IntAdd(Constant(x), that)
-  }
-
 }
 
-object LogicImplicits extends LogicImplicits
+case class TermPotential(term:Term[Double]) extends Potential {
+  def hidden = term.variables
+  def score(state: State) = term.eval(state).get
+}
+
 
 object LogicPlayground extends LogicImplicits {
-
-
-
-
 
 
   def main(args: Array[String]) {
@@ -422,16 +353,16 @@ object LogicPlayground extends LogicImplicits {
     }
     val cancer = 'cancer := Person -> Bool
     val friends = 'friends := (Person, Person) -> Bool
-    val test3 = forall {for (x <- Person) yield smokes(x)}
+    val test3 = forall { for (x <- Person) yield smokes(x) }
     println(test3)
-    println(forall {for (x <- Person) yield And(cancer(x), smokes(x))})
-    println(forall {for (x <- Person) yield cancer(x) && smokes(x)})
-    println(forall {for (x <- Person) yield forall {for (y <- Person) yield cancer(x) ==> smokes(y)}})
-    println(forall {for (x <- Person; y <- Person) yield friends(x, y) && friends(y, x)})
-    println(forall {for (x <- Person; y <- Person) yield friends(x, y) && friends(y, x)})
-    println(forall {for (x <- Person; y <- Person) yield friends(x + 1, 1 + 1 + y) === friends(y, x)})
-    println(forall {for (x <- Person; y <- Person) yield (x + y) === (y + x)})
-    println(sum {for (x <- Person; y <- Person) yield $((x + y) === (y + x))})
+    println(forall { for (x <- Person) yield And(cancer(x), smokes(x)) })
+    println(forall { for (x <- Person) yield cancer(x) && smokes(x) })
+    println(forall { for (x <- Person) yield forall { for (y <- Person) yield cancer(x) ==> smokes(y) } })
+    println(forall { for (x <- Person; y <- Person) yield friends(x, y) && friends(y, x) })
+    println(forall { for (x <- Person; y <- Person) yield friends(x, y) && friends(y, x) })
+    println(forall { for (x <- Person; y <- Person) yield friends(x + 1, 1 + 1 + y) === friends(y, x) })
+    println(forall { for (x <- Person; y <- Person) yield (x + y) === (y + x) })
+    println(sum { for (x <- Person; y <- Person) yield $((x + y) === (y + x)) })
     //dot { for (s <- Single) yield sum { for (x <- Person) yield smokes(x)}  } //s<-Single can be omitted
     //dot { for (x <- Person) yield sum { for (y <- person) yield friend(x,y) }
     //ppl { 'f1 := dot { for (...) yield ... },
@@ -442,7 +373,7 @@ object LogicPlayground extends LogicImplicits {
     val state = State(Map(smokes(1) -> true, friends(0, 1) -> false))
     println(state(smokes(1)))
     println(state.closed(smokes(2)))
-    val f = forall {for (x <- Person) yield forall {for (y <- Person) yield cancer(x) ==> smokes(y)}}
+    val f = forall { for (x <- Person) yield forall { for (y <- Person) yield cancer(x) ==> smokes(y) } }
     val grounded = f.ground
     println(grounded)
     println(reduce(grounded))
