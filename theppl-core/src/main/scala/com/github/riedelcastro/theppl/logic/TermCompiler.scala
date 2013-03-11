@@ -27,7 +27,7 @@ object TermCompiler {
 
   case class CompilationSource(stateSource:String, termSource:String)
 
-  class CompilationContext[+V](val term: Term[V], val termName: String) {
+  class CompilationContext(val term: Term[Any], val termName: String) {
     val compiledStateClassName = "CompiledStateFor" + termName
     val compiledTermClassName = "CompiledTermFor" + termName
     val cache = new VarNameCache
@@ -55,7 +55,7 @@ object TermCompiler {
   }
 
 
-  def createCompiledTermSource[V](implicit context: CompilationContext[V]) = {
+  def createCompiledTermSource[V](implicit context: CompilationContext) = {
     import context._
 
     val helper = javaTypeHelper(term)
@@ -107,7 +107,7 @@ object TermCompiler {
   }
 
 
-  def createCompiledStateSource[V](implicit context: CompilationContext[V]) = {
+  def createCompiledStateSource(implicit context: CompilationContext) = {
     import context._
     //create state data structure:
     //find free variables
@@ -175,6 +175,18 @@ object TermCompiler {
         def unbox(expression: String) = expression + ".intValue()"
         def box(expression: String) = "Integer.valueOf(%s)".format(expression)
       }
+      case d: Double => new JavaTypeHelper[Double] {
+        def typ = "double"
+        override def boxedType = "Double"
+        def unbox(expression: String) = expression + ".doubleValue()"
+        def box(expression: String) = "Double.valueOf(%s)".format(expression)
+      }
+      case b: Boolean => new JavaTypeHelper[Boolean] {
+        def typ = "boolean"
+        override def boxedType = "Boolean"
+        def unbox(expression: String) = expression + ".booleanValue()"
+        def box(expression: String) = "Boolean.valueOf(%s)".format(expression)
+      }
       case x => new JavaTypeHelper[Any] {
         def typ = "Object"
         def unbox(expression: String) = expression
@@ -183,10 +195,13 @@ object TermCompiler {
     }
   }
 
-  def compileTerm[V](t:Term[V],stateVarName:String)(implicit context:CompilationContext[V]):String = {
+
+
+  def compileTerm(t:Term[Any],stateVarName:String)(implicit context:CompilationContext):String = {
     (t,t.default) match {
       case (v:Variable[_],_) => stateVarName + "." + context.cache.getName(v)
-//      case (FunApp2(IntAdd,arg1,arg2),_) => compileTerm(arg1,stateVarName) + " + " + compileTerm(arg2,stateVarName)
+      case (Applied1(f:UnaryFun[_,_],arg1),_) => f.javaExpr(compileTerm(arg1,stateVarName))
+      case (Applied2(f:InfixFun[_,_,_],arg1,arg2),_) => f.javaExpr(compileTerm(arg1,stateVarName),compileTerm(arg2,stateVarName))
       case _ => sys.error("Cannot compile " + t)
     }
   }
@@ -232,7 +247,7 @@ object TermCompiler {
   def main(args: Array[String]) {
     import LogicImplicits._
     val test = IntVar('test)
-    val compiled = compile(test)// + test)
+    val compiled = compile(test + test)
     println("*** Eval:" + compiled.eval(State(Map(test -> 1))))
     println(compiled)
   }
@@ -316,9 +331,9 @@ trait CompilationResult[+V] {
 }
 
 case class CompiledTerm[+V](result:CompilationResult[V],
-                            context:TermCompiler.CompilationContext[V],
+                            context:TermCompiler.CompilationContext,
                             source:TermCompiler.CompilationSource) extends Term[V] {
   def eval(state: State) = Some(result.eval(state))
   def variables = context.term.variables
-  def default = context.term.default
+  def default = context.term.default.asInstanceOf[V]
 }
