@@ -25,6 +25,7 @@ trait Variable[+V] extends Term[V] {
   def variables = Seq(this)
   def domain: Seq[V]
   def default = domain.head
+  def stringRepr = "X"
   override def substitute(substitution: Substitution) = substitution.get(this).getOrElse(this)
 }
 
@@ -47,8 +48,11 @@ case class BoolVar[Id](id:Id) extends BoolVariable
 
 case class IntVar[Id](id:Id) extends Variable[Int] {
   def domain = Util.infinity
+  override def default = 0
+  override def stringRepr = id.toString.replaceAll("'","")
 }
 
 case class VectorVar[Id](id:Id) extends Variable[ParameterVector] {
   def domain = Util.infinity
+  override def default = new ParameterVector
 }
