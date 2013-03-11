@@ -213,7 +213,7 @@ trait FunTerm2[A1, A2, R] extends Term[(A1, A2) => R] {
 
 trait InfixFun[A1, A2, R] extends FunTerm2[A1, A2, R] {
   def symbol: String
-  def javaExpr(arg1:String,arg2:String) = arg1 + symbol + arg2
+  def javaExpr(arg1:String,arg2:String) = arg1 + " " + symbol + " " + arg2
 }
 
 trait UnaryFun[A1,R] extends FunTerm1[A1,R] {
@@ -266,7 +266,7 @@ object ParameterVectorAddN
 object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with UnaryFun[Boolean,Double]  {
   override def toString = "$"
   def symbol = "I"
-  override def javaExpr(arg1: String) = "if (%s) 1.0 else 0.0".format(arg1)
+  override def javaExpr(arg1: String) = " %s ? 1.0 : 0.0".format(arg1)
 }
 
 case class TupleTerm2[T1, T2](arg1: Term[T1], arg2: Term[T2]) extends Composite[(T1, T2), TupleTerm2[T1, T2]] {

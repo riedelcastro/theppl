@@ -25,7 +25,7 @@ object TermCompiler {
 
   def indent(count: Int)(text: String) = Array.fill(count)(" ").mkString + text
 
-  case class CompilationSource(stateSource:String, termSource:String)
+  case class CompilationSource(stateSource: String, termSource: String)
 
   class CompilationContext(val term: Term[Any], val termName: String) {
     val compiledStateClassName = "CompiledStateFor" + termName
@@ -60,7 +60,7 @@ object TermCompiler {
 
     val helper = javaTypeHelper(term)
 
-    val compiledExpression = compileTerm(term,"state")
+    val compiledExpression = compileTerm(term, "state")
 
     val source =
       """
@@ -98,7 +98,7 @@ object TermCompiler {
         helper.typ, compiledStateClassName,
         compiledExpression,
         helper.boxedType,
-        compiledStateClassName,compiledStateClassName,
+        compiledStateClassName, compiledStateClassName,
         helper.typ,
         helper.box("compiledResult")
       )
@@ -196,12 +196,12 @@ object TermCompiler {
   }
 
 
-
-  def compileTerm(t:Term[Any],stateVarName:String)(implicit context:CompilationContext):String = {
-    (t,t.default) match {
-      case (v:Variable[_],_) => stateVarName + "." + context.cache.getName(v)
-      case (Applied1(f:UnaryFun[_,_],arg1),_) => f.javaExpr(compileTerm(arg1,stateVarName))
-      case (Applied2(f:InfixFun[_,_,_],arg1,arg2),_) => f.javaExpr(compileTerm(arg1,stateVarName),compileTerm(arg2,stateVarName))
+  def compileTerm(t: Term[Any], stateVarName: String)(implicit context: CompilationContext): String = {
+    (t, t.default) match {
+      case (Constant(v), _) => v.toString
+      case (v: Variable[_], _) => stateVarName + "." + context.cache.getName(v)
+      case (Applied1(f: UnaryFun[_, _], arg1), _) => f.javaExpr(compileTerm(arg1, stateVarName))
+      case (Applied2(f: InfixFun[_, _, _], arg1, arg2), _) => f.javaExpr(compileTerm(arg1, stateVarName), compileTerm(arg2, stateVarName))
       case _ => sys.error("Cannot compile " + t)
     }
   }
@@ -223,7 +223,7 @@ object TermCompiler {
     val jfm = new RAMFileManager(fileManager)
 
     val task = compiler.getTask(null, jfm, diagnosticsCollector, null, null,
-      util.Arrays.asList(compiledStateSource,compiledTermSource))
+      util.Arrays.asList(compiledStateSource, compiledTermSource))
     val result = task.call()
     println(result)
 
@@ -241,13 +241,13 @@ object TermCompiler {
 
     println(compiledState)
 
-    CompiledTerm(compiledState,context,CompilationSource(stateSource,termSource))
+    CompiledTerm(compiledState, context, CompilationSource(stateSource, termSource))
   }
 
   def main(args: Array[String]) {
     import LogicImplicits._
     val test = IntVar('test)
-    val compiled = compile(test + test)
+    val compiled = compile(I { (test + test) === 2 })
     println("*** Eval:" + compiled.eval(State(Map(test -> 1))))
     println(compiled)
   }
@@ -323,16 +323,15 @@ class RAMJavaFileObject(name: URI, kind: Kind) extends SimpleJavaFileObject(name
 }
 
 
-
 trait CompilationResult[+V] {
 
-  def eval(state:State):V
+  def eval(state: State): V
 
 }
 
-case class CompiledTerm[+V](result:CompilationResult[V],
-                            context:TermCompiler.CompilationContext,
-                            source:TermCompiler.CompilationSource) extends Term[V] {
+case class CompiledTerm[+V](result: CompilationResult[V],
+                            context: TermCompiler.CompilationContext,
+                            source: TermCompiler.CompilationSource) extends Term[V] {
   def eval(state: State) = Some(result.eval(state))
   def variables = context.term.variables
   def default = context.term.default.asInstanceOf[V]
