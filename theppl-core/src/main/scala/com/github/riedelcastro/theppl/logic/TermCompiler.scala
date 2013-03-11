@@ -10,7 +10,8 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import javax.tools.JavaFileManager.Location
 import collection.mutable
 
-trait TestInterface {
+trait CompiledState {
+  def setState(state: State)
 
 }
 
@@ -21,6 +22,12 @@ trait TestInterface {
 object TermCompiler {
 
   val packageName = "just.generated"
+
+  def indent(count: Int)(text: String) = Array.fill(count)(" ").mkString + text
+
+  class CompilationContext[V](val term:Term[V]) {
+    val cache = new VarNameCache
+  }
 
   class VarNameCreator {
     val index = 0
@@ -35,41 +42,69 @@ object TermCompiler {
 
   class VarNameCache {
     val creator = new VarNameCreator
-    val cache = new mutable.HashMap[Variable[Any],String]()
-    def getName(variable:Variable[Any]) = {
-      cache.getOrElseUpdate(variable,creator.createName(variable))
+    val cache = new mutable.HashMap[Variable[Any], String]()
+    def getName(variable: Variable[Any]) = {
+      cache.getOrElseUpdate(variable, creator.createName(variable))
     }
   }
 
-  def compile[V](term: Term[V]): CompiledTerm[V] = {
-    val nameCache = new VarNameCache
+
+
+  def createCompiledStateSource[V](className:String)(implicit context:CompilationContext[V]) = {
+    import context._
     //create state data structure:
     //find free variables
     val variables = term.variables
     //we create a java class that has one member variable per variable term
     val members = for (v <- variables) yield {
-      val name = nameCache.getName(v)
-      val (typ, default) = v.default match {
-        case i: Int => "int" -> i
-        case x => "Object" -> x
-      }
-      "   public %s %s = %s;".format(typ, name, default)
+      val name = cache.getName(v)
+      val (typ,default) = javaTypeAndDefault(v)
+      indent(4) { "public %s %s = %s;".format(typ, name, default) }
     }
 
-    val className = "CompiledState"
-    val qualified = packageName + "." + className
+    //member initialization
+//    val inits = for ((v,i) <- variables.zipWithIndex) yield {
+//      val (typ,default) = javaTypeAndDefault(v)
+//      val option = indent(12) { "%s tmp = state.get(%s)" }
+//    }
 
     val stateSource =
       """
         |package %s;
         |
         |import com.github.riedelcastro.theppl.State;
+        |import com.github.riedelcastro.theppl.logic.CompiledState;
         |
-        |public class %s implements com.github.riedelcastro.theppl.logic.TestInterface {
+        |public class %s implements CompiledState {
         |    public %s(State state) {}
+        |
         |%s
+        |
+        |    public void setState(State state) {
+        |%s
+        |    }
+        |
         |};
-      """.stripMargin.format(packageName, className, className, members.mkString("\n"))
+      """.stripMargin.format(packageName, className, className, "", members.mkString("\n"))
+    stateSource
+
+  }
+
+
+  def javaTypeAndDefault[V](v: Variable[Any]): (String, Any) = {
+    val (typ, default) = v.default match {
+      case i: Int => "int" -> i
+      case x => "Object" -> x
+    }
+    (typ, default)
+  }
+  def compile[V](term: Term[V]): CompiledTerm[V] = {
+    val className = "CompiledStateForTerm"
+    val qualified = packageName + "." + className
+    implicit val context = new CompilationContext(term)
+    import context._
+    val stateSource = createCompiledStateSource(className)
+    println(stateSource)
     val compiler = ToolProvider.getSystemJavaCompiler()
     val diagnosticsCollector = new DiagnosticCollector[JavaFileObject]()
     val fileManager = compiler.getStandardFileManager(diagnosticsCollector, null, null)
@@ -177,6 +212,3 @@ trait CompiledTerm[V] {
 
 }
 
-trait CompiledState {
-
-}
