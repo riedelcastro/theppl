@@ -28,6 +28,7 @@ trait Quantification[T, R, This <: Quantification[T, R, This]] extends Term[R] {
     val parts = Substitution.allGroundings(arguments).map(term.substitute(_).ground)
     FunApp1(aggregator, SeqTerm(parts))
   }
+  def default = aggregator.default(Seq(term.default))
 }
 
 case class Forall(arguments: Seq[Variable[Any]], term: Term[Boolean])

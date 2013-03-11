@@ -82,6 +82,18 @@ trait LogicImplicits {
     def +(arg2: Term[Int]) = IntAdd(arg1, arg2)
   }
 
+  trait Fun1TermBuilder[A,R] {
+    def arg1: Term[A => R]
+    def apply(arg2: Term[A]) = FunApp1(arg1,arg2)
+  }
+
+  trait Fun2TermBuilder[A1,A2,R] {
+    def arg1: Term[(A1,A2) => R]
+    def apply(arg2: Term[A1],arg3:Term[A2]) = FunApp2(arg1,arg2,arg3)
+  }
+
+
+
   trait DoubleTermBuilder {
     def arg1: Term[Double]
     def *(arg2: Term[Double]) = DoubleTimes(arg1, arg2)
@@ -103,6 +115,15 @@ trait LogicImplicits {
     def arg1: Any
     def -->(arg2:Term[Double]) = SingletonVector(SeqTerm(Seq(Constant(arg1))),arg2)
   }
+
+  implicit def funTerm1ToBuilder[A,R](term: Term[A=>R]): Fun1TermBuilder[A,R] = new Fun1TermBuilder[A,R] {
+    def arg1 = term
+  }
+
+  implicit def funTerm2ToBuilder[A1,A2,R](term: Term[(A1,A2)=>R]): Fun2TermBuilder[A1,A2,R] = new Fun2TermBuilder[A1,A2,R] {
+    def arg1 = term
+  }
+
 
   implicit def boolTermToBuilder(term: Term[Boolean]): BooleanTermBuilder = new BooleanTermBuilder {
     def arg1 = term

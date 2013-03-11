@@ -23,6 +23,7 @@ trait Term[+V] {
   def isConstant = variables.isEmpty
   def |(condition:State) = Conditioned(this,Substitution(condition))
   def |[T](assignment:(Variable[T],T)) = Conditioned(this,Substitution(Seq(assignment._1),Seq(assignment._2)))
+  def default:V
 
   /**
    * Iterates over all states for the variables of this term.
@@ -42,6 +43,7 @@ case class Conditioned[+V](term:Term[V],condition:Substitution) extends Composit
   def parts = Seq(conditioned)
   def genericCreate(p: Seq[Term[Any]]) = Conditioned(p(0).asInstanceOf[Term[V]],condition)
   def genericEval(p: Seq[Any]) = p(0).asInstanceOf[V]
+  def default = term.default
 }
 
 /**
@@ -94,6 +96,7 @@ case class Constant[+V](value: V) extends Term[V] {
   def variables = Seq.empty
   override def toString = value.toString()
   override def isConstant = true
+  def default = value
 }
 
 /**
@@ -146,7 +149,7 @@ case class FunApp1[A1, R](f: Term[A1 => R],
   def args = Seq(a1)
   def genericCreate(p: Seq[Term[Any]]) = FunApp1(p(0), p(1))
   def genericFunAppEval(f: A1 => R, args: Seq[Any]) = f(args(0))
-
+  def default = f.default(a1.default)
 }
 
 case class FunApp2[A1, A2, R](f: Term[(A1, A2) => R],
@@ -162,6 +165,7 @@ case class FunApp2[A1, A2, R](f: Term[(A1, A2) => R],
     case in: InfixFun[_, _, _] => "%s %s %s".format(a1, in.symbol, a2)
     case _ => super.toString
   }
+  def default = f.default(a1.default,a2.default)
 }
 
 
@@ -211,7 +215,7 @@ object Eq extends Constant((a1: Any, a2: Any) => a1 == a2) with InfixFun[Any, An
   def symbol = "==="
 }
 
-object IntAdd extends Constant((x: Int, y: Int) => x + y) with InfixFun[Int, Int, Int] {
+object IntAdd extends Constant((x: Int, y: Int) => x + y)  with InfixFun[Int, Int, Int] {
   def symbol = "+"
 }
 
@@ -235,7 +239,7 @@ object ParameterVectorAddN
 }
 
 
-object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with FunTerm1[Boolean, Double] {
+object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with Term[Boolean => Double] {
   override def toString = "$"
 }
 
@@ -246,7 +250,7 @@ case class TupleTerm2[T1, T2](arg1: Term[T1], arg2: Term[T2]) extends Composite[
   def parts = Seq(arg1, arg2)
   def genericCreate(p: Seq[Term[Any]]) = TupleTerm2(p(0), p(1))
   def genericEval(p: Seq[Any]) = (p(0), p(1))
-
+  def default = (arg1.default,arg2.default)
 }
 
 case class SeqTerm[+T](args: Seq[Term[T]]) extends Composite[Seq[T], SeqTerm[T]] {
@@ -257,6 +261,7 @@ case class SeqTerm[+T](args: Seq[Term[T]]) extends Composite[Seq[T], SeqTerm[T]]
   def -->(value:Double) = SingletonVector(this,Constant(value))
 
   override def toString = args.mkString("[", ",", "]")
+  def default = args.map(_.default)
 }
 
 case class SingletonVector(args: SeqTerm[Any], value: Term[Double]) extends Composite[ParameterVector, SingletonVector] {
@@ -265,6 +270,12 @@ case class SingletonVector(args: SeqTerm[Any], value: Term[Double]) extends Comp
   def genericEval(p: Seq[Any]) = {
     val vector = new ParameterVector
     vector(p(0)) = p(1).asInstanceOf[Double]
+    vector
+  }
+  lazy val default = {
+    val vector = new ParameterVector
+    val key = args.args.map(_.default)
+    vector(key) = 0.0
     vector
   }
 }
@@ -311,6 +322,7 @@ case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Bool)
   def mapping(a1: A1): GroundAtom1[A1, R] = GroundAtom1(name, a1, range)
   def apply(a1: A1) = mapping(a1)
   def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
+  def default = (a1:A1) => mapping(a1).default
 }
 
 case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: Dom[R] = Bool)
@@ -321,6 +333,7 @@ case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: D
   def mapping(a1: A1, a2: A2) = GroundAtom2(name, a1, a2, range)
   def apply(a1: A1, a2: A2) = mapping(a1, a2)
   def eval(state: State) = Some((a1: A1, a2: A2) => state(mapping(a1, a2)))
+  def default = (a1:A1,a2:A2) => mapping(a1,a2).default
 }
 
 case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends Composite[Double,Dot] {
@@ -334,6 +347,7 @@ case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends
     val v2 = p(1).asInstanceOf[ParameterVector]
     v1.dot(v2)
   }
+  def default = 0.0
 }
 
 case class TermPotential(term:Term[Double]) extends Potential {
@@ -362,7 +376,7 @@ object LogicPlayground extends LogicImplicits {
     println(forall { for (x <- Person; y <- Person) yield friends(x, y) && friends(y, x) })
     println(forall { for (x <- Person; y <- Person) yield friends(x + 1, 1 + 1 + y) === friends(y, x) })
     println(forall { for (x <- Person; y <- Person) yield (x + y) === (y + x) })
-    println(sum { for (x <- Person; y <- Person) yield $((x + y) === (y + x)) })
+    println(sum { for (x <- Person; y <- Person) yield I((x + y) === (y + x)) })
     //dot { for (s <- Single) yield sum { for (x <- Person) yield smokes(x)}  } //s<-Single can be omitted
     //dot { for (x <- Person) yield sum { for (y <- person) yield friend(x,y) }
     //ppl { 'f1 := dot { for (...) yield ... },

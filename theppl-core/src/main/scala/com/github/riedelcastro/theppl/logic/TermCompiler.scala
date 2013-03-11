@@ -25,7 +25,11 @@ object TermCompiler {
 
   def indent(count: Int)(text: String) = Array.fill(count)(" ").mkString + text
 
-  class CompilationContext[V](val term: Term[V]) {
+  case class CompilationSource(stateSource:String, termSource:String)
+
+  class CompilationContext[+V](val term: Term[V], val termName: String) {
+    val compiledStateClassName = "CompiledStateFor" + termName
+    val compiledTermClassName = "CompiledTermFor" + termName
     val cache = new VarNameCache
     val variables = term.variables.toSeq
     val index2variable = variables.zipWithIndex.toMap
@@ -51,7 +55,59 @@ object TermCompiler {
   }
 
 
-  def createCompiledStateSource[V](className: String)(implicit context: CompilationContext[V]) = {
+  def createCompiledTermSource[V](implicit context: CompilationContext[V]) = {
+    import context._
+
+    val helper = javaTypeHelper(term)
+
+    val compiledExpression = compileTerm(term,"state")
+
+    val source =
+      """
+        |package %s;
+        |
+        |import com.github.riedelcastro.theppl.logic.CompilationResult;
+        |import com.github.riedelcastro.theppl.*;
+        |import scala.collection.*;
+        |import scala.Option;
+        |
+        |public class %s implements CompilationResult<%s>{
+        |
+        |    Seq<Variable<Object>> variables;
+        |
+        |    public %s(Seq<Variable<Object>> variables) {
+        |        this.variables = variables;
+        |    }
+        |
+        |    public final %s compiledEval(%s state) {
+        |        return %s;
+        |    }
+        |
+        |    public %s eval(State state) {
+        |        %s compiledState = new %s(variables);
+        |        compiledState.setState(state);
+        |        %s compiledResult = compiledEval(compiledState);
+        |        return %s;
+        |    }
+        |
+        |}
+      """.stripMargin.format(
+        packageName,
+        compiledTermClassName, helper.boxedType,
+        compiledTermClassName,
+        helper.typ, compiledStateClassName,
+        compiledExpression,
+        helper.boxedType,
+        compiledStateClassName,compiledStateClassName,
+        helper.typ,
+        helper.box("compiledResult")
+      )
+    println(source)
+    source
+  }
+
+
+  def createCompiledStateSource[V](implicit context: CompilationContext[V]) = {
     import context._
     //create state data structure:
     //find free variables
@@ -67,13 +123,13 @@ object TermCompiler {
       val helper = javaTypeHelper(v)
       val varIndex = index2variable(v)
       val option = indent(12) { "Option tmp = state.get(variables.apply(%d));".format(varIndex) }
-      val ifDefined = indent(12) { "if (tmp.isDefined()) %s = %s;".format(
-        cache.getName(v),
-        helper.unbox("((%s)tmp.get())".format(helper.boxedType))) }
-      Seq(option,ifDefined).mkString("\n")
+      val ifDefined = indent(12) {
+        "if (tmp.isDefined()) %s = %s;".format(
+          cache.getName(v),
+          helper.unbox("((%s)tmp.get())".format(helper.boxedType)))
+      }
+      Seq(indent(8) { "{" }, option, ifDefined, indent(8) { "}" }).mkString("\n")
     }
-
-    println(inits.mkString("\n"))
 
     val stateSource =
       """
@@ -99,66 +155,85 @@ object TermCompiler {
         |    }
         |
         |};
-      """.stripMargin.format(packageName, className, className, members.mkString("\n"),inits.mkString("\n"))
+      """.stripMargin.format(packageName, compiledStateClassName, compiledStateClassName, members.mkString("\n"), inits.mkString("\n"))
     stateSource
 
   }
 
   trait JavaTypeHelper[+V] {
-    def typ:String
-    def boxedType:String = typ
-    def unbox(expression:String):String
+    def typ: String
+    def boxedType: String = typ
+    def unbox(expression: String): String
+    def box(expression: String): String
   }
 
-  def javaTypeHelper(v:Variable[Any]):JavaTypeHelper[Any] = {
+  def javaTypeHelper(v: Term[Any]): JavaTypeHelper[Any] = {
     v.default match {
       case i: Int => new JavaTypeHelper[Int] {
         def typ = "int"
         override def boxedType = "Integer"
         def unbox(expression: String) = expression + ".intValue()"
+        def box(expression: String) = "Integer.valueOf(%s)".format(expression)
       }
-      case x=> new JavaTypeHelper[Any] {
+      case x => new JavaTypeHelper[Any] {
         def typ = "Object"
         def unbox(expression: String) = expression
+        def box(expression: String) = expression
       }
+    }
+  }
 
+  def compileTerm[V](t:Term[V],stateVarName:String)(implicit context:CompilationContext[V]):String = {
+    (t,t.default) match {
+      case (v:Variable[_],_) => stateVarName + "." + context.cache.getName(v)
+//      case (FunApp2(IntAdd,arg1,arg2),_) => compileTerm(arg1,stateVarName) + " + " + compileTerm(arg2,stateVarName)
+      case _ => sys.error("Cannot compile " + t)
     }
   }
 
   def compile[V](term: Term[V]): CompiledTerm[V] = {
-    val className = "CompiledStateForTerm"
-    val qualified = packageName + "." + className
-    implicit val context = new CompilationContext(term)
+    implicit val context = new CompilationContext(term, "Term")
     import context._
-    val stateSource = createCompiledStateSource(className)
+    val qualified = packageName + "." + compiledTermClassName
+    val stateSource = createCompiledStateSource
+    val termSource = createCompiledTermSource
+    val compiledStateSource = SourceJavaFileObject(compiledStateClassName + ".java", stateSource)
+    val compiledTermSource = SourceJavaFileObject(compiledTermClassName + ".java", termSource)
+
     println(stateSource)
+
     val compiler = ToolProvider.getSystemJavaCompiler()
     val diagnosticsCollector = new DiagnosticCollector[JavaFileObject]()
     val fileManager = compiler.getStandardFileManager(diagnosticsCollector, null, null)
     val jfm = new RAMFileManager(fileManager)
-    val javaFileAsString = SourceJavaFileObject(className + ".java", stateSource)
-    val task = compiler.getTask(null, jfm, diagnosticsCollector, null, null, util.Arrays.asList(javaFileAsString))
+
+    val task = compiler.getTask(null, jfm, diagnosticsCollector, null, null,
+      util.Arrays.asList(compiledStateSource,compiledTermSource))
     val result = task.call()
     println(result)
+
     for (d <- diagnosticsCollector.getDiagnostics) {
       println(d)
+      println(d.getCode)
+      println(d.getSource.getCharContent(true).toString.split("\n")(d.getLineNumber.toInt - 1))
     }
+
+    //create term
     val clazz = Class.forName(qualified, false, jfm.loader)
-    val state = State(Map.empty)
-    val instance = clazz.getDeclaredConstructor(classOf[Seq[Variable[Any]]]).newInstance(context.term.variables.toSeq)
-    println(instance)
-    //    val classLoader = URLClassLoader.newInstance(Array());
+    val state = State(Map(variables.head -> 1))
+    val compiledState = clazz.getDeclaredConstructor(classOf[Seq[Variable[Any]]]).
+      newInstance(context.term.variables.toSeq).asInstanceOf[CompilationResult[V]]
 
+    println(compiledState)
 
-    //create one member variable per free variable
-    //converter sets these member variables according to state
-    //???
-    null
+    CompiledTerm(compiledState,context,CompilationSource(stateSource,termSource))
   }
 
   def main(args: Array[String]) {
+    import LogicImplicits._
     val test = IntVar('test)
-    val compiled = compile(test)
+    val compiled = compile(test)// + test)
+    println("*** Eval:" + compiled.eval(State(Map(test -> 1))))
     println(compiled)
   }
 
@@ -232,10 +307,18 @@ class RAMJavaFileObject(name: URI, kind: Kind) extends SimpleJavaFileObject(name
   }
 }
 
-trait CompiledTerm[V] {
 
-  def convertState(state: State): CompiledState
-  def eval(state: CompiledState): V
+
+trait CompilationResult[+V] {
+
+  def eval(state:State):V
 
 }
 
+case class CompiledTerm[+V](result:CompilationResult[V],
+                            context:TermCompiler.CompilationContext[V],
+                            source:TermCompiler.CompilationSource) extends Term[V] {
+  def eval(state: State) = Some(result.eval(state))
+  def variables = context.term.variables
+  def default = context.term.default
+}

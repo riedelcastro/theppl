@@ -61,7 +61,7 @@ trait Template[-C] extends Term[C => Double] {
   def predict(context: C, penalties: Messages = Messages.empty)
              (implicit cookbook: ArgmaxRecipe[Potential] = Argmaxer) = argmax(context, penalties)(cookbook).state
 
-
+  def default = (c:C) => 0.0
 }
 
 object EmptyTemplate extends Template[Any] {

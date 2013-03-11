@@ -72,7 +72,7 @@ trait Potential extends Term[Double] {
    */
   def truth: State = State.empty
 
-
+  def default = 0.0
 }
 
 /**
@@ -82,7 +82,7 @@ trait Potential extends Term[Double] {
  *               to the order of the hidden variables.
  * @param default the default score to return if no matching tuple can be found.
  */
-case class TablePotential(hidden: Seq[Variable[Any]], scores: Map[Seq[Any], Double], default: Double = 0.0)
+case class TablePotential(hidden: Seq[Variable[Any]], scores: Map[Seq[Any], Double], override val default: Double = 0.0)
   extends Potential {
 
   def score(state: State) = scores.getOrElse(hidden.view.map(v => state(v)), default)
