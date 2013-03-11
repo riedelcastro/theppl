@@ -25,8 +25,10 @@ object TermCompiler {
 
   def indent(count: Int)(text: String) = Array.fill(count)(" ").mkString + text
 
-  class CompilationContext[V](val term:Term[V]) {
+  class CompilationContext[V](val term: Term[V]) {
     val cache = new VarNameCache
+    val variables = term.variables.toSeq
+    val index2variable = variables.zipWithIndex.toMap
   }
 
   class VarNameCreator {
@@ -49,34 +51,46 @@ object TermCompiler {
   }
 
 
-
-  def createCompiledStateSource[V](className:String)(implicit context:CompilationContext[V]) = {
+  def createCompiledStateSource[V](className: String)(implicit context: CompilationContext[V]) = {
     import context._
     //create state data structure:
     //find free variables
-    val variables = term.variables
     //we create a java class that has one member variable per variable term
     val members = for (v <- variables) yield {
       val name = cache.getName(v)
-      val (typ,default) = javaTypeAndDefault(v)
-      indent(4) { "public %s %s = %s;".format(typ, name, default) }
+      val helper = javaTypeHelper(v)
+      indent(4) { "public %s %s = %s;".format(helper.typ, name, v.default) }
     }
 
     //member initialization
-//    val inits = for ((v,i) <- variables.zipWithIndex) yield {
-//      val (typ,default) = javaTypeAndDefault(v)
-//      val option = indent(12) { "%s tmp = state.get(%s)" }
-//    }
+    val inits = for (v <- variables) yield {
+      val helper = javaTypeHelper(v)
+      val varIndex = index2variable(v)
+      val option = indent(12) { "Option tmp = state.get(variables.apply(%d));".format(varIndex) }
+      val ifDefined = indent(12) { "if (tmp.isDefined()) %s = %s;".format(
+        cache.getName(v),
+        helper.unbox("((%s)tmp.get())".format(helper.boxedType))) }
+      Seq(option,ifDefined).mkString("\n")
+    }
+
+    println(inits.mkString("\n"))
 
     val stateSource =
       """
         |package %s;
         |
-        |import com.github.riedelcastro.theppl.State;
+        |import com.github.riedelcastro.theppl.*;
         |import com.github.riedelcastro.theppl.logic.CompiledState;
+        |import scala.collection.*;
+        |import scala.Option;
         |
         |public class %s implements CompiledState {
-        |    public %s(State state) {}
+        |
+        |    Seq<Variable<Object>> variables;
+        |
+        |    public %s(Seq<Variable<Object>> variables) {
+        |        this.variables = variables;
+        |    }
         |
         |%s
         |
@@ -85,19 +99,32 @@ object TermCompiler {
         |    }
         |
         |};
-      """.stripMargin.format(packageName, className, className, "", members.mkString("\n"))
+      """.stripMargin.format(packageName, className, className, members.mkString("\n"),inits.mkString("\n"))
     stateSource
 
   }
 
-
-  def javaTypeAndDefault[V](v: Variable[Any]): (String, Any) = {
-    val (typ, default) = v.default match {
-      case i: Int => "int" -> i
-      case x => "Object" -> x
-    }
-    (typ, default)
+  trait JavaTypeHelper[+V] {
+    def typ:String
+    def boxedType:String = typ
+    def unbox(expression:String):String
   }
+
+  def javaTypeHelper(v:Variable[Any]):JavaTypeHelper[Any] = {
+    v.default match {
+      case i: Int => new JavaTypeHelper[Int] {
+        def typ = "int"
+        override def boxedType = "Integer"
+        def unbox(expression: String) = expression + ".intValue()"
+      }
+      case x=> new JavaTypeHelper[Any] {
+        def typ = "Object"
+        def unbox(expression: String) = expression
+      }
+
+    }
+  }
+
   def compile[V](term: Term[V]): CompiledTerm[V] = {
     val className = "CompiledStateForTerm"
     val qualified = packageName + "." + className
@@ -118,7 +145,7 @@ object TermCompiler {
     }
     val clazz = Class.forName(qualified, false, jfm.loader)
     val state = State(Map.empty)
-    val instance = clazz.getDeclaredConstructor(classOf[State]).newInstance(state)
+    val instance = clazz.getDeclaredConstructor(classOf[Seq[Variable[Any]]]).newInstance(context.term.variables.toSeq)
     println(instance)
     //    val classLoader = URLClassLoader.newInstance(Array());
 
