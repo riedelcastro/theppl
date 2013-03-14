@@ -207,6 +207,8 @@ object State {
 
   def singleton[Value](variable: Variable[Value], state: Value) = new SingletonState(variable, state)
 
+//  def apply(pairs:(Variable[Any],Any)*):State = apply(pairs.toMap)
+
   def apply(map: Map[Variable[Any], Any]): State = new State {
     def get[V](variable: Variable[V]) = map.get(variable).asInstanceOf[Option[V]]
 

@@ -213,7 +213,7 @@ trait FunTerm2[A1, A2, R] extends Term[(A1, A2) => R] {
 
 trait InfixFun[A1, A2, R] extends FunTerm2[A1, A2, R] {
   def symbol: String
-  def javaExpr(arg1:String,arg2:String) = arg1 + " " + symbol + " " + arg2
+  def javaExpr(arg1:String,arg2:String) = "(" + arg1 + " " + symbol + " " + arg2 + ")"
 }
 
 trait UnaryFun[A1,R] extends FunTerm1[A1,R] {

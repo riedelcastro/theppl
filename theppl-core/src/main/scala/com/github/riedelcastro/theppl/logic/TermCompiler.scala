@@ -249,6 +249,8 @@ object TermCompiler {
     val test = IntVar('test)
     val compiled = compile(I { (test + test) === 2 })
     println("*** Eval:" + compiled.eval(State(Map(test -> 1))))
+    println("*** Eval:" + compiled.eval(State(Map(test -> 2))))
+
     println(compiled)
   }
 
