@@ -1,4 +1,4 @@
-package com.github.riedelcastro.theppl.logic
+package com.github.riedelcastro.theppl.term
 
 import com.github.riedelcastro.theppl.{State, IntVar, ThePPLSpec}
 
@@ -24,6 +24,13 @@ class CompilerSpec extends ThePPLSpec{
       val compiled = TermCompiler.compile(term)
       val state = State(Map(x -> 1))
       compiled.eval(state) must be (term.eval(state))
+    }
+
+    it("should compile indexed term") {
+      val index = new Index
+      val term = index('f,'A)
+      val compiled = TermCompiler.compile(term)
+      compiled.eval(State.empty) must be (term.eval(State.empty))
     }
 
 

@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import infer._
-import logic.Term
+import term.Term
 
 /**
  * A Potential is a scoring function s(Y=y) over a set of variables Y.

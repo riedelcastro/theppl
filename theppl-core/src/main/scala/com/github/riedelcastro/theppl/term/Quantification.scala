@@ -1,4 +1,4 @@
-package com.github.riedelcastro.theppl.logic
+package com.github.riedelcastro.theppl.term
 
 import com.github.riedelcastro.theppl.{ParameterVector, State, Variable}
 

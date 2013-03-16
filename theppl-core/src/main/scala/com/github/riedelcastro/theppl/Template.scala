@@ -2,7 +2,7 @@ package com.github.riedelcastro.theppl
 
 import infer.{ArgmaxResult, BruteForceArgmaxer, Argmaxer, ArgmaxRecipe}
 import java.io.{InputStream, OutputStream}
-import logic.Term
+import term.Term
 
 /**
  * A template creates potentials based on a context and observation. Think of it as a parametrized

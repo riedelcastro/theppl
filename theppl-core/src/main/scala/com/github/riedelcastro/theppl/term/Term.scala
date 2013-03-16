@@ -1,4 +1,4 @@
-package com.github.riedelcastro.theppl.logic
+package com.github.riedelcastro.theppl.term
 
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.util._
@@ -288,6 +288,16 @@ case class SeqTerm[+T](args: Seq[Term[T]]) extends Composite[Seq[T], SeqTerm[T]]
 
   override def toString = args.mkString("[", ",", "]")
   def default = args.map(_.default)
+}
+
+case class SingletonVecTerm(index:Term[Int],value:Term[Double]) extends Composite[SingletonVec,SingletonVecTerm] {
+
+  import Caster._
+
+  def parts = Seq(index,value)
+  def genericCreate(p: Seq[Term[Any]]) = SingletonVecTerm(p(0),p(1))
+  def genericEval(p: Seq[Any]) = new SingletonVec(p(0),p(1))
+  def default = new SingletonVec(-1,0.0)
 }
 
 case class SingletonVector(args: SeqTerm[Any], value: Term[Double]) extends Composite[ParameterVector, SingletonVector] {

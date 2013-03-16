@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl
 
-import logic.{Bool, Substitution, Term}
+import term.{Bool, Substitution, Term}
 import util.Util
 
 

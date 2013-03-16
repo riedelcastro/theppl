@@ -1,4 +1,4 @@
-package com.github.riedelcastro.theppl.logic
+package com.github.riedelcastro.theppl.term
 
 import com.github.riedelcastro.theppl._
 import infer.{BruteForceArgmaxer, Argmaxer}
@@ -11,7 +11,7 @@ import com.github.riedelcastro.theppl.VectorVar
 object MarkovLogicExample {
 
   def main(args: Array[String]) {
-    import com.github.riedelcastro.theppl.logic.LogicImplicits._
+    import com.github.riedelcastro.theppl.term.LogicImplicits._
     //a domain of objects, here using scala Symbols, but can be anything
     val Persons = Dom('persons, Seq('Anna, 'Peter))
 

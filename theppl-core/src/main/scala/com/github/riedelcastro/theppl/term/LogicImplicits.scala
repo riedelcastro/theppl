@@ -1,4 +1,4 @@
-package com.github.riedelcastro.theppl.logic
+package com.github.riedelcastro.theppl.term
 
 import com.github.riedelcastro.theppl._
 import org.riedelcastro.nurupo.BuilderN
@@ -13,7 +13,6 @@ trait LogicImplicits {
   def $ = Iverson
   def I = Iverson
   def S[V](args:Term[V]*) = SeqTerm(args.toSeq)
-
 
   def sum(arg1:Term[ParameterVector],arg2:Term[ParameterVector]) = {
     arg1 match {
@@ -80,6 +79,10 @@ trait LogicImplicits {
   trait IntTermBuilder {
     def arg1: Term[Int]
     def +(arg2: Term[Int]) = IntAdd(arg1, arg2)
+    def -->(value:Term[Double]):SingletonVecTerm = new SingletonVecTerm(arg1,value)
+    def -->(value:Double):SingletonVecTerm = this --> (Constant(value))
+
+
   }
 
   trait Fun1TermBuilder[A,R] {
