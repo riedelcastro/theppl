@@ -243,8 +243,9 @@ object IntAdd extends Constant((x: Int, y: Int) => x + y)  with InfixFun[Int, In
   def symbol = "+"
 }
 
-object VectorAdd extends Constant((x: Int, y: Int) => x + y) with InfixFun[Int, Int, Int] {
+object VecAdd extends Constant((x: Vec, y: Vec) => x + y) with InfixFun[Vec, Vec, Vec] {
   def symbol = "+"
+  override def javaExpr(arg1: String, arg2: String) = "Vec$.MODULE$.sum(new Vec[]{%s,%s})".format(arg1,arg2)
 }
 
 
@@ -385,6 +386,23 @@ case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends
   }
   def default = 0.0
 }
+
+case class VecDot(arg1: Term[Vec], arg2: Term[Vec]) extends Composite[Double,Dot] {
+
+  import Caster._
+
+  //todo: evaluate for each state to get a real vector, then dot product with weights
+  //todo: feat = (value1,value2,..)
+  def parts = Seq(arg1,arg2)
+  def genericCreate(p: Seq[Term[Any]]) = Dot(p(0),p(1))
+  def genericEval(p: Seq[Any]) = {
+    val v1 = p(0).asInstanceOf[Vec]
+    val v2 = p(1).asInstanceOf[Vec]
+    v1.dot(v2)
+  }
+  def default = 0.0
+}
+
 
 case class TermPotential(term:Term[Double]) extends Potential {
   def hidden = term.variables

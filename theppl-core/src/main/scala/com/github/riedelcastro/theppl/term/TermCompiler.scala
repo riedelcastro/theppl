@@ -42,6 +42,7 @@ object TermCompiler {
   class Pool[T](val elements:Seq[T], naming:Int => String) {
     val value2index = elements.zipWithIndex.toMap
     val value2name = elements.zipWithIndex.toMap.mapValues(naming(_))
+    def unified = value2index.keys
   }
 
   class VarNameCreator {
@@ -85,11 +86,11 @@ object TermCompiler {
       indent(8) { "%s = context.indices().apply(%d);".format(name, number) }
     }
 
-    val constants = for (value <- context.constants.elements) yield {
+    val constants = for (value <- context.constants.unified) yield {
       indent(4) { "private final Object %s;".format(context.constants.value2name(value)) }
     }
 
-    val constantInits = for (value <- context.constants.elements) yield {
+    val constantInits = for (value <- context.constants.unified) yield {
       indent(8) { "%s = context.constants().elements().apply(%d);".format(
         context.constants.value2name(value), context.constants.value2index(value)) }
     }
@@ -98,8 +99,7 @@ object TermCompiler {
       """
         |package %s;
         |
-        |import com.github.riedelcastro.theppl.term.Index;
-        |import com.github.riedelcastro.theppl.term.CompilationResult;
+        |import com.github.riedelcastro.theppl.term.*;
         |import com.github.riedelcastro.theppl.term.TermCompiler.*;
         |import com.github.riedelcastro.theppl.*;
         |import scala.collection.*;
@@ -179,7 +179,7 @@ object TermCompiler {
         |package %s;
         |
         |import com.github.riedelcastro.theppl.*;
-        |import com.github.riedelcastro.theppl.term.CompiledState;
+        |import com.github.riedelcastro.theppl.term.*;
         |import com.github.riedelcastro.theppl.term.TermCompiler.*;
         |import scala.collection.*;
         |import scala.Option;
@@ -243,14 +243,28 @@ object TermCompiler {
   def compileTerm(t: Term[Any], stateVarName: String)(implicit context: CompilationContext): String = {
     val helper = javaTypeHelper(t)
     t match {
-      case Constant(v) => if (helper.typ != "Object") v.toString else context.constants.value2name(v)
+      case Constant(v) =>
+        if (helper.typ != "Object") v.toString else context.constants.value2name(v)
+
+      case SingletonVecTerm(index,value) =>
+        "new SingletonVec(%s,%s)".format(compileTerm(index,stateVarName),compileTerm(value,stateVarName))
+
       case Indexed(index, key) =>
         val args = key.args.map(compileTerm(_, stateVarName)).mkString("new Object[] {", ",", "}")
         "%s.index(%s)".format(context.index2Name(index), args)
-      case SingletonVector(args, value) => "" //todo: becomes term.indices(new Object[]{boxed(args(0)),...}):int -> value:double
-      case v: Variable[_] => stateVarName + "." + context.cache.getName(v)
-      case Applied1(f: UnaryFun[_, _], arg1) => f.javaExpr(compileTerm(arg1, stateVarName))
-      case Applied2(f: InfixFun[_, _, _], arg1, arg2) => f.javaExpr(compileTerm(arg1, stateVarName), compileTerm(arg2, stateVarName))
+
+      case SingletonVector(args, value) =>
+        "" //todo: becomes term.indices(new Object[]{boxed(args(0)),...}):int -> value:double
+
+      case v: Variable[_] =>
+        stateVarName + "." + context.cache.getName(v)
+
+      case Applied1(f: UnaryFun[_, _], arg1) =>
+        f.javaExpr(compileTerm(arg1, stateVarName))
+
+      case Applied2(f: InfixFun[_, _, _], arg1, arg2) =>
+        f.javaExpr(compileTerm(arg1, stateVarName), compileTerm(arg2, stateVarName))
+
       case _ => sys.error("Cannot compile " + t)
     }
   }

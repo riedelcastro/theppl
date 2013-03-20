@@ -54,58 +54,58 @@ object MarkovLogicExample {
     val weighted = sum { for (p <- Persons) yield I(smokes(p) ==> cancer(p)) * -1.5 }
 
     //a feature vector with single
-    val feats = vector {
-      for (p <- Persons) yield
-        'f --> I { smokes(p) ==> cancer(p) }
-    }
-
-    //peer pressure
-    val peer = vector {
-      for (p1 <- Persons; p2 <- Persons) yield
-        'peer --> I { smokes(p1) && friends(p1, p2) ==> smokes(p2) }
-    }
-
-
-    //a bias
-    val bias = vector {
-      for (p <- Persons) yield
-        'bias --> I { smokes(p) }
-    }
-
-    println((feats + bias).eval(state))
-
-    //a weight vector
-    val w1 = ParameterVector.fromMap(Map(List('f) -> -1.0))
-
-    //a linear model
-    val m1 = feats dot w1
-
-    //should be -2.0
-    println(m1.eval(state))
-
-    //weight variable to learn
-    val w2 = VectorVar('w2)
-
-    //parametrized model
-    val m2 = feats dot w2
-
-    //learn weights
-    val m3 = ((feats + bias) dot w2) | w2 -> w1
-    //val w3 = OnlineLearner.learn(m2)(Seq(state,state))
-
-    val weights = VectorVar('weights)
-    val model = (feats + bias) dot weights
-
-    //training example
-    val instance = State(Map(
-      Target(smokes('Anna)) -> true,
-      Target(cancer('Anna)) -> true,
-      Target(smokes('Peter)) -> false,
-      Target(cancer('Peter)) -> true))
-
-    val learned = Learner.learn(model)(Seq(instance))
-    println("Learned:")
-    println(learned)
+//    val feats = vector {
+//      for (p <- Persons) yield
+//        'f --> I { smokes(p) ==> cancer(p) }
+//    }
+//
+//    //peer pressure
+//    val peer = vector {
+//      for (p1 <- Persons; p2 <- Persons) yield
+//        'peer --> I { smokes(p1) && friends(p1, p2) ==> smokes(p2) }
+//    }
+//
+//
+//    //a bias
+//    val bias = vector {
+//      for (p <- Persons) yield
+//        'bias --> I { smokes(p) }
+//    }
+//
+//    println((feats + bias).eval(state))
+//
+//    //a weight vector
+//    val w1 = ParameterVector.fromMap(Map(List('f) -> -1.0))
+//
+//    //a linear model
+//    val m1 = feats dot w1
+//
+//    //should be -2.0
+//    println(m1.eval(state))
+//
+//    //weight variable to learn
+//    val w2 = VectorVar('w2)
+//
+//    //parametrized model
+//    val m2 = feats dot w2
+//
+//    //learn weights
+//    val m3 = ((feats + bias) dot w2) | w2 -> w1
+//    //val w3 = OnlineLearner.learn(m2)(Seq(state,state))
+//
+//    val weights = VectorVar('weights)
+//    val model = (feats + bias) dot weights
+//
+//    //training example
+//    val instance = State(Map(
+//      Target(smokes('Anna)) -> true,
+//      Target(cancer('Anna)) -> true,
+//      Target(smokes('Peter)) -> false,
+//      Target(cancer('Peter)) -> true))
+//
+//    val learned = Learner.learn(model)(Seq(instance))
+//    println("Learned:")
+//    println(learned)
 
 
   }

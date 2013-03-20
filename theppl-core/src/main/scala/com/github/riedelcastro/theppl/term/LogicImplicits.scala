@@ -109,15 +109,18 @@ trait LogicImplicits {
     def +(arg2:Term[ParameterVector]) = FunApp1(ParameterVectorAddN,SeqTerm(Seq(arg1,arg2)))
   }
 
+  trait VecTermBuilder {
+    def arg1: Term[Vec]
+    def dot(arg2: Term[Vec]) = VecDot(arg1,arg2)
+    def +(arg2:Term[Vec]) = VecAdd(arg1,arg2) //FunApp1(VecAdd,SeqTerm(Seq(arg1,arg2)))
+  }
+
+
   trait SingletonVectorBuilder {
     def arg1: Term[Any]
     def -->(arg2:Term[Double]) = SingletonVector(SeqTerm(Seq(arg1)),arg2)
   }
 
-  trait ValueToSingletonVectorBuilder {
-    def arg1: Any
-    def -->(arg2:Term[Double]) = SingletonVector(SeqTerm(Seq(Constant(arg1))),arg2)
-  }
 
   implicit def funTerm1ToBuilder[A,R](term: Term[A=>R]): Fun1TermBuilder[A,R] = new Fun1TermBuilder[A,R] {
     def arg1 = term
@@ -136,6 +139,10 @@ trait LogicImplicits {
     def arg1 = term
   }
 
+  implicit def intToBuilder(value: Int): IntTermBuilder = new IntTermBuilder {
+    def arg1 = Constant(value)
+  }
+
   implicit def doubleTermToBuilder(term: Term[Double]): DoubleTermBuilder = new DoubleTermBuilder {
     def arg1 = term
   }
@@ -143,14 +150,15 @@ trait LogicImplicits {
   implicit def vectorTermToBuilder(term: Term[ParameterVector]): ParameterVectorTermBuilder = new ParameterVectorTermBuilder {
     def arg1 = term
   }
+  implicit def vecTermToBuilder(term: Term[Vec]): VecTermBuilder = new VecTermBuilder {
+    def arg1 = term
+  }
+
 
   implicit def termToSingletonBuilder(term: Term[Any]) = new SingletonVectorBuilder {
     def arg1 = term
   }
 
-  implicit def valueToSingletonBuilder(term: Any) = new ValueToSingletonVectorBuilder {
-    def arg1 = term
-  }
 
 
 
@@ -166,9 +174,6 @@ trait LogicImplicits {
 
 
 
-  implicit def intToBuilder(x: Int) = new AnyRef {
-    def +(that: Term[Int]) = IntAdd(Constant(x), that)
-  }
 
 }
 
