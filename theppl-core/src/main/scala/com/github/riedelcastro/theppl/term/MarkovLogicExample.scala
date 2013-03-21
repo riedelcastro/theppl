@@ -11,7 +11,7 @@ import com.github.riedelcastro.theppl.VectorVar
 object MarkovLogicExample {
 
   def main(args: Array[String]) {
-    import com.github.riedelcastro.theppl.term.LogicImplicits._
+    import com.github.riedelcastro.theppl.term.TermImplicits._
     //a domain of objects, here using scala Symbols, but can be anything
     val Persons = Dom('persons, Seq('Anna, 'Peter))
 
@@ -113,8 +113,8 @@ object MarkovLogicExample {
 }
 
 
-case class Loglinear(features: Term[ParameterVector], weights: Variable[ParameterVector]) extends Potential {
-  val self = Dot(features, weights)
+case class Loglinear(features: Term[Vec], weights: Variable[Vec]) extends Potential {
+  val self = VecDot(features, weights)
   def hidden = self.variables
   def score(state: State) = self.eval(state).get
   override def substitute(substitution: Substitution) = self.substitute(substitution)
@@ -123,10 +123,10 @@ case class Loglinear(features: Term[ParameterVector], weights: Variable[Paramete
 
 object Learner {
 
-  import LogicImplicits._
+  import TermImplicits._
 
-  def learn(model: Loglinear)(instances: Seq[State]): ParameterVector = {
-    val weights = new ParameterVector()
+  def learn(model: Loglinear)(instances: Seq[State]): Vec = {
+    val weights = new DenseVec(1000)
     for (epochs <- 0 until 2) {
       for (instance <- instances) {
         println(model.substitute(Substitution(Seq(model.weights), Seq(weights))))
@@ -144,10 +144,3 @@ object Learner {
   }
 }
 
-object ArgmaxCompiler {
-  def compile(model: Term[Double]): Argmaxer = model match {
-    //case c:Conditioned => compile(c.conditioned)
-    case Dot(feats, weights) => ???
-    case m => new BruteForceArgmaxer {val potential = LogicImplicits.toPotential(m)}
-  }
-}

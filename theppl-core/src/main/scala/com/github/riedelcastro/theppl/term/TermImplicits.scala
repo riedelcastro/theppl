@@ -8,7 +8,7 @@ import scala.Tuple2
 /**
  * @author Sebastian Riedel
  */
-trait LogicImplicits {
+trait TermImplicits {
 
   def $ = Iverson
   def I = Iverson
@@ -21,10 +21,10 @@ trait LogicImplicits {
     }
   }
 
-  implicit def toLogLinear(term:Dot) = term match {
-    case Dot(feats,weights:VectorVar[_]) => Loglinear(feats,weights)
-    case _ => sys.error(term + " can't be converted into loglinear representation")
-  }
+//  implicit def toLogLinear(term:Dot) = term match {
+//    case Dot(feats,weights:Variable[Vec]) => Loglinear(feats,weights)
+//    case _ => sys.error(term + " can't be converted into loglinear representation")
+//  }
 
   implicit def toPotential(term: Term[Double]) = new TermPotential(term)
 
@@ -177,4 +177,4 @@ trait LogicImplicits {
 
 }
 
-object LogicImplicits extends LogicImplicits
+object TermImplicits extends TermImplicits

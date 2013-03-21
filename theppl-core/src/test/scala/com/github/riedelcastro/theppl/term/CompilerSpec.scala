@@ -7,7 +7,7 @@ import com.github.riedelcastro.theppl.{State, IntVar, ThePPLSpec}
  */
 class CompilerSpec extends ThePPLSpec {
 
-  import LogicImplicits._
+  import TermImplicits._
 
   describe("A Term Compiler") {
 
@@ -48,6 +48,15 @@ class CompilerSpec extends ThePPLSpec {
       val expected = term.eval(State.empty).get
       result must be(expected)
     }
+
+    it("should compile a dot product") {
+      val term = (1 --> 1.0) dot (1 --> 2.0)
+      val compiled = TermCompiler.compile(term)
+      val result = compiled.eval(State.empty).get
+      val expected = term.eval(State.empty).get
+      result must be(expected)
+    }
+
 
 
   }

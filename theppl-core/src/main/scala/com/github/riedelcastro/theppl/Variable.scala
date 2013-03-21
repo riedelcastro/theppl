@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl
 
-import term.{Bool, Substitution, Term}
+import term.{Vec, Bool, Substitution, Term}
 import util.Util
 
 
@@ -52,7 +52,20 @@ case class IntVar[Id](id:Id) extends Variable[Int] {
   override def stringRepr = id.toString.replaceAll("'","")
 }
 
+case class LabelVar[Id,L](id:Id,domain:Seq[L]) extends Variable[L] {
+}
+
+case class StringVar[Id](id:Id) extends Variable[String] {
+  def domain = Util.infinity
+}
+
 case class VectorVar[Id](id:Id) extends Variable[ParameterVector] {
   def domain = Util.infinity
   override def default = new ParameterVector
 }
+
+case class VecVar[Id](id:Id) extends Variable[Vec] {
+  def domain = Util.infinity
+  override def default = Vec.zero
+}
+

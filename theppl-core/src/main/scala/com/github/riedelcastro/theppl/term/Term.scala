@@ -21,8 +21,8 @@ trait Term[+V] {
   def substitute(substitution: Substitution): Term[V] = this
   def ground: Term[V] = this
   def isConstant = variables.isEmpty
-  def |(condition:State) = Conditioned(this,Substitution(condition))
-  def |[T](assignment:(Variable[T],T)) = Conditioned(this,Substitution(Seq(assignment._1),Seq(assignment._2)))
+  def |(condition:State):Term[V] = Conditioned(this,condition)
+  def |[T](assignment:(Variable[T],T)):Term[V] = this | State.singleton(assignment._1,assignment._2)
   def default:V
 
   /**
@@ -38,12 +38,20 @@ trait Term[+V] {
 
 }
 
-case class Conditioned[+V](term:Term[V],condition:Substitution) extends Composite[V,Conditioned[V]]{
+case class Substituted[+V](term:Term[V],condition:Substitution) extends Composite[V,Substituted[V]]{
   val conditioned = term.substitute(condition)
   def parts = Seq(conditioned)
-  def genericCreate(p: Seq[Term[Any]]) = Conditioned(p(0).asInstanceOf[Term[V]],condition)
+  def genericCreate(p: Seq[Term[Any]]) = Substituted(p(0).asInstanceOf[Term[V]],condition)
   def genericEval(p: Seq[Any]) = p(0).asInstanceOf[V]
   def default = term.default
+}
+
+case class Conditioned[+V](term:Term[V], condition:State) extends Term[V] {
+  def eval(state: State) = term.eval(state + condition)
+  def variables = term.variables.toSet -- condition.variables
+  def default = term.default
+  override def substitute(substitution: Substitution) = Conditioned(term.substitute(substitution),condition)
+  override def ground = Conditioned(term.ground,condition)
 }
 
 /**
@@ -120,6 +128,8 @@ trait Composite[+T, +This <: Composite[T, This]] extends Term[T] {
   override def substitute(substitution: Substitution) = {
     genericCreate(parts.map(_.substitute(substitution)))
   }
+
+//  override def |(condition: State) = genericCreate(parts.map(_ | condition))
 
   object Caster {
     implicit def cast[T](t: Any) = t.asInstanceOf[T]
@@ -246,6 +256,11 @@ object IntAdd extends Constant((x: Int, y: Int) => x + y)  with InfixFun[Int, In
 object VecAdd extends Constant((x: Vec, y: Vec) => x + y) with InfixFun[Vec, Vec, Vec] {
   def symbol = "+"
   override def javaExpr(arg1: String, arg2: String) = "Vec$.MODULE$.sum(new Vec[]{%s,%s})".format(arg1,arg2)
+}
+
+object VecDot extends Constant((x: Vec, y: Vec) => x dot y) with InfixFun[Vec, Vec, Double] {
+  def symbol = "dot"
+  override def javaExpr(arg1: String, arg2: String) = "%s.dot(%s)".format(arg1,arg2)
 }
 
 
@@ -387,21 +402,6 @@ case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends
   def default = 0.0
 }
 
-case class VecDot(arg1: Term[Vec], arg2: Term[Vec]) extends Composite[Double,Dot] {
-
-  import Caster._
-
-  //todo: evaluate for each state to get a real vector, then dot product with weights
-  //todo: feat = (value1,value2,..)
-  def parts = Seq(arg1,arg2)
-  def genericCreate(p: Seq[Term[Any]]) = Dot(p(0),p(1))
-  def genericEval(p: Seq[Any]) = {
-    val v1 = p(0).asInstanceOf[Vec]
-    val v2 = p(1).asInstanceOf[Vec]
-    v1.dot(v2)
-  }
-  def default = 0.0
-}
 
 
 case class TermPotential(term:Term[Double]) extends Potential {
@@ -410,7 +410,7 @@ case class TermPotential(term:Term[Double]) extends Potential {
 }
 
 
-object LogicPlayground extends LogicImplicits {
+object LogicPlayground extends TermImplicits {
 
 
   def main(args: Array[String]) {

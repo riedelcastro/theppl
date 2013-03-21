@@ -307,7 +307,7 @@ object TermCompiler {
   }
 
   def main(args: Array[String]) {
-    import LogicImplicits._
+    import TermImplicits._
     val test = IntVar('test)
     val compiled = compile(I { (test + test) === 2 })
     println("*** Eval:" + compiled.eval(State(Map(test -> 1))))

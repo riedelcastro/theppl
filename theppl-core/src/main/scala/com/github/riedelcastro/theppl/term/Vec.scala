@@ -17,7 +17,9 @@ trait Vec {
   def activeIndices:Traversable[Int]
 
   def dot(that:Vec):Double
-
+  override def toString = {
+    activeIndices.map(i => "%5d %f".format(i,this(i))).mkString("\n")
+  }
 }
 
 object Vec {
@@ -34,6 +36,11 @@ object Vec {
     result
   }
 
+  val zero = new Vec {
+    def dot(that: Vec) = 0.0
+    def apply(index: Int) = 0.0
+    def activeIndices = Seq.empty
+  }
 }
 
 final class SingletonVec(val index:Int, val value:Double) extends Vec {
@@ -104,7 +111,7 @@ final class SparseTroveVec(initialCapacity:Int) extends Vec {
 
 final class DenseVec(initialCapacity:Int, multiplier:Double = 2.0) extends Vec {
   private var values = new Array[Double](initialCapacity)
-  def apply(index: Int) = values(index)
+  def apply(index: Int) = if (index < values.length) values(index) else 0.0
   def activeIndices = values.indices
   def dot(that: Vec) = {
     var result = 0.0
