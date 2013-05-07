@@ -34,6 +34,8 @@ trait TermImplicits {
 
   def sum(builder: BuilderN[Variable[Any], Term[Double]]) = QuantifiedSum(builder.arguments, builder.built)
 
+  def vecSum(builder: BuilderN[Variable[Any], Term[Vec]]) = QuantifiedVecSum(builder.arguments, builder.built)
+
   def vector(builder: BuilderN[Variable[Any], Term[ParameterVector]]) = QuantifiedVectorSum(builder.arguments, builder.built)
 
 

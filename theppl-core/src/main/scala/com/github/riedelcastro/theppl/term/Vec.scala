@@ -120,6 +120,10 @@ final class DenseVec(initialCapacity:Int, multiplier:Double = 2.0) extends Vec {
   }
   def +=(that:Vec):this.type = add(that,1.0)
 
+  def update(index:Int,value:Double) {
+    values(index) = value
+  }
+
   def add(that:Vec, scale:Double=1.0):this.type = {
     for (i <- that.activeIndices) {
       ensureCapacity(i)

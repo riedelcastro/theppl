@@ -21,7 +21,9 @@ class Index {
   }
 
   def apply(args:Term[Any]*) = Indexed(this,SeqTerm(args))
+
   override def toString = map.toString
+
 }
 
 case class Indexed(index:Index, key:SeqTerm[Any]) extends Composite[Int,Indexed] {

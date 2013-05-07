@@ -278,6 +278,12 @@ object ParameterVectorAddN
   override def toString = "VSum"
 }
 
+object VecAddN
+  extends Constant((args: Seq[Vec]) => args.fold(new SparseTroveVec(100))(_ + _)) {
+  override def toString = "VSum"
+}
+
+
 
 object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with UnaryFun[Boolean,Double]  {
   override def toString = "$"
@@ -402,6 +408,14 @@ case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends
   def default = 0.0
 }
 
+
+case class Loglinear(features: Term[Vec], weights: Variable[Vec]) extends Potential {
+  val self = VecDot(features, weights)
+  def hidden = self.variables
+  def score(state: State) = self.eval(state).get
+  override def substitute(substitution: Substitution) = self.substitute(substitution)
+  override def ground = self.ground
+}
 
 
 case class TermPotential(term:Term[Double]) extends Potential {

@@ -54,3 +54,9 @@ case class QuantifiedVectorSum(arguments: Seq[Variable[Any]], term:Term[Paramete
   def create(vars: Seq[Variable[Any]], newTerm: Term[ParameterVector]) = QuantifiedVectorSum(vars,newTerm)
   def aggregator = ParameterVectorAddN
 }
+
+case class QuantifiedVecSum(arguments: Seq[Variable[Any]], term:Term[Vec])
+  extends Quantification[Vec,Vec,QuantifiedVecSum] {
+  def create(vars: Seq[Variable[Any]], newTerm: Term[Vec]) = QuantifiedVecSum(vars,newTerm)
+  def aggregator = VecAddN
+}
