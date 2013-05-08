@@ -17,14 +17,17 @@ object LinearLearner {
       for (instance <- instances) {
         //create one "observed" model per instance. This model, when compiled, could
         //remember the feature vectors for each state.
-        val conditioned = (model | model.weights -> weights) | instance
+        val conditioned = (model | instance) | model.weights -> weights
         val argmaxer = Argmaxer(conditioned)
         val guess = argmaxer.argmax().state
+        println("Guess:\n" + guess)
         val gold = instance.target
+        println("Gold:\n" + gold)
         val guessFeats = (model.features | instance).eval(guess).get
         val goldFeats = (model.features | instance).eval(gold).get
         weights.add(goldFeats, 1.0)
         weights.add(guessFeats, -1.0)
+        println("Weights:" + weights)
       }
     }
     weights

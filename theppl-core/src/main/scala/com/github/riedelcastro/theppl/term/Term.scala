@@ -350,6 +350,12 @@ trait GroundAtom[R] extends Variable[R] {
   override def toString = name + args.mkString("(", ",", ")")
 }
 
+object GroundAtom {
+  def unapply[R](groundAtom:GroundAtom[R]):Option[(Symbol,Seq[Any],Dom[R])] = {
+    Some((groundAtom.name,groundAtom.args,groundAtom.range))
+  }
+}
+
 case class GroundAtom1[A1, R](name: Symbol, a1: A1, range: Dom[R]) extends GroundAtom[R] {
   def args = Seq(a1)
 }

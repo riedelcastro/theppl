@@ -207,21 +207,18 @@ object State {
 
   def singleton[Value](variable: Variable[Value], state: Value) = new SingletonState(variable, state)
 
-//  def apply(pairs:(Variable[Any],Any)*):State = apply(pairs.toMap)
+  //  def apply(pairs:(Variable[Any],Any)*):State = apply(pairs.toMap)
 
   def apply(map: Map[Variable[Any], Any]): State = new State {
     def get[V](variable: Variable[V]) = map.get(variable).asInstanceOf[Option[V]]
-
-    override def toString = map.toString
     override def variables = map.keySet
-
   }
 
   def fromFunction(pf: PartialFunction[Variable[Any], Any]): State = new State {
     def get[V](variable: Variable[V]) = pf.lift(variable).asInstanceOf[Option[V]]
   }
 
-//  def apply(assignments:(Variable[Any],Any)*):State = apply(assignments.toMap)
+  //  def apply(assignments:(Variable[Any],Any)*):State = apply(assignments.toMap)
 
   def apply(variables: Seq[Variable[Any]], tuple: Seq[Any]): State = {
     val map = variables.indices.map(i => variables(i) -> tuple(i)).toMap
@@ -261,6 +258,7 @@ trait State extends Messages {
    */
   def closed = new State {
     def get[V](variable: Variable[V]) = self.get(variable).orElse(Some(variable.default))
+    override def variables = self.variables
   }
 
   /**
@@ -270,6 +268,25 @@ trait State extends Messages {
    */
   def target = new State {
     def get[V](variable: Variable[V]) = self.get(variable).orElse(self.get(Target(variable)))
+    override def variables = self.variables.filter(v => self.get(v).isDefined || self.get(Target(v)).isDefined)
+  }
+
+  /**
+   * Hides variables (matching the predicate) and turns them into target variables. That is,
+   * accessing the state for a variable v that is hidden yields None, but accessing
+   * Target(v) returns the original result
+   * @param predicate predicate to test whether variable should be hidden.
+   * @return a state that returns None for variables hidden according to the predicate. If the variable
+   *         is not hidden and a Target(v) variable where v is hidden, the value for v is returned. If
+   *         the variable is not hidden and not a Target, the value is the original value in this state.
+   */
+  def hide(predicate: PartialFunction[Variable[Any],Boolean]) = new State {
+    def isHidden[V](variable: Variable[V]) = predicate.isDefinedAt(variable) && predicate(variable)
+    def get[V](variable: Variable[V]) = variable match {
+      case Target(v) if (isHidden(v)) => self.get(v)
+      case v => if (isHidden(v)) None else self.get(v)
+    }
+    override def variables = self.variables.map(v => if (isHidden(v)) Target(v) else v)
   }
 
   /**
@@ -287,7 +304,7 @@ trait State extends Messages {
    * @param vars the variables to remove bindings for
    * @return a state that returns None for the defined variables, and the original value otherwise.
    */
-  def -(vars:Set[Variable[Any]]) = new State {
+  def -(vars: Set[Variable[Any]]) = new State {
     def get[V](variable: Variable[V]) = if (vars(variable)) None else self.get(variable)
   }
 
@@ -295,14 +312,15 @@ trait State extends Messages {
    * Set of variables this state *explicitly* defines variables for.
    * @return explicitly defined variables.
    */
-  def variables:Set[Variable[Any]] = Util.infinity
+  def variables: Set[Variable[Any]] = Util.infinity
 
   def message[V](v: Variable[V]) = new Message[V] {
     thisMsg =>
     def apply(value: V) = if (get(v) == Some(value)) 1.0 else 0.0
     def variable = v
   }
-
-
+  override def toString = {
+    variables.map(v => "%30s -> %s".format(v,apply(v))).mkString("\n")
+  }
 }
 

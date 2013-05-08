@@ -17,9 +17,13 @@ trait Vec {
   def activeIndices:Traversable[Int]
 
   def dot(that:Vec):Double
+
   override def toString = {
     activeIndices.map(i => "%5d %f".format(i,this(i))).mkString("\n")
   }
+
+  def toMap = activeIndices.map(i => i -> apply(i)).toMap
+
 }
 
 object Vec {
@@ -40,6 +44,7 @@ object Vec {
     def dot(that: Vec) = 0.0
     def apply(index: Int) = 0.0
     def activeIndices = Seq.empty
+    override def toString = "VEC-ZERO"
   }
 }
 

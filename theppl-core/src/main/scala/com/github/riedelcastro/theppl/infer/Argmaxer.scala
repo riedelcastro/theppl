@@ -66,7 +66,7 @@ trait BruteForceArgmaxer extends Argmaxer with HasPotential with HasLogger {
   def argmax(penalties: Messages) = {
     logger.trace("Bruteforce argmaxer used")
     val states = potential.allStates
-    def scored = states.map(state => Scored(state, potential.penalizedScore(penalties, state)))
+    val scored = states.map(state => Scored(state, potential.penalizedScore(penalties, state)))
     val result = scored.maxBy(_.score)
     new ArgmaxResult {
       def state = result.value

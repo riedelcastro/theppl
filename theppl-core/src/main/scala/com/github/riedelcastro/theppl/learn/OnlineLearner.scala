@@ -103,11 +103,7 @@ trait SuperviseByDeterministicExpectations[Context] extends SuperviseByExpectati
 }
 
 
-trait Learner[Context] extends HasTemplate[Context] {
 
-  def instances: Seq[Context]
-  def train()
-}
 
 trait Learner2 {
   def train[Context, T <: Template[Context]](template:T)(instances:Seq[template.Context])

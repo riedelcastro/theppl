@@ -3,6 +3,9 @@ package com.github.riedelcastro.theppl.term
 import gnu.trove.map.custom_hash.TObjectIntCustomHashMap
 import gnu.trove.strategy.HashingStrategy
 import java.util
+import scala.collection.JavaConversions._
+import scala.collection.mutable
+import gnu.trove.procedure.TObjectIntProcedure
 
 /**
  * @author Sebastian Riedel
@@ -20,9 +23,23 @@ class Index {
     map.adjustOrPutValue(args,0,map.size)
   }
 
+  def inverse() = {
+    val result = new mutable.HashMap[Int,Array[AnyRef]]
+    map.forEachEntry(new TObjectIntProcedure[Array[AnyRef]] {
+      def execute(a: Array[AnyRef], b: Int) = {result(b) = a; true}
+    })
+    result
+  }
+
   def apply(args:Term[Any]*) = Indexed(this,SeqTerm(args))
 
-  override def toString = map.toString
+  override def toString = {
+    val result = new mutable.StringBuilder()
+    map.forEachEntry(new TObjectIntProcedure[Array[AnyRef]] {
+      def execute(a: Array[AnyRef], b: Int) = {result.append("%40s -> %d\n".format(a.mkString(" , "),b)); true}
+    })
+    result.toString()
+  }
 
 }
 

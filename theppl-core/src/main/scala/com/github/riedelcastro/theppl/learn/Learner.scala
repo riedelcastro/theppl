@@ -1,8 +1,10 @@
-package com.github.riedelcastro.theppl.term
+package com.github.riedelcastro.theppl.learn
 
 import com.github.riedelcastro.theppl._
 import infer.{BruteForceArgmaxer, Argmaxer}
 import com.github.riedelcastro.theppl.VectorVar
+import com.github.riedelcastro.theppl.term._
+import com.github.riedelcastro.theppl.term.Loglinear
 
 
 object Learner {
@@ -28,3 +30,8 @@ object Learner {
   }
 }
 
+trait Learner[Context] extends HasTemplate[Context] {
+
+  def instances: Seq[Context]
+  def train()
+}

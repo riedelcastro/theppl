@@ -10,6 +10,7 @@ import com.github.riedelcastro.theppl.term.GroundAtom1
 import com.github.riedelcastro.theppl.term.Constant
 import com.github.riedelcastro.theppl.term.Pred1
 import com.github.riedelcastro.theppl.term.Dom
+import com.github.riedelcastro.theppl.learn.LinearLearner
 
 /**
  * @author Sebastian Riedel
@@ -36,8 +37,15 @@ object MarkovLogicExample {
     //an attribute
     val name = 'name := Persons -> Strings
 
-    //build a world in which smoking implies cancer
-    val state = State(Map(smokes('Anna) -> true, cancer('Anna) -> true, smokes('Peter) -> false, cancer('Peter) -> true))
+    //build a worlds in which smoking implies cancer ... (and use closed world assumption).
+    val state1 = State(Map(
+      smokes('Anna) -> true, cancer('Anna) -> true,
+      smokes('Peter) -> true, cancer('Peter) -> true,
+      friends('Anna, 'Peter) -> true)).closed
+    val state2 = State(Map(
+      smokes('Anna) -> true, cancer('Anna) -> true,
+      smokes('Peter) -> false, cancer('Peter) -> false,
+      friends('Anna, 'Peter) -> false)).closed
 
     //this index maps feature indices to integers and vice versa
     val index = new Index()
@@ -48,13 +56,27 @@ object MarkovLogicExample {
     val f1 = vecSum { for (p <- Persons) yield index('smoke_bias) --> I { smokes(p) } }
     val f2 = vecSum { for (p <- Persons) yield index('cancer_bias) --> I { cancer(p) } }
     val f3 = vecSum { for (p <- Persons) yield index('smoking_is_bad) --> I { smokes(p) ==> cancer(p) } }
-    val f4 = vecSum { for (p1 <- Persons; p2 <- Persons) yield index('peer_pressure) --> I { smokes(p1) && friends(p1,p2) ==> smokes(p2) } }
+    val f4 = vecSum { for (p1 <- Persons; p2 <- Persons) yield index('peer_pressure) --> I { (smokes(p1) && friends(p1, p2)) ==> smokes(p2) } }
+
+    //the beauty of defining suff. statistics that way is that this
+    //makes the "constant" depending weights very easy to implement, and  transparent
+    //this creates a different component for every person...
+    val f5 = vecSum { for (p <- Persons) yield index('smoke_bias, p) --> I { smokes(p) } }
 
     //the variable corresponding to the weight vector
     val weightsVar = VecVar('weights)
 
+    val features = f2 //f1 + f2 + f3 + f4
+
+    println("Feature Values:")
+    println(features.eval(state1).get)
+    println(features.eval(state2).get)
+    println(index)
+
+
+
     //the mln is simply the dot product of weights and the sum of all the sufficient statistics
-    val mln = Loglinear(f1 + f2 + f3 + f4, weightsVar)
+    val mln = Loglinear(features, weightsVar)
 
     //an actual weight vector
     val weights = new DenseVec(10)
@@ -64,6 +86,16 @@ object MarkovLogicExample {
 
     //the MLN with fixed weights
     val fixedMLN = mln | weightsVar -> weights
+
+    //training set (we hide cancer to learn how to predict it).
+    val trainingSet = Seq(state1,state2).map(_.hide({case GroundAtom('cancer,_,_) => true}))
+
+    val learnedWeights = LinearLearner.learn(mln)(trainingSet)
+
+    val inverseIndex = index.inverse()
+    println(learnedWeights)
+    println(learnedWeights.toMap.map({case (index,value) => inverseIndex.get(index).map(_.mkString(",")) -> value}).mkString("\n"))
+
 
 
     //FROM HERE ON LEGACY CODE
@@ -76,7 +108,7 @@ object MarkovLogicExample {
     val pot2 = I { smokes('Anna) }
 
     //let's test the potential
-    println(pot2.eval(state)) //should be 1.0
+    println(pot2.eval(state1)) //should be 1.0
 
     //let's find the potential's argmax world
     println(pot2.argmax().state) //should be smokes(Anna) -> true
