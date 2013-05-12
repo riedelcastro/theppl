@@ -21,9 +21,9 @@ trait Term[+V] {
   def substitute(substitution: Substitution): Term[V] = this
   def ground: Term[V] = this
   def isConstant = variables.isEmpty
-  def |(condition:State):Conditioned[V] = Conditioned(this,condition)
-  def |[T](assignment:(Variable[T],T)):Conditioned[V] = this | State.singleton(assignment._1,assignment._2)
-  def default:V
+  def |(condition: State): Conditioned[V] = Conditioned(this, condition)
+  def |[T](assignment: (Variable[T], T)): Conditioned[V] = this | State.singleton(assignment._1, assignment._2)
+  def default: V
 
   /**
    * Iterates over all states for the variables of this term.
@@ -38,20 +38,28 @@ trait Term[+V] {
 
 }
 
-case class Substituted[+V](term:Term[V],condition:Substitution) extends Composite[V,Substituted[V]]{
+case class Substituted[+V](term: Term[V], condition: Substitution) extends Composite[V, Substituted[V]] {
   val conditioned = term.substitute(condition)
   def parts = Seq(conditioned)
-  def genericCreate(p: Seq[Term[Any]]) = Substituted(p(0).asInstanceOf[Term[V]],condition)
+  def genericCreate(p: Seq[Term[Any]]) = Substituted(p(0).asInstanceOf[Term[V]], condition)
   def genericEval(p: Seq[Any]) = p(0).asInstanceOf[V]
   def default = term.default
 }
 
-case class Conditioned[+V](term:Term[V], condition:State) extends Term[V] {
+case class Conditioned[+V](term: Term[V], condition: State) extends Term[V] {
   def eval(state: State) = term.eval(state + condition)
-  def variables = SetUtil.SetMinus(term.variables.toSet,condition.variables)
+  def variables = {
+    def conditionVars(vars:Set[Variable[Any]]):Set[Variable[Any]] = vars match {
+      case SetUtil.Union(args) => SetUtil.Union(args.map(conditionVars))
+      case pa: Variables.PartialAtoms => pa.conditioned(condition)
+      case _ => vars
+    }
+    val mapped = conditionVars(term.variables.toSet)
+    SetUtil.SetMinus(mapped, condition.variables)
+  }
   def default = term.default
-  override def substitute(substitution: Substitution) = Conditioned(term.substitute(substitution),condition)
-  override def ground = Conditioned(term.ground,condition)
+  override def substitute(substitution: Substitution) = Conditioned(term.substitute(substitution), condition)
+  override def ground = Conditioned(term.ground, condition)
 }
 
 /**
@@ -70,7 +78,7 @@ object Substitution {
     def subset(vars: Set[Variable[Any]]) = apply(map.filter(e => vars(e._1)))
   }
 
-  def apply(state:State):Substitution = new Substitution {
+  def apply(state: State): Substitution = new Substitution {
     def get[T](variable: Variable[T]) = state.get(variable).map(Constant(_))
     def subset(vars: Set[Variable[Any]]) = apply(state - vars)
     def variables = state.variables
@@ -117,7 +125,7 @@ object Caster {
  */
 trait Composite[+T, +This <: Composite[T, This]] extends Term[T] {
   def parts: Seq[Term[Any]]
-  def variables = parts.flatMap(_.variables).toSet.toSeq
+  def variables: Iterable[Variable[Any]] = SetUtil.Union(parts.map(_.variables.toSet).toSet)
   def genericCreate(p: Seq[Term[Any]]): This
   def genericEval(p: Seq[Any]): T
   def eval(state: State) = {
@@ -132,13 +140,12 @@ trait Composite[+T, +This <: Composite[T, This]] extends Term[T] {
     genericCreate(parts.map(_.substitute(substitution)))
   }
 
-//  override def |(condition: State) = genericCreate(parts.map(_ | condition))
-
+  //  override def |(condition: State) = genericCreate(parts.map(_ | condition))
 
 
 }
 
-trait FunApp[+R,F, This <: FunApp[R, F, This]] extends Composite[R, This] {
+trait FunApp[+R, F, This <: FunApp[R, F, This]] extends Composite[R, This] {
   def f: Term[Any]
   def args: Seq[Term[Any]]
   def parts = f +: args
@@ -147,7 +154,9 @@ trait FunApp[+R,F, This <: FunApp[R, F, This]] extends Composite[R, This] {
   def genericFunAppEval(f: F, args: Seq[Any]): R
   def genericEval(p: Seq[Any]) = genericFunAppEval(p(0).asInstanceOf[F], p.drop(1))
   override def variables = f match {
-    //case p:Pred[_,_] => Variables.GroundAtoms(Set(p)) ++ parts.flatMap(_.variables)
+    case p: Pred[_, _] =>
+      val union = SetUtil.Union(args.toSet.map((term: Term[Any]) => term.variables.toSet) + Variables.PartialAtoms(p, args))
+      union
     case _ => super.variables
   }
 }
@@ -178,13 +187,13 @@ case class FunApp2[A1, A2, R](f: Term[(A1, A2) => R],
     case in: InfixFun[_, _, _] => "%s %s %s".format(a1, in.symbol, a2)
     case _ => super.toString
   }
-  def default = f.default(a1.default,a2.default)
+  def default = f.default(a1.default, a2.default)
 }
 
 object Applied {
-  def unapply(term:Term[Any]):Option[(Term[Any],Seq[Term[Any]])] = {
+  def unapply(term: Term[Any]): Option[(Term[Any], Seq[Term[Any]])] = {
     term match {
-      case f:FunApp[_,_,_] => Some((f.f,f.args))
+      case f: FunApp[_, _, _] => Some((f.f, f.args))
       case _ => None
     }
   }
@@ -192,17 +201,18 @@ object Applied {
 
 
 object Applied1 {
-  def unapply(term:Term[Any]):Option[(Term[Any], Term[Any])] = {
+  def unapply(term: Term[Any]): Option[(Term[Any], Term[Any])] = {
     term match {
-      case f:FunApp1[_,_] => Some((f.f,f.a1))
+      case f: FunApp1[_, _] => Some((f.f, f.a1))
       case _ => None
     }
   }
 }
+
 object Applied2 {
-  def unapply(term:Term[Any]):Option[(Term[Any], Term[Any], Term[Any])] = {
+  def unapply(term: Term[Any]): Option[(Term[Any], Term[Any], Term[Any])] = {
     term match {
-      case f:FunApp2[_,_,_] => Some((f.f,f.a1,f.a2))
+      case f: FunApp2[_, _, _] => Some((f.f, f.a1, f.a2))
       case _ => None
     }
   }
@@ -235,27 +245,27 @@ case class Dom[+T](name: Symbol, values: Seq[T]) extends Builder1[UniqueVar[T], 
 
 trait FunTerm1[A1, R] extends Term[A1 => R] {
   def apply(a: Term[A1]): FunApp1[A1, R] = FunApp1(this, a)
-  def unapply(app:FunApp1[_,_]):Option[Term[A1]]= {
+  def unapply(app: FunApp1[_, _]): Option[Term[A1]] = {
     if (app.f == this) Some(app.a1.asInstanceOf[Term[A1]]) else None
   }
 }
 
 trait FunTerm2[A1, A2, R] extends Term[(A1, A2) => R] {
   def apply(a1: Term[A1], a2: Term[A2]): FunApp2[A1, A2, R] = FunApp2(this, a1, a2)
-  def unapply(app:FunApp2[_,_,_]):Option[(Term[A1],Term[A2])]= {
-    if (app.f == this) Some((app.a1.asInstanceOf[Term[A1]],app.a2.asInstanceOf[Term[A2]])) else None
+  def unapply(app: FunApp2[_, _, _]): Option[(Term[A1], Term[A2])] = {
+    if (app.f == this) Some((app.a1.asInstanceOf[Term[A1]], app.a2.asInstanceOf[Term[A2]])) else None
   }
 }
 
 
 trait InfixFun[A1, A2, R] extends FunTerm2[A1, A2, R] {
   def symbol: String
-  def javaExpr(arg1:String,arg2:String) = "(" + arg1 + " " + symbol + " " + arg2 + ")"
+  def javaExpr(arg1: String, arg2: String) = "(" + arg1 + " " + symbol + " " + arg2 + ")"
 }
 
-trait UnaryFun[A1,R] extends FunTerm1[A1,R] {
-  def symbol:String
-  def javaExpr(arg1:String) = symbol + arg1
+trait UnaryFun[A1, R] extends FunTerm1[A1, R] {
+  def symbol: String
+  def javaExpr(arg1: String) = symbol + arg1
 }
 
 object And extends Constant((x: Boolean, y: Boolean) => x && y) with InfixFun[Boolean, Boolean, Boolean] {
@@ -276,18 +286,18 @@ object Eq extends Constant((a1: Any, a2: Any) => a1 == a2) with InfixFun[Any, An
   def symbol = "=="
 }
 
-object IntAdd extends Constant((x: Int, y: Int) => x + y)  with InfixFun[Int, Int, Int] {
+object IntAdd extends Constant((x: Int, y: Int) => x + y) with InfixFun[Int, Int, Int] {
   def symbol = "+"
 }
 
 object VecAdd extends Constant((x: Vec, y: Vec) => x + y) with InfixFun[Vec, Vec, Vec] {
   def symbol = "+"
-  override def javaExpr(arg1: String, arg2: String) = "Vec$.MODULE$.sum(new Vec[]{%s,%s})".format(arg1,arg2)
+  override def javaExpr(arg1: String, arg2: String) = "Vec$.MODULE$.sum(new Vec[]{%s,%s})".format(arg1, arg2)
 }
 
 object VecDot extends Constant((x: Vec, y: Vec) => x dot y) with InfixFun[Vec, Vec, Double] {
   def symbol = "dot"
-  override def javaExpr(arg1: String, arg2: String) = "%s.dot(%s)".format(arg1,arg2)
+  override def javaExpr(arg1: String, arg2: String) = "%s.dot(%s)".format(arg1, arg2)
 }
 
 
@@ -308,10 +318,9 @@ object Constants {
 }
 
 
+object DoubleAddN extends Constant((args: Seq[Double]) => args.sum) with FunTerm1[Seq[Double], Double]
 
-object DoubleAddN extends Constant((args: Seq[Double]) => args.sum) with FunTerm1[Seq[Double],Double]
-
-object DoubleTimesN extends Constant((args: Seq[Double]) => args.product) with FunTerm1[Seq[Double],Double]
+object DoubleTimesN extends Constant((args: Seq[Double]) => args.product) with FunTerm1[Seq[Double], Double]
 
 object ParameterVectorAddN
   extends Constant((args: Seq[ParameterVector]) => args.fold(new ParameterVector)((l, r) => {l += r })) {
@@ -319,13 +328,12 @@ object ParameterVectorAddN
 }
 
 object VecAddN
-  extends Constant((args: Seq[Vec]) => args.fold(new SparseTroveVec(100))(_ + _)) with FunTerm1[Seq[Vec],Vec] {
+  extends Constant((args: Seq[Vec]) => args.fold(new SparseTroveVec(100))(_ + _)) with FunTerm1[Seq[Vec], Vec] {
   override def toString = "VSum"
 }
 
 
-
-object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with UnaryFun[Boolean,Double]  {
+object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with UnaryFun[Boolean, Double] {
   override def toString = "I"
   def symbol = "I"
   override def javaExpr(arg1: String) = " %s ? 1.0 : 0.0".format(arg1)
@@ -338,28 +346,28 @@ case class TupleTerm2[T1, T2](arg1: Term[T1], arg2: Term[T2]) extends Composite[
   def parts = Seq(arg1, arg2)
   def genericCreate(p: Seq[Term[Any]]) = TupleTerm2(p(0), p(1))
   def genericEval(p: Seq[Any]) = (p(0), p(1))
-  def default = (arg1.default,arg2.default)
+  def default = (arg1.default, arg2.default)
 }
 
 case class SeqTerm[+T](args: Seq[Term[T]]) extends Composite[Seq[T], SeqTerm[T]] {
   def parts = args
   def genericCreate(p: Seq[Term[Any]]) = SeqTerm(p.map(_.asInstanceOf[Term[T]]))
   def genericEval(p: Seq[Any]) = p.map(_.asInstanceOf[T])
-  def -->(value:Term[Double]) = SingletonVector(this,value)
-  def -->(value:Double) = SingletonVector(this,Constant(value))
+  def -->(value: Term[Double]) = SingletonVector(this, value)
+  def -->(value: Double) = SingletonVector(this, Constant(value))
 
   override def toString = args.mkString("[", ",", "]")
   def default = args.map(_.default)
 }
 
-case class SingletonVecTerm(index:Term[Int],value:Term[Double]) extends Composite[SingletonVec,SingletonVecTerm] {
+case class SingletonVecTerm(index: Term[Int], value: Term[Double]) extends Composite[SingletonVec, SingletonVecTerm] {
 
   import Caster._
 
-  def parts = Seq(index,value)
-  def genericCreate(p: Seq[Term[Any]]) = SingletonVecTerm(p(0),p(1))
-  def genericEval(p: Seq[Any]) = new SingletonVec(p(0),p(1))
-  def default = new SingletonVec(-1,0.0)
+  def parts = Seq(index, value)
+  def genericCreate(p: Seq[Term[Any]]) = SingletonVecTerm(p(0), p(1))
+  def genericEval(p: Seq[Any]) = new SingletonVec(p(0), p(1))
+  def default = new SingletonVec(-1, 0.0)
 }
 
 case class SingletonVector(args: SeqTerm[Any], value: Term[Double]) extends Composite[ParameterVector, SingletonVector] {
@@ -391,8 +399,8 @@ trait GroundAtom[R] extends Variable[R] {
 }
 
 object GroundAtom {
-  def unapply[R](groundAtom:GroundAtom[R]):Option[(Symbol,Seq[Any],Dom[R])] = {
-    Some((groundAtom.name,groundAtom.args,groundAtom.range))
+  def unapply[R](groundAtom: GroundAtom[R]): Option[(Symbol, Seq[Any], Dom[R])] = {
+    Some((groundAtom.name, groundAtom.args, groundAtom.range))
   }
 }
 
@@ -426,7 +434,7 @@ case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Bool)
   def mapping(a1: A1): GroundAtom1[A1, R] = GroundAtom1(name, a1, range)
   def apply(a1: A1) = mapping(a1)
   def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
-  def default = (a1:A1) => mapping(a1).default
+  def default = (a1: A1) => mapping(a1).default
 }
 
 case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: Dom[R] = Bool)
@@ -437,15 +445,15 @@ case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: D
   def mapping(a1: A1, a2: A2) = GroundAtom2(name, a1, a2, range)
   def apply(a1: A1, a2: A2) = mapping(a1, a2)
   def eval(state: State) = Some((a1: A1, a2: A2) => state(mapping(a1, a2)))
-  def default = (a1:A1,a2:A2) => mapping(a1,a2).default
+  def default = (a1: A1, a2: A2) => mapping(a1, a2).default
 }
 
-case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends Composite[Double,Dot] {
+case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends Composite[Double, Dot] {
 
   //todo: evaluate for each state to get a real vector, then dot product with weights
   //todo: feat = (value1,value2,..)
-  def parts = Seq(arg1,arg2)
-  def genericCreate(p: Seq[Term[Any]]) = Dot(p(0).asInstanceOf[Term[ParameterVector]],p(1).asInstanceOf[Term[ParameterVector]])
+  def parts = Seq(arg1, arg2)
+  def genericCreate(p: Seq[Term[Any]]) = Dot(p(0).asInstanceOf[Term[ParameterVector]], p(1).asInstanceOf[Term[ParameterVector]])
   def genericEval(p: Seq[Any]) = {
     val v1 = p(0).asInstanceOf[ParameterVector]
     val v2 = p(1).asInstanceOf[ParameterVector]
@@ -455,8 +463,8 @@ case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends
 }
 
 
-case class Loglinear(features: Term[Vec], weights: Variable[Vec], base:Term[Double] = Constants.Zero) extends Potential {
-  val self = DoubleAdd(VecDot(features, weights),base)
+case class Loglinear(features: Term[Vec], weights: Variable[Vec], base: Term[Double] = Constants.Zero) extends Potential {
+  val self = DoubleAdd(VecDot(features, weights), base)
   def hidden = self.variables
   def score(state: State) = self.eval(state).get
   override def substitute(substitution: Substitution) = self.substitute(substitution)
@@ -464,7 +472,7 @@ case class Loglinear(features: Term[Vec], weights: Variable[Vec], base:Term[Doub
 }
 
 
-case class TermPotential(term:Term[Double]) extends Potential {
+case class TermPotential(term: Term[Double]) extends Potential {
   def hidden = term.variables
   def score(state: State) = term.eval(state).get
 }

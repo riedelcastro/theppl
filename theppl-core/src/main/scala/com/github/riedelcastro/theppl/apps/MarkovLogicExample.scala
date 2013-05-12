@@ -30,8 +30,8 @@ object MarkovLogicExample {
     val friends = 'friends := (Persons, Persons) -> Bool
 
     //sets of variables we can use to compactly define states using the `close` and `hide` methods of states.
-    val hidden = Variables.GroundAtoms(Set(cancer))
-    val observed = Variables.GroundAtoms(Set(smokes,friends))
+    val hidden = Variables.AllAtoms(Set(cancer))
+    val observed = Variables.AllAtoms(Set(smokes,friends))
 
 
     //build a worlds in which smoking implies cancer ... (and use closed world assumption on observed predicates).

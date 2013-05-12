@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import com.github.riedelcastro.theppl.term._
-import com.github.riedelcastro.theppl.util.{SetUtil, Util}
+import com.github.riedelcastro.theppl.util.{StreamUtil, SetUtil, Util}
 
 
 /**
@@ -79,7 +79,7 @@ object Variables {
     def iterator = Util.infinity
   }
 
-  case class GroundAtoms(predicates:Set[Pred[_,_]]) extends Set[Variable[Any]] {
+  case class AllAtoms(predicates:Set[Pred[_,_]]) extends Set[Variable[Any]] {
     val names = predicates.map(_.name)
     def contains(elem: Variable[Any]) = elem match {
       case GroundAtom(name,_,_) => names(name)
@@ -88,6 +88,19 @@ object Variables {
     def +(elem: Variable[Any]) = SetUtil.Union(Set(this,Set(elem)))
     def -(elem: Variable[Any]) = SetUtil.SetMinus(this,Set(elem))
     def iterator = predicates.iterator.flatMap(_.variables.toIterator)
+  }
+
+  case class PartialAtoms(pred:Pred[_,_],args:Seq[Term[Any]], condition:State = State.empty) extends Set[Variable[Any]] {
+    lazy val evaluated = args.map(_.eval(condition))
+    lazy val domains = evaluated.zip(pred.domains).map({case (Some(value),_) => Set(value); case (_,dom) => dom.values.toSet})
+    def contains(elem: Variable[Any]) = elem match {
+      case GroundAtom(name,args,_) => args.zip(domains).forall({case (arg,dom) => dom(arg)})
+      case _ => false
+    }
+    def +(elem: Variable[Any]) = SetUtil.Union(Set(this,Set(elem)))
+    def -(elem: Variable[Any]) = SetUtil.SetMinus(this,Set(elem))
+    def iterator = StreamUtil.allTuples(domains).map(pred.genericMapping).toIterator
+    def conditioned(state:State) = copy(condition = condition + state)
   }
 
 

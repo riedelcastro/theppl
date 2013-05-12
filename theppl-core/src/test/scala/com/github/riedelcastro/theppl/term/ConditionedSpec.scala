@@ -20,7 +20,9 @@ class ConditionedSpec extends ThePPLSpec {
       val a1 = BoolVar('a1)
       val a2 = BoolVar('a2)
       val term = a1 && pred(a1,a2 && a1) | State(Map(a1 -> true, a2 -> false))
-      println(term.variables.mkString("\n"))
+      val vars = term.variables
+      vars must be (Set(GroundAtom2('pred,true,false,Bool)))
+      println(vars.mkString("\n"))
 
     }
 
