@@ -497,7 +497,7 @@ object LogicPlayground extends TermImplicits {
 
     val state = State(Map(smokes(1) -> true, friends(0, 1) -> false))
     println(state(smokes(1)))
-    println(state.closed(smokes(2)))
+    println(state.closed()(smokes(2)))
     val f = forall { for (x <- Person) yield forall { for (y <- Person) yield cancer(x) ==> smokes(y) } }
     val grounded = f.ground
     println(grounded)

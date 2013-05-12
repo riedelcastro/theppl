@@ -41,11 +41,11 @@ object MarkovLogicExample {
     val state1 = State(Map(
       smokes('Anna) -> true, cancer('Anna) -> true,
       smokes('Peter) -> true, cancer('Peter) -> true,
-      friends('Anna, 'Peter) -> true)).closed
+      friends('Anna, 'Peter) -> true)).closed()
     val state2 = State(Map(
       smokes('Anna) -> true, cancer('Anna) -> true,
       smokes('Peter) -> false, cancer('Peter) -> false,
-      friends('Anna, 'Peter) -> false)).closed
+      friends('Anna, 'Peter) -> false)).closed()
 
     //this index maps feature indices to integers and vice versa
     val index = new Index()

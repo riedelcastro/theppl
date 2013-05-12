@@ -256,9 +256,9 @@ trait State extends Messages {
    * get returns Some([default state for that variable].
    * @return a closed world version of the given state.
    */
-  def closed = new State {
-    def get[V](variable: Variable[V]) = self.get(variable).orElse(Some(variable.default))
-    override def variables = self.variables
+  def closed(variables:Set[Variable[Any]] = Variables.All) = new State {
+    def get[V](variable: Variable[V]) = self.get(variable).orElse(if (variables(variable)) Some(variable.default) else None)
+    override def variables = self.variables ++ variables
   }
 
   /**
