@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import com.github.riedelcastro.theppl.term._
-import util.Util
+import com.github.riedelcastro.theppl.util.{SetUtil, Util}
 
 
 /**
@@ -71,24 +71,11 @@ case class VecVar[Id](id:Id) extends Variable[Vec] {
 
 object Variables {
 
-  case class Removed(original:Set[Variable[Any]],removed:Variable[Any]) extends Set[Variable[Any]] {
-    def contains(elem: Variable[Any]) = elem != removed && original.contains(elem)
-    def +(elem: Variable[Any]) = new Removed(original + elem, removed)
-    def -(elem: Variable[Any]) = new Removed(this,elem)
-    def iterator = original.iterator.filter(_ != removed)
-  }
-  case class Added(original:Set[Variable[Any]],added:Variable[Any]) extends Set[Variable[Any]] {
-    def contains(elem: Variable[Any]) = elem == added || original.contains(elem)
-    def +(elem: Variable[Any]) = new Added(this, elem)
-    def -(elem: Variable[Any]) = new Added(original - elem,added)
-    def iterator = original.iterator ++ Iterator(added)
-  }
-
 
   object All extends Set[Variable[Any]] {
     def contains(elem: Variable[Any]) = true
     def +(elem: Variable[Any]) = this
-    def -(elem: Variable[Any]) = new Removed(this,elem)
+    def -(elem: Variable[Any]) = SetUtil.SetMinus(this,Set(elem))
     def iterator = Util.infinity
   }
 
@@ -98,10 +85,12 @@ object Variables {
       case GroundAtom(name,_,_) => names(name)
       case _ => false
     }
-    def +(elem: Variable[Any]) = new Added(this,elem)
-    def -(elem: Variable[Any]) = new Removed(this,elem)
+    def +(elem: Variable[Any]) = SetUtil.Union(Set(this,Set(elem)))
+    def -(elem: Variable[Any]) = SetUtil.SetMinus(this,Set(elem))
     def iterator = predicates.iterator.flatMap(_.variables.toIterator)
   }
+
+
 
 
 }
