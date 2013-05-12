@@ -178,6 +178,15 @@ case class FunApp2[A1, A2, R](f: Term[(A1, A2) => R],
   def default = f.default(a1.default,a2.default)
 }
 
+object Applied {
+  def unapply(term:Term[Any]):Option[(Term[Any],Seq[Term[Any]])] = {
+    term match {
+      case f:FunApp[_,_,_] => Some((f.f,f.args))
+      case _ => None
+    }
+  }
+}
+
 
 object Applied1 {
   def unapply(term:Term[Any]):Option[(Term[Any], Term[Any])] = {
@@ -195,6 +204,15 @@ object Applied2 {
     }
   }
 }
+
+//object Applied2Typed {
+//  def unapply[A,B](term:Term[Any]):Option[(Term[(A,B)=>Any], Term[A], Term[B])] = {
+//    term match {
+//      case f:FunApp2[_,_,_] => Some((f.f,f.a1,f.a2))
+//      case _ => None
+//    }
+//  }
+//}
 
 
 class UniqueVar[+T](name: String, val domain: Seq[T]) extends Variable[T] with Term[T] {
@@ -214,10 +232,16 @@ case class Dom[+T](name: Symbol, values: Seq[T]) extends Builder1[UniqueVar[T], 
 
 trait FunTerm1[A1, R] extends Term[A1 => R] {
   def apply(a: Term[A1]): FunApp1[A1, R] = FunApp1(this, a)
+  def unapply(app:FunApp1[_,_]):Option[Term[A1]]= {
+    if (app.f == this) Some(app.a1.asInstanceOf[Term[A1]]) else None
+  }
 }
 
 trait FunTerm2[A1, A2, R] extends Term[(A1, A2) => R] {
   def apply(a1: Term[A1], a2: Term[A2]): FunApp2[A1, A2, R] = FunApp2(this, a1, a2)
+  def unapply(app:FunApp2[_,_,_]):Option[(Term[A1],Term[A2])]= {
+    if (app.f == this) Some((app.a1.asInstanceOf[Term[A1]],app.a2.asInstanceOf[Term[A2]])) else None
+  }
 }
 
 
@@ -268,10 +292,23 @@ object DoubleTimes extends Constant((x: Double, y: Double) => x * y) with InfixF
   def symbol = "*"
 }
 
+object DoubleAdd extends Constant((x: Double, y: Double) => x + y) with InfixFun[Double, Double, Double] {
+  def symbol = "+"
+}
 
-object DoubleAddN extends Constant((args: Seq[Double]) => args.sum)
 
-object DoubleTimesN extends Constant((args: Seq[Double]) => args.product)
+object Constants {
+  val Zero = Constant(0.0)
+  val One = Constant(1.0)
+
+  val VecZero = Constant(Vec.zero)
+}
+
+
+
+object DoubleAddN extends Constant((args: Seq[Double]) => args.sum) with FunTerm1[Seq[Double],Double]
+
+object DoubleTimesN extends Constant((args: Seq[Double]) => args.product) with FunTerm1[Seq[Double],Double]
 
 object ParameterVectorAddN
   extends Constant((args: Seq[ParameterVector]) => args.fold(new ParameterVector)((l, r) => {l += r })) {
@@ -279,14 +316,14 @@ object ParameterVectorAddN
 }
 
 object VecAddN
-  extends Constant((args: Seq[Vec]) => args.fold(new SparseTroveVec(100))(_ + _)) {
+  extends Constant((args: Seq[Vec]) => args.fold(new SparseTroveVec(100))(_ + _)) with FunTerm1[Seq[Vec],Vec] {
   override def toString = "VSum"
 }
 
 
 
 object Iverson extends Constant((x: Boolean) => if (x) 1.0 else 0.0) with UnaryFun[Boolean,Double]  {
-  override def toString = "$"
+  override def toString = "I"
   def symbol = "I"
   override def javaExpr(arg1: String) = " %s ? 1.0 : 0.0".format(arg1)
 }
@@ -415,8 +452,8 @@ case class Dot(arg1: Term[ParameterVector], arg2: Term[ParameterVector]) extends
 }
 
 
-case class Loglinear(features: Term[Vec], weights: Variable[Vec]) extends Potential {
-  val self = VecDot(features, weights)
+case class Loglinear(features: Term[Vec], weights: Variable[Vec], base:Term[Double] = Constants.Zero) extends Potential {
+  val self = DoubleAdd(VecDot(features, weights),base)
   def hidden = self.variables
   def score(state: State) = self.eval(state).get
   override def substitute(substitution: Substitution) = self.substitute(substitution)

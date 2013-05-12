@@ -20,14 +20,11 @@ object LinearLearner {
         val conditioned = (model | instance) | model.weights -> weights
         val argmaxer = Argmaxer(conditioned)
         val guess = argmaxer.argmax().state
-        println("Guess:\n" + guess)
         val gold = instance.target
-        println("Gold:\n" + gold)
         val guessFeats = (model.features | instance).eval(guess).get
         val goldFeats = (model.features | instance).eval(gold).get
         weights.add(goldFeats, 1.0)
         weights.add(guessFeats, -1.0)
-        println("Weights:" + weights)
       }
     }
     weights

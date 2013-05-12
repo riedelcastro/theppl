@@ -10,16 +10,8 @@ import scala.Tuple2
  */
 trait TermImplicits {
 
-  def $ = Iverson
   def I = Iverson
   def S[V](args:Term[V]*) = SeqTerm(args.toSeq)
-
-  def sum(arg1:Term[ParameterVector],arg2:Term[ParameterVector]) = {
-    arg1 match {
-      //case FunApp1(ParameterVectorAddN,SeqTerm(args)) => FunApp1(ParameterVectorAddN,SeqTerm(args :+ arg2))
-      case _ => FunApp1(ParameterVectorAddN,SeqTerm(Seq(arg1,arg2)))
-    }
-  }
 
 //  implicit def toLogLinear(term:Dot) = term match {
 //    case Dot(feats,weights:Variable[Vec]) => Loglinear(feats,weights)
@@ -64,10 +56,10 @@ trait TermImplicits {
     }
   }
 
-  implicit def dom2ToTuple3[D1, D2](dom2: Tuple2[Dom[D1], Dom[D2]]) = new AnyRef {
+  implicit def dom2ToTuple3[D1, D2](dom2: (Dom[D1], Dom[D2])) = new AnyRef {
     def ->[R](range: Dom[R]) = (dom2._1, dom2._2, range)
   }
-  implicit def dom3ToTuple3[D1, D2, D3](dom: Tuple3[Dom[D1], Dom[D2], Dom[D3]]) = new AnyRef {
+  implicit def dom3ToTuple3[D1, D2, D3](dom: (Dom[D1], Dom[D2], Dom[D3])) = new AnyRef {
     def ->[R](range: Dom[R]) = (dom._1, dom._2, dom._3, range)
   }
 

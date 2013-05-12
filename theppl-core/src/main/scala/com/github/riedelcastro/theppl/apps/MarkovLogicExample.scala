@@ -96,6 +96,8 @@ object MarkovLogicExample {
     println(learnedWeights)
     println(learnedWeights.toMap.map({case (index,value) => inverseIndex.get(index).map(_.mkString(",")) -> value}).mkString("\n"))
 
+    val unrolled = Unroller.unrollAndGroupLogLinear(mln)
+    println(unrolled)
 
 
     //FROM HERE ON LEGACY CODE

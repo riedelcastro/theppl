@@ -33,14 +33,14 @@ class Index {
 
   def apply(args:Term[Any]*) = Indexed(this,SeqTerm(args))
 
-  override def toString = {
+  def toVerboseString = {
     val result = new mutable.StringBuilder()
     map.forEachEntry(new TObjectIntProcedure[Array[AnyRef]] {
       def execute(a: Array[AnyRef], b: Int) = {result.append("%40s -> %d\n".format(a.mkString(" , "),b)); true}
     })
     result.toString()
   }
-
+  override def toString = "|Index|=" + map.size()
 }
 
 case class Indexed(index:Index, key:SeqTerm[Any]) extends Composite[Int,Indexed] {
