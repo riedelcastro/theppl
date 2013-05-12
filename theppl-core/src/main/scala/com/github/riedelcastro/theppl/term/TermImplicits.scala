@@ -66,7 +66,7 @@ trait TermImplicits {
   trait BooleanTermBuilder {
     def arg1: Term[Boolean]
     def &&(arg2: Term[Boolean]) = And(arg1, arg2)
-    def ==>(arg2: Term[Boolean]) = Implies(arg1, arg2)
+    def |=>(arg2: Term[Boolean]) = Implies(arg1, arg2)
 
   }
 

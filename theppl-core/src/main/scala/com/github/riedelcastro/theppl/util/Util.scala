@@ -6,6 +6,7 @@ import collection.mutable.ArrayBuffer
 import annotation.tailrec
 import collection.JavaConversions._
 import java.util.Scanner
+import com.github.riedelcastro.theppl.{Variable, State}
 
 /**
  * @author sriedel
@@ -20,11 +21,11 @@ object Util extends HasLogger {
    * @param delim the delimiter string
    * @return the input stream as iterator of strings, separated by the given delimiter.
    */
-  def streamIterator(in:InputStream, delim:String="\n"):Iterator[String] = {
+  def streamIterator(in: InputStream, delim: String = "\n"): Iterator[String] = {
     new Scanner(in).useDelimiter(delim)
   }
 
-  /**Recursively descend directory, returning a list of files. */
+  /** Recursively descend directory, returning a list of files. */
   def files(directory: File): Seq[File] = {
     if (!directory.exists) throw new Error("File " + directory + " does not exist")
     if (directory.isFile) return List(directory)
@@ -63,17 +64,17 @@ object Util extends HasLogger {
    * Execute f on each index in 0..n
    */
   @inline
-  def forIndex(n:Int)(f:Int=>Unit) {
+  def forIndex(n: Int)(f: Int => Unit) {
     var i = 0
-    while (i < n) { f(i); i += 1 }
+    while (i < n) {f(i); i += 1 }
   }
 
   /**
    * Execute f on n..0
    */
-  def forReverseIndex(n:Int)(f:Int=>Unit) {
+  def forReverseIndex(n: Int)(f: Int => Unit) {
     var i = n - 1
-    while (i >= 0) { f(i); i -= 1 }
+    while (i >= 0) {f(i); i -= 1 }
   }
 
 
@@ -119,7 +120,7 @@ object Util extends HasLogger {
    * input stream at the given delimiter.
    * todo: this seems undone
    */
-  abstract class InputStreamIterator(source:InputStream, delimiter:String) extends Iterator[InputStream] {
+  abstract class InputStreamIterator(source: InputStream, delimiter: String) extends Iterator[InputStream] {
     private val bytes = delimiter.getBytes
     private val buffer = Array.ofDim[Int](bytes.length + 1)
     private var current = 0
@@ -128,8 +129,8 @@ object Util extends HasLogger {
     private var reachedDelimiter = true
     private var stream = new DelimitedInputStream
 
-    private def readIntoBuffer:Boolean = {
-      if (current >= buffer.size){
+    private def readIntoBuffer: Boolean = {
+      if (current >= buffer.size) {
         current = 0
       }
       val read = source.read
@@ -187,12 +188,12 @@ object MathUtil {
   /**
    * Finds the argmax (plus max) of a scored set of elements.
    */
-  def argmax[T](elements:Iterable[T], score:T=>Double):(T,Double) = {
+  def argmax[T](elements: Iterable[T], score: T => Double): (T, Double) = {
     var max = Double.NegativeInfinity
-    var result:T = null.asInstanceOf[T]
-    for (e <- elements){
+    var result: T = null.asInstanceOf[T]
+    for (e <- elements) {
       val s = score(e)
-      if (s > max){
+      if (s > max) {
         max = s
         result = e
       }
@@ -203,21 +204,30 @@ object MathUtil {
 
 object StreamUtil {
   @tailrec
-  def allSubSequences[T](items:Seq[T], tail:Stream[Seq[T]] = Stream(Seq.empty)):Stream[Seq[T]] = {
-    if (items.size == 0) tail else {
+  def allSubSequences[T](items: Seq[T], tail: Stream[Seq[T]] = Stream(Seq.empty)): Stream[Seq[T]] = {
+    if (items.size == 0) tail
+    else {
       val head = items.head
       val sequences = tail ++ tail.map(_ :+ head)
-      allSubSequences(items.drop(1),sequences)
-    }
-  } 
-  
-  @tailrec
-  def allTuples[T](domains:Seq[Iterable[T]], tail:Stream[Seq[T]] = Stream(Seq.empty)): Stream[Seq[T]] = {
-    if (domains.size == 0) tail else {
-      val domain = domains.head
-      val tuples = tail flatMap (prefix => domain map (prefix :+ _))
-      allTuples(domains.drop(1),tuples)
+      allSubSequences(items.drop(1), sequences)
     }
   }
-  
+
+  @tailrec
+  def allTuples[T](domains: Seq[Iterable[T]], tail: Stream[Seq[T]] = Stream(Seq.empty)): Stream[Seq[T]] = {
+    if (domains.size == 0) tail
+    else {
+      val domain = domains.head
+      val tuples = tail flatMap (prefix => domain map (prefix :+ _))
+      allTuples(domains.drop(1), tuples)
+    }
+  }
+
+  def allStates(variables: Seq[Variable[Any]]) = {
+    val domains = variables.map(_.domain).toSeq
+    val tuples = StreamUtil.allTuples(domains)
+    val states = tuples.map(State(variables, _))
+    states
+  }
+
 }

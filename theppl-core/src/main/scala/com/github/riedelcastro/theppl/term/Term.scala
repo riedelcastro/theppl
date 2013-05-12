@@ -482,7 +482,7 @@ object LogicPlayground extends TermImplicits {
     println(test3)
     println(forall { for (x <- Person) yield And(cancer(x), smokes(x)) })
     println(forall { for (x <- Person) yield cancer(x) && smokes(x) })
-    println(forall { for (x <- Person) yield forall { for (y <- Person) yield cancer(x) ==> smokes(y) } })
+    println(forall { for (x <- Person) yield forall { for (y <- Person) yield cancer(x) |=> smokes(y) } })
     println(forall { for (x <- Person; y <- Person) yield friends(x, y) && friends(y, x) })
     println(forall { for (x <- Person; y <- Person) yield friends(x, y) && friends(y, x) })
     println(forall { for (x <- Person; y <- Person) yield friends(x + 1, 1 + 1 + y) === friends(y, x) })
@@ -498,7 +498,7 @@ object LogicPlayground extends TermImplicits {
     val state = State(Map(smokes(1) -> true, friends(0, 1) -> false))
     println(state(smokes(1)))
     println(state.closed()(smokes(2)))
-    val f = forall { for (x <- Person) yield forall { for (y <- Person) yield cancer(x) ==> smokes(y) } }
+    val f = forall { for (x <- Person) yield forall { for (y <- Person) yield cancer(x) |=> smokes(y) } }
     val grounded = f.ground
     println(grounded)
     println(reduce(grounded))
