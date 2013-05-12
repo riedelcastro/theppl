@@ -48,7 +48,7 @@ case class Substituted[+V](term:Term[V],condition:Substitution) extends Composit
 
 case class Conditioned[+V](term:Term[V], condition:State) extends Term[V] {
   def eval(state: State) = term.eval(state + condition)
-  def variables = term.variables.toSet -- condition.variables
+  def variables = term.variables.toSet -- condition.variables //todo: make sure this doesn't actually iterate over the condition variables
   def default = term.default
   override def substitute(substitution: Substitution) = Conditioned(term.substitute(substitution),condition)
   override def ground = Conditioned(term.ground,condition)

@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl.term._
-import com.github.riedelcastro.theppl.{VecVar, State}
+import com.github.riedelcastro.theppl.{Variables, VecVar, State}
 import com.github.riedelcastro.theppl.term.GroundAtom1
 import com.github.riedelcastro.theppl.term.Pred1
 import com.github.riedelcastro.theppl.term.Dom
@@ -37,15 +37,23 @@ object MarkovLogicExample {
     //an attribute
     val name = 'name := Persons -> Strings
 
+    val hidden = Variables.GroundAtoms(Set(cancer))
+    val observed = Variables.GroundAtoms(Set(smokes,friends))
+
+
     //build a worlds in which smoking implies cancer ... (and use closed world assumption).
     val state1 = State(Map(
       smokes('Anna) -> true, cancer('Anna) -> true,
       smokes('Peter) -> true, cancer('Peter) -> true,
-      friends('Anna, 'Peter) -> true)).closed()
+      friends('Anna, 'Peter) -> true)).closed(observed)
     val state2 = State(Map(
       smokes('Anna) -> true, cancer('Anna) -> true,
       smokes('Peter) -> false, cancer('Peter) -> false,
-      friends('Anna, 'Peter) -> false)).closed()
+      friends('Anna, 'Peter) -> false)).closed(observed)
+
+    println(state1)
+    println("---")
+    println(state1.hide(hidden))
 
     //this index maps feature indices to integers and vice versa
     val index = new Index()
@@ -88,17 +96,16 @@ object MarkovLogicExample {
     val fixedMLN = mln | weightsVar -> weights
 
     //training set (we hide cancer to learn how to predict it).
-    val trainingSet = Seq(state1,state2).map(_.hide({case GroundAtom('cancer,_,_) => true}))
+    val trainingSet = Seq(state1,state2).map(_.hide(hidden))
 
     val learnedWeights = LinearLearner.learn(mln)(trainingSet)
 
     val inverseIndex = index.inverse()
     println(learnedWeights)
+    println("----")
     println(learnedWeights.toMap.map({case (index,value) => inverseIndex.get(index).map(_.mkString(",")) -> value}).mkString("\n"))
 
     val unrolled = Unroller.unrollAndGroupLogLinear(mln)
-    println(unrolled)
-
 
     //FROM HERE ON LEGACY CODE
     //a simple potential that returns 1 if 'Anna smokes, and 0 otherwise
@@ -110,10 +117,10 @@ object MarkovLogicExample {
     val pot2 = I { smokes('Anna) }
 
     //let's test the potential
-    println(pot2.eval(state1)) //should be 1.0
+//    println(pot2.eval(state1)) //should be 1.0
 
     //let's find the potential's argmax world
-    println(pot2.argmax().state) //should be smokes(Anna) -> true
+//    println(pot2.argmax().state) //should be smokes(Anna) -> true
 
     //let's do a first order term now
     val firstOrder = sum { for (p <- Persons) yield I(smokes(p) ==> cancer(p)) }

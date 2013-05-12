@@ -256,9 +256,9 @@ trait State extends Messages {
    * get returns Some([default state for that variable].
    * @return a closed world version of the given state.
    */
-  def closed(variables:Set[Variable[Any]] = Variables.All) = new State {
+  def closed(vars:Set[Variable[Any]] = Variables.All) = new State {
     def get[V](variable: Variable[V]) = self.get(variable).orElse(if (variables(variable)) Some(variable.default) else None)
-    override def variables = self.variables ++ variables
+    override def variables = self.variables ++ vars
   }
 
   /**
@@ -268,20 +268,19 @@ trait State extends Messages {
    */
   def target = new State {
     def get[V](variable: Variable[V]) = self.get(variable).orElse(self.get(Target(variable)))
-    override def variables = self.variables.filter(v => self.get(v).isDefined || self.get(Target(v)).isDefined)
+    override def variables = self.variables.map({case Target(v) => v; case v => v})
   }
 
   /**
    * Hides variables (matching the predicate) and turns them into target variables. That is,
    * accessing the state for a variable v that is hidden yields None, but accessing
    * Target(v) returns the original result
-   * @param predicate predicate to test whether variable should be hidden.
+   * @param isHidden predicate to test whether variable should be hidden.
    * @return a state that returns None for variables hidden according to the predicate. If the variable
    *         is not hidden and a Target(v) variable where v is hidden, the value for v is returned. If
    *         the variable is not hidden and not a Target, the value is the original value in this state.
    */
-  def hide(predicate: PartialFunction[Variable[Any],Boolean]) = new State {
-    def isHidden[V](variable: Variable[V]) = predicate.isDefinedAt(variable) && predicate(variable)
+  def hide(isHidden: Set[Variable[Any]]) = new State {
     def get[V](variable: Variable[V]) = variable match {
       case Target(v) if (isHidden(v)) => self.get(v)
       case v => if (isHidden(v)) None else self.get(v)

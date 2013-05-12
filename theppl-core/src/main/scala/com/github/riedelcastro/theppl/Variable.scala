@@ -93,7 +93,11 @@ object Variables {
   }
 
   case class GroundAtoms(predicates:Set[Pred[_,_]]) extends Set[Variable[Any]] {
-    def contains(elem: Variable[Any]) = ???
+    val names = predicates.map(_.name)
+    def contains(elem: Variable[Any]) = elem match {
+      case GroundAtom(name,_,_) => names(name)
+      case _ => false
+    }
     def +(elem: Variable[Any]) = new Added(this,elem)
     def -(elem: Variable[Any]) = new Removed(this,elem)
     def iterator = predicates.iterator.flatMap(_.variables.toIterator)
