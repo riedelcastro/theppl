@@ -46,12 +46,12 @@ object Unroller {
     for (base <- bases) vars2Bases.addBinding(base.variables, base)
 
     //now turn terms for the same variable set into sums and turn these into loglinear terms
-    val loglinears = for (variables <- vars2Feats.keySet ++ vars2Bases.keySet; if (!variables.isEmpty)) yield {
+    val loglinears = for (variables <- vars2Feats.keySet ++ vars2Bases.keySet) yield {
       val feat = vars2Feats.get(variables).map(t => if (t.size == 1) t.head else VecAddN(SeqTerm(t.toSeq))).getOrElse(Constants.VecZero)
       val base = vars2Bases.get(variables).map(t => if (t.size == 1) t.head else DoubleAddN(SeqTerm(t.toSeq))).getOrElse(Constants.Zero)
       Loglinear(feat, loglinear.weights, base)
     }
-    loglinears.toSeq
+    loglinears.toSeq.filter(l => l.features != Constants.VecZero || l.base != Constants.Zero )
   }
 
 }
