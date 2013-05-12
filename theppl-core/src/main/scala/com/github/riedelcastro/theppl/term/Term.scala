@@ -21,8 +21,8 @@ trait Term[+V] {
   def substitute(substitution: Substitution): Term[V] = this
   def ground: Term[V] = this
   def isConstant = variables.isEmpty
-  def |(condition:State):Term[V] = Conditioned(this,condition)
-  def |[T](assignment:(Variable[T],T)):Term[V] = this | State.singleton(assignment._1,assignment._2)
+  def |(condition:State):Conditioned[V] = Conditioned(this,condition)
+  def |[T](assignment:(Variable[T],T)):Conditioned[V] = this | State.singleton(assignment._1,assignment._2)
   def default:V
 
   /**
@@ -103,8 +103,11 @@ case class Constant[+V](value: V) extends Term[V] {
   def eval(state: State) = Some(value)
   def variables = Seq.empty
   override def toString = value.toString()
-  override def isConstant = true
   def default = value
+}
+
+object Caster {
+  implicit def cast[T](t: Any) = t.asInstanceOf[T]
 }
 
 /**
@@ -131,9 +134,6 @@ trait Composite[+T, +This <: Composite[T, This]] extends Term[T] {
 
 //  override def |(condition: State) = genericCreate(parts.map(_ | condition))
 
-  object Caster {
-    implicit def cast[T](t: Any) = t.asInstanceOf[T]
-  }
 
 
 }
@@ -146,7 +146,10 @@ trait FunApp[+R,F, This <: FunApp[R, F, This]] extends Composite[R, This] {
 
   def genericFunAppEval(f: F, args: Seq[Any]): R
   def genericEval(p: Seq[Any]) = genericFunAppEval(p(0).asInstanceOf[F], p.drop(1))
-
+  override def variables = f match {
+    //case p:Pred[_,_] => Variables.GroundAtoms(Set(p)) ++ parts.flatMap(_.variables)
+    case _ => super.variables
+  }
 }
 
 
