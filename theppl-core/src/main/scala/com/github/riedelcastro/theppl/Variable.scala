@@ -80,9 +80,8 @@ object Variables {
   }
 
   case class AllAtoms(predicates:Set[Pred[_,_]]) extends Set[Variable[Any]] {
-    val names = predicates.map(_.name)
     def contains(elem: Variable[Any]) = elem match {
-      case GroundAtom(name,_,_) => names(name)
+      case GroundAtom(pred,_) => predicates(pred)
       case _ => false
     }
     def +(elem: Variable[Any]) = SetUtil.Union(Set(this,Set(elem)))
@@ -94,7 +93,7 @@ object Variables {
     lazy val evaluated = args.map(_.eval(condition))
     lazy val domains = evaluated.zip(pred.domains).map({case (Some(value),_) => Set(value); case (_,dom) => dom.values.toSet})
     def contains(elem: Variable[Any]) = elem match {
-      case GroundAtom(name,args,_) => args.zip(domains).forall({case (arg,dom) => dom(arg)})
+      case GroundAtom(p,args) if (p == pred) => args.zip(domains).forall({case (arg,dom) => dom(arg)})
       case _ => false
     }
     def +(elem: Variable[Any]) = SetUtil.Union(Set(this,Set(elem)))

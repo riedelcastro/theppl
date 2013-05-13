@@ -391,24 +391,24 @@ object Bool extends Dom('bools, Seq(false, true))
 object Strings extends Dom('strings, Stream.continually(Random.alphanumeric.take(3).toString))
 
 trait GroundAtom[R] extends Variable[R] {
-  def range: Dom[R]
+  def range = pred.range
   def domain = range.values
-  def name: Symbol
+  def pred: Pred[_,R]
   def args: Seq[Any]
-  override def toString = name + args.mkString("(", ",", ")")
+  override def toString = pred.name + args.mkString("(", ",", ")")
 }
 
 object GroundAtom {
-  def unapply[R](groundAtom: GroundAtom[R]): Option[(Symbol, Seq[Any], Dom[R])] = {
-    Some((groundAtom.name, groundAtom.args, groundAtom.range))
+  def unapply[R](groundAtom: GroundAtom[R]): Option[(Pred[_,R], Seq[Any])] = {
+    Some((groundAtom.pred, groundAtom.args))
   }
 }
 
-case class GroundAtom1[A1, R](name: Symbol, a1: A1, range: Dom[R]) extends GroundAtom[R] {
+case class GroundAtom1[A1, R](pred: Pred1[A1,R], a1: A1) extends GroundAtom[R] {
   def args = Seq(a1)
 }
 
-case class GroundAtom2[A1, A2, R](name: Symbol, a1: A1, a2: A2, range: Dom[R]) extends GroundAtom[R] {
+case class GroundAtom2[A1, A2, R](pred: Pred2[A1,A2,R], a1: A1, a2: A2) extends GroundAtom[R] {
   def args = Seq(a1, a2)
 }
 
@@ -417,6 +417,7 @@ trait Pred[F, R] extends Term[F] {
   def genericMapping(args: Seq[Any]): Variable[R]
   def name: Symbol
   def domains: Seq[Dom[Any]]
+  def range:Dom[R]
   def variables = StreamUtil.allTuples(domains.map(_.values)).map(genericMapping(_))
   override def toString = name.toString()
   def c[T](t: Any) = t.asInstanceOf[T]
@@ -431,7 +432,7 @@ case class Pred1[A1, R](name: Symbol, dom1: Dom[A1], range: Dom[R] = Bool)
 
   def domains = Seq(dom1)
   def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)))
-  def mapping(a1: A1): GroundAtom1[A1, R] = GroundAtom1(name, a1, range)
+  def mapping(a1: A1): GroundAtom1[A1, R] = GroundAtom1(this, a1)
   def apply(a1: A1) = mapping(a1)
   def eval(state: State) = Some((a1: A1) => state(mapping(a1)))
   def default = (a1: A1) => mapping(a1).default
@@ -442,7 +443,7 @@ case class Pred2[A1, A2, R](name: Symbol, dom1: Dom[A1], dom2: Dom[A2], range: D
 
   def domains = Seq(dom1, dom2)
   def genericMapping(args: Seq[Any]) = mapping(c[A1](args(0)), c[A2](args(1)))
-  def mapping(a1: A1, a2: A2) = GroundAtom2(name, a1, a2, range)
+  def mapping(a1: A1, a2: A2) = GroundAtom2(this, a1, a2)
   def apply(a1: A1, a2: A2) = mapping(a1, a2)
   def eval(state: State) = Some((a1: A1, a2: A2) => state(mapping(a1, a2)))
   def default = (a1: A1, a2: A2) => mapping(a1, a2).default
@@ -485,7 +486,7 @@ object LogicPlayground extends TermImplicits {
     val Person = Dom('persons, Range(0, 3))
     val smokes = new Pred1('smokes, Person, Bool) {
       //can be any client-side defined variable that is reused in other templates
-      override def mapping(a1: Int) = GroundAtom1(name, a1, Bool)
+      override def mapping(a1: Int) = GroundAtom1(this, a1)
     }
     val cancer = 'cancer := Person -> Bool
     val friends = 'friends := (Person, Person) -> Bool
