@@ -318,8 +318,15 @@ trait State extends Messages {
     def apply(value: V) = if (get(v) == Some(value)) 1.0 else 0.0
     def variable = v
   }
-  override def toString = {
+  def toPrettyString = {
     variables.map(v => "%30s -> %s".format(v,apply(v))).mkString("\n")
+  }
+  override def toString = {
+    variables.map(v => "%s->%s".format(v,apply(v))).mkString(",")
+  }
+  override def equals(p1: Any) = p1 match {
+    case s:State => super.equals(s) || s.variables.size == variables.size && s.variables.forall(v => s.get(v) == get(v))
+    case _ => false
   }
 }
 

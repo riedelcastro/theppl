@@ -60,6 +60,7 @@ case class Conditioned[+V](term: Term[V], condition: State) extends Term[V] {
   def default = term.default
   override def substitute(substitution: Substitution) = Conditioned(term.substitute(substitution), condition)
   override def ground = Conditioned(term.ground, condition)
+  override def toString = term.toString + " | (" + condition + ")"
 }
 
 /**
@@ -329,7 +330,7 @@ object ParameterVectorAddN
 
 object VecAddN
   extends Constant((args: Seq[Vec]) => args.fold(new SparseTroveVec(100))(_ + _)) with FunTerm1[Seq[Vec], Vec] {
-  override def toString = "VSum"
+  override def toString = "VecAddN"
 }
 
 

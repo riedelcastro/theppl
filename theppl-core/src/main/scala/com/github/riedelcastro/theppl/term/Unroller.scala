@@ -13,7 +13,7 @@ object Unroller {
       case Conditioned(arg, condition) => unrollVecSum(arg).map(Conditioned(_, condition))
       case VecAdd(arg1, arg2) => unrollVecSum(arg1) ++ unrollVecSum(arg2)
       case VecAddN(SeqTerm(args)) => args.flatMap(unrollVecSum)
-      case q: QuantifiedVecSum => unrollVecSum(q.ground) //eager
+      case q: QuantifiedVecSum => unrollVecSum(q.groundConditioned) //eager
       case _ => Seq(term)
     }
   }
@@ -23,7 +23,7 @@ object Unroller {
       case Conditioned(arg, condition) => unrollDoubleSum(arg).map(Conditioned(_, condition))
       case DoubleAddN(SeqTerm(args)) => args.flatMap(unrollDoubleSum)
       case DoubleAdd(arg1, arg2) => unrollDoubleSum(arg1) ++ unrollDoubleSum(arg2)
-      case q: QuantifiedSum => unrollDoubleSum(q.ground)
+      case q: QuantifiedSum => unrollDoubleSum(q.groundConditioned)
       case _ => Seq(term)
     }
   }

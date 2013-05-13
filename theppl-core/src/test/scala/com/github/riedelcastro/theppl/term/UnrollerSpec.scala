@@ -23,11 +23,10 @@ class UnrollerSpec extends ThePPLSpec {
 
       val unrolled = Unroller.unrollAndGroupLogLinear(mln)
 
-      val t1 = { index('cancer_bias) --> I { cancer('Anna) } } | x
-      val t2 = { index('cancer_bias) --> I { cancer('Peter) } } | x
-      val t3 = { index('smoking_is_bad) --> I { smokes('Anna) |=> cancer('Anna) } } | x
-      val t4 = { index('smoking_is_bad) --> I { smokes('Peter) |=> cancer('Peter) } } | x
-      val expected = Set(Set(t1, t3), Set(t2, t4))
+      val VecAddN(SeqTerm(Seq(b1,b2))) = f1.groundConditioned
+      val VecAddN(SeqTerm(Seq(b3,b4))) = f2.groundConditioned
+
+      val expected = Set(Set(b1, b3), Set(b2, b4)).map(_.map(_ | x))
       val Loglinear(VecAddN(SeqTerm(Seq(a1, a2))),_,_) = unrolled(0)
       val Loglinear(VecAddN(SeqTerm(Seq(a3, a4))),_,_) = unrolled(1)
       val actual = Set(Set(a1,a2),Set(a3,a4))

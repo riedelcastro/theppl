@@ -30,7 +30,7 @@ trait Quantification[T, R, This <: Quantification[T, R, This]] extends Term[R] {
     FunApp1(aggregator, SeqTerm(parts))
   }
 
-  def groundByCondition = {
+  def groundConditioned = {
     val parts = StreamUtil.allStates(arguments).map(Conditioned(term,_))
     FunApp1(aggregator, SeqTerm(parts))
   }
