@@ -10,4 +10,8 @@ scala:
  
  notifications:
   email:
+    recipients:
+      - visenger@gmai.com
     on_failure: change
+    
+    
