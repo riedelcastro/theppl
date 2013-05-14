@@ -11,14 +11,14 @@ class CompilerSpec extends ThePPLSpec {
 
   describe("A Term Compiler") {
 
-    it("should compile variable terms") {
+    ignore("should compile variable terms") {
       val x = IntVar('x)
       val compiled = TermCompiler.compile(x)
       val state = State(Map(x -> 1))
       compiled.eval(state) must be(x.eval(state))
     }
 
-    it("should compile infix operations") {
+    ignore("should compile infix operations") {
       val x = IntVar('x)
       val term = x + x
       val compiled = TermCompiler.compile(term)
@@ -26,14 +26,14 @@ class CompilerSpec extends ThePPLSpec {
       compiled.eval(state) must be(term.eval(state))
     }
 
-    it("should compile an indexed term") {
+    ignore("should compile an indexed term") {
       val index = new Index
       val term = index('f, 'A)
       val compiled = TermCompiler.compile(term)
       compiled.eval(State.empty) must be(term.eval(State.empty))
     }
 
-    it("should compile a singleton vector") {
+    ignore("should compile a singleton vector") {
       val term = 1 --> 1.0
       val compiled = TermCompiler.compile(term)
       val result = compiled.eval(State.empty).get
@@ -41,7 +41,7 @@ class CompilerSpec extends ThePPLSpec {
       (result === expected) must be(true)
     }
 
-    it("should compile a sum of singleton vectors") {
+    ignore("should compile a sum of singleton vectors") {
       val term = (1 --> 1.0) + (1 --> 2.0) + (2 --> 3.0)
       val compiled = TermCompiler.compile(term)
       val result = compiled.eval(State.empty).get
@@ -49,7 +49,7 @@ class CompilerSpec extends ThePPLSpec {
       result must be(expected)
     }
 
-    it("should compile a dot product") {
+    ignore("should compile a dot product") {
       val term = (1 --> 1.0) dot (1 --> 2.0)
       val compiled = TermCompiler.compile(term)
       val result = compiled.eval(State.empty).get
