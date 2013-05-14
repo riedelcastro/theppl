@@ -3,15 +3,12 @@ scala:
    - 2.8.2
    - 2.9.2
    - 2.10.0
- jdk:
+jdk:
    - oraclejdk7
    - openjdk7
    - openjdk6
- 
- notifications:
+notifications:
   email:
     recipients:
-      - visenger@gmai.com
+      - visenger@gmail.com
     on_failure: change
-    
-    
