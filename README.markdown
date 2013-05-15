@@ -1,4 +1,6 @@
 theppl
+
+[![Build Status](https://travis-ci.org/riedelcastro/theppl.png)](https://travis-ci.org/riedelcastro/theppl)
 ==============
 
 theppl (pronounced "the-people") is a (p)robabilistic (p)rogramming (l)anguage/platform. It is designed to overcome
