@@ -11,18 +11,19 @@ import scala.Tuple2
 trait TermImplicits {
 
   def I = Iverson
-  def S[V](args:Term[V]*) = SeqTerm(args.toSeq)
+  def S[V](args: Term[V]*) = SeqTerm(args.toSeq)
 
-//  implicit def toLogLinear(term:Dot) = term match {
-//    case Dot(feats,weights:Variable[Vec]) => Loglinear(feats,weights)
-//    case _ => sys.error(term + " can't be converted into loglinear representation")
-//  }
+  //  implicit def toLogLinear(term:Dot) = term match {
+  //    case Dot(feats,weights:Variable[Vec]) => Loglinear(feats,weights)
+  //    case _ => sys.error(term + " can't be converted into loglinear representation")
+  //  }
 
   implicit def toPotential(term: Term[Double]) = new TermPotential(term)
 
-  def forall(builder: BuilderN[Variable[Any], Term[Boolean]]) = {
-    Forall(builder.arguments, builder.built)
-  }
+  def forall(builder: BuilderN[Variable[Any], Term[Boolean]]) = Forall(builder.arguments, builder.built)
+
+  def exists(builder: BuilderN[Variable[Any], Term[Boolean]]) = Exists(builder.arguments, builder.built)
+
 
   def sum(builder: BuilderN[Variable[Any], Term[Double]]) = QuantifiedSum(builder.arguments, builder.built)
 
@@ -73,22 +74,21 @@ trait TermImplicits {
   trait IntTermBuilder {
     def arg1: Term[Int]
     def +(arg2: Term[Int]) = IntAdd(arg1, arg2)
-    def -->(value:Term[Double]):SingletonVecTerm = new SingletonVecTerm(arg1,value)
-    def -->(value:Double):SingletonVecTerm = this --> (Constant(value))
+    def -->(value: Term[Double]): SingletonVecTerm = new SingletonVecTerm(arg1, value)
+    def -->(value: Double): SingletonVecTerm = this --> (Constant(value))
 
 
   }
 
-  trait Fun1TermBuilder[A,R] {
+  trait Fun1TermBuilder[A, R] {
     def arg1: Term[A => R]
-    def apply(arg2: Term[A]) = FunApp1(arg1,arg2)
+    def apply(arg2: Term[A]) = FunApp1(arg1, arg2)
   }
 
-  trait Fun2TermBuilder[A1,A2,R] {
-    def arg1: Term[(A1,A2) => R]
-    def apply(arg2: Term[A1],arg3:Term[A2]) = FunApp2(arg1,arg2,arg3)
+  trait Fun2TermBuilder[A1, A2, R] {
+    def arg1: Term[(A1, A2) => R]
+    def apply(arg2: Term[A1], arg3: Term[A2]) = FunApp2(arg1, arg2, arg3)
   }
-
 
 
   trait DoubleTermBuilder {
@@ -99,28 +99,28 @@ trait TermImplicits {
 
   trait ParameterVectorTermBuilder {
     def arg1: Term[ParameterVector]
-    def dot(arg2: Term[ParameterVector]) = Dot(arg1,arg2)
-    def +(arg2:Term[ParameterVector]) = FunApp1(ParameterVectorAddN,SeqTerm(Seq(arg1,arg2)))
+    def dot(arg2: Term[ParameterVector]) = Dot(arg1, arg2)
+    def +(arg2: Term[ParameterVector]) = FunApp1(ParameterVectorAddN, SeqTerm(Seq(arg1, arg2)))
   }
 
   trait VecTermBuilder {
     def arg1: Term[Vec]
-    def dot(arg2: Term[Vec]) = VecDot(arg1,arg2)
-    def +(arg2:Term[Vec]) = VecAdd(arg1,arg2) //FunApp1(VecAdd,SeqTerm(Seq(arg1,arg2)))
+    def dot(arg2: Term[Vec]) = VecDot(arg1, arg2)
+    def +(arg2: Term[Vec]) = VecAdd(arg1, arg2) //FunApp1(VecAdd,SeqTerm(Seq(arg1,arg2)))
   }
 
 
   trait SingletonVectorBuilder {
     def arg1: Term[Any]
-    def -->(arg2:Term[Double]) = SingletonVector(SeqTerm(Seq(arg1)),arg2)
+    def -->(arg2: Term[Double]) = SingletonVector(SeqTerm(Seq(arg1)), arg2)
   }
 
 
-  implicit def funTerm1ToBuilder[A,R](term: Term[A=>R]): Fun1TermBuilder[A,R] = new Fun1TermBuilder[A,R] {
+  implicit def funTerm1ToBuilder[A, R](term: Term[A => R]): Fun1TermBuilder[A, R] = new Fun1TermBuilder[A, R] {
     def arg1 = term
   }
 
-  implicit def funTerm2ToBuilder[A1,A2,R](term: Term[(A1,A2)=>R]): Fun2TermBuilder[A1,A2,R] = new Fun2TermBuilder[A1,A2,R] {
+  implicit def funTerm2ToBuilder[A1, A2, R](term: Term[(A1, A2) => R]): Fun2TermBuilder[A1, A2, R] = new Fun2TermBuilder[A1, A2, R] {
     def arg1 = term
   }
 
@@ -154,19 +154,15 @@ trait TermImplicits {
   }
 
 
-
-
   //implicit def pairToSingletonVector(pair:Pair[SeqTerm[Any],Term[Double]]) = SingletonVector(pair._1,pair._2)
 
   //implicit def pairToSingletonVector(pair:Pair[SeqTerm[Any],Term[Double]]) = SingletonVector(pair._1,pair._2)
 
-//  implicit def objectToSeqTerm(obj:Any) = SeqTerm(Seq(Constant(obj)))
+  //  implicit def objectToSeqTerm(obj:Any) = SeqTerm(Seq(Constant(obj)))
 
   implicit def intToConstant(x: Int) = Constant(x)
   implicit def symbolToConstant(s: Symbol) = Constant(s)
   implicit def parameterVectorToConstant(v: ParameterVector) = Constant(v)
-
-
 
 
 }

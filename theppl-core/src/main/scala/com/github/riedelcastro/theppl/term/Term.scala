@@ -284,7 +284,7 @@ object Implies extends Constant((x: Boolean, y: Boolean) => !x || y) with InfixF
 }
 
 object Eq extends Constant((a1: Any, a2: Any) => a1 == a2) with InfixFun[Any, Any, Boolean] {
-  def symbol = "=="
+  def symbol = "==="
 }
 
 object IntAdd extends Constant((x: Int, y: Int) => x + y) with InfixFun[Int, Int, Int] {

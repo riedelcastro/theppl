@@ -31,7 +31,7 @@ object MarkovLogicExample {
 
     //sets of variables we can use to compactly define states using the `close` and `hide` methods of states.
     val hidden = Variables.AllAtoms(Set(cancer))
-    val observed = Variables.AllAtoms(Set(smokes,friends))
+    val observed = Variables.AllAtoms(Set(smokes, friends))
 
 
     //build a worlds in which smoking implies cancer ... (and use closed world assumption on observed predicates).
@@ -62,6 +62,13 @@ object MarkovLogicExample {
     //this creates a different component for every person...
     val f5 = vecSum { for (p <- Persons) yield index('smoke_bias, p) --> I { smokes(p) } }
 
+    //example of equivalence //friendship is reflexive
+    val f6 = vecSum { for (p1 <- Persons; p2 <- Persons) yield index('reflexive) --> I { friends(p1, p2) === friends(p2, p1) } }
+
+    //example of existential quantification
+    val f7 = vecSum { for (p1 <- Persons) yield index('everybody_has_a_friend) --> I { exists { for (p2 <- Persons) yield friends(p1, p2) } } }
+
+
     //the variable corresponding to the weight vector
     val weightsVar = VecVar('weights)
 
@@ -87,14 +94,14 @@ object MarkovLogicExample {
     val fixedMLN = mln | weightsVar -> weights
 
     //training set (we hide cancer to learn how to predict it).
-    val trainingSet = Seq(state1,state2).map(_.hide(hidden))
+    val trainingSet = Seq(state1, state2).map(_.hide(hidden))
 
     val learnedWeights = LinearLearner.learn(mln)(trainingSet)
 
     val inverseIndex = index.inverse()
     println(learnedWeights)
     println("----")
-    println(learnedWeights.toMap.map({case (index,value) => inverseIndex.get(index).map(_.mkString(",")) -> value}).mkString("\n"))
+    println(learnedWeights.toMap.map({ case (index, value) => inverseIndex.get(index).map(_.mkString(",")) -> value }).mkString("\n"))
 
 
   }
