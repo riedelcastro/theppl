@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl.apps
 
-import com.github.riedelcastro.theppl.util.StreamUtil
+import com.github.riedelcastro.theppl.util.CollectionUtil
 import com.github.riedelcastro.theppl.{Potential, State, Variable, Template}
 
 
@@ -41,7 +41,7 @@ trait DCGClusterPotential extends Potential {
    */
   def instanceVariable(instance: Instance): Variable[Boolean]
 
-  def hidden = StreamUtil.allSubSequences(instances).map(mentions => clusterVariable(mentions.toSet))
+  def hidden = CollectionUtil.allSubSequences(instances).map(mentions => clusterVariable(mentions.toSet))
 
 
 }

@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl.term
 
 import com.github.riedelcastro.theppl.{ParameterVector, State, Variable}
-import com.github.riedelcastro.theppl.util.StreamUtil
+import com.github.riedelcastro.theppl.util.CollectionUtil
 
 /**
  * @author Sebastian Riedel
@@ -31,7 +31,7 @@ trait Quantification[T, R, This <: Quantification[T, R, This]] extends Term[R] {
   }
 
   def groundConditioned = {
-    val parts = StreamUtil.allStates(arguments).map(Conditioned(term,_))
+    val parts = CollectionUtil.allStates(arguments).map(Conditioned(term,_))
     FunApp1(aggregator, SeqTerm(parts))
   }
 

@@ -1,0 +1,83 @@
+package com.github.riedelcastro.theppl.infer
+
+import com.github.riedelcastro.theppl.term.{Term, Unroller, Loglinear}
+import com.github.riedelcastro.theppl._
+import com.github.riedelcastro.theppl.util.CollectionUtil
+import scala.util.Random
+import com.github.riedelcastro.theppl.LabelVar
+import scala.collection.mutable.{HashMap, ArrayBuffer}
+import scala.collection.mutable
+
+/**
+ * @author Sebastian Riedel
+ */
+object SimpleMaxProduct {
+
+  import com.github.riedelcastro.theppl.term.TermImplicits._
+
+  class FactorContent(val maxMarginalizer: MaxMarginalizer)
+  class EdgeContent(var f2n: Message[Any], var n2f: Message[Any])
+  class NodeContent(var belief: Message[Any])
+
+  def infer(model: Potential, penalties:Messages) = {
+    val unrolled = Unroller.unrollDoubleSum(model).map(toPotential)
+
+    //create graph
+    val fg = new FactorGraph(unrolled,
+      p => new FactorContent(MaxMarginalizers.exhaustive(p)),
+      v => new NodeContent(Message.empty(v)),
+      (p, v) => new EdgeContent(Message.empty(v), Message.empty(v))
+    )
+
+    //prepares the incoming message to a factor
+    def incoming(factor: fg.Factor, without: Variable[Any]) = new Messages {
+      def message[V](variable: Variable[V]) =
+        if (variable == without) Message.empty(variable)
+        else
+          factor.edges.find(_.node.variable == variable).get.content.n2f.asInstanceOf[Message[V]]
+    }
+
+    //update message from factor to node
+    def updateFactor2Node(edge:fg.Edge):Double = {
+      val variable = edge.node.variable
+      val in = incoming(edge.factor,variable)
+      val out = edge.factor.content.maxMarginalizer.maxMarginals(in,Seq(variable))
+      val old = edge.content.f2n
+      edge.content.f2n = out.messages.message(variable)
+      (edge.content.f2n - old).norm1
+    }
+
+    //updates message from node to factor
+    def updateNode2Factor(edge:fg.Edge){
+      var result = penalties.message(edge.node.variable)
+      for (other <- edge.node.edges; if (other != edge)) result = result + other.content.f2n
+      edge.content.n2f = result
+    }
+
+    //perform message passing (on edges)
+    for (i <- 0 until 10) {
+      var maxResidual = 0.0
+      for (edge <- fg.edges) {
+        for (other <- edge.factor.edges; if (other != edge)) updateNode2Factor(other)
+        maxResidual = math.max(updateFactor2Node(edge),maxResidual)
+      }
+    }
+
+    //create messages holders
+    ???
+  }
+
+  def main(args: Array[String]) {
+
+    def table(arg1: Variable[Any], arg2: Variable[Any]) = Table(Seq(arg1, arg2), { case _ => Random.nextGaussian() })
+    val Domain = Seq(1, 2, 3)
+    val Seq(a, b, c) = Seq('A, 'B, 'C).map(LabelVar(_, Domain))
+    val terms = Seq(a -> b, b -> c, c -> a).map(p => table(p._1, p._2))
+    val Seq(ab, bc, ca) = terms
+    val model = ab + bc + ca
+
+
+  }
+
+}
+

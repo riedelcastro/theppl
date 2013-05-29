@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import com.github.riedelcastro.theppl.term._
-import com.github.riedelcastro.theppl.util.{StreamUtil, SetUtil, Util}
+import com.github.riedelcastro.theppl.util.{CollectionUtil, SetUtil, Util}
 
 
 /**
@@ -98,7 +98,7 @@ object Variables {
     }
     def +(elem: Variable[Any]) = SetUtil.Union(Set(this,Set(elem)))
     def -(elem: Variable[Any]) = SetUtil.SetMinus(this,Set(elem))
-    def iterator = StreamUtil.allTuples(domains).map(pred.genericMapping).toIterator
+    def iterator = CollectionUtil.allTuples(domains).map(pred.genericMapping).toIterator
     def conditioned(state:State) = copy(condition = condition + state)
   }
 

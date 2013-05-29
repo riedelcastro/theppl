@@ -31,7 +31,7 @@ trait Term[+V] {
   def allStates = {
     val variables = this.variables.toSeq
     val domains = variables.map(_.domain).toSeq
-    val tuples = StreamUtil.allTuples(domains)
+    val tuples = CollectionUtil.allTuples(domains)
     val states = tuples.map(State(variables, _))
     states
   }
@@ -90,7 +90,7 @@ object Substitution {
    */
   def allGroundings(variables: Seq[Variable[Any]]) = {
     val domains = variables.map(_.domain).toSeq
-    val tuples = StreamUtil.allTuples(domains)
+    val tuples = CollectionUtil.allTuples(domains)
     val substitutions = tuples.map(Substitution(variables, _))
     substitutions
   }
@@ -419,7 +419,7 @@ trait Pred[F, R] extends Term[F] {
   def name: Symbol
   def domains: Seq[Dom[Any]]
   def range:Dom[R]
-  def variables = StreamUtil.allTuples(domains.map(_.values)).map(genericMapping(_))
+  def variables = CollectionUtil.allTuples(domains.map(_.values)).map(genericMapping(_))
   override def toString = name.toString()
   def c[T](t: Any) = t.asInstanceOf[T]
 }

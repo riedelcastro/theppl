@@ -9,7 +9,7 @@ import util.HasLogger
  */
 trait SumProductBP extends Expectator with HasLogger {
 
-  val fg: MessagePassingFactorGraph
+  val fg: MessagePassingFactorGraphOld
 
   def maxIterations: Int
 
@@ -118,7 +118,7 @@ trait SumProductBP extends Expectator with HasLogger {
 
 class SumProductBPRecipe(iterations:Int = 6, residual:Double = 0.001) extends ExpectatorRecipe[FeatureSumPotential] {
   def expectator(m: FeatureSumPotential, cookbook: ExpectatorRecipe[Potential] = Expectator) = {
-    val factorGraph = new MessagePassingFactorGraph {
+    val factorGraph = new MessagePassingFactorGraphOld {
       def expectator(potential: Potential) = cookbook.expectator(potential, cookbook)
     }
     factorGraph.add(m.otherArgs, m.featureArgs)
@@ -133,7 +133,7 @@ class SumProductBPRecipe(iterations:Int = 6, residual:Double = 0.001) extends Ex
 object SumProductBPRecipe extends SumProductBPRecipe(10, 0.001)
 
 
-trait MessagePassingFactorGraph extends PotentialGraph {
+trait MessagePassingFactorGraphOld extends PotentialGraphOld {
   fg =>
   def expectator(potential: Potential): Expectator
   type FactorType = OtherFactor

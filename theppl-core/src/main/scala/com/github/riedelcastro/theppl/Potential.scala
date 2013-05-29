@@ -2,6 +2,7 @@ package com.github.riedelcastro.theppl
 
 import infer._
 import term.Term
+import com.github.riedelcastro.theppl.util.CollectionUtil
 
 /**
  * A Potential is a scoring function s(Y=y) over a set of variables Y.
@@ -75,6 +76,7 @@ trait Potential extends Term[Double] {
   def default = 0.0
 }
 
+
 /**
  * A potential that uses a mapping from tuples to scores for its scoring function.
  * @param hidden the hidden variables.
@@ -88,19 +90,31 @@ case class TablePotential(hidden: Seq[Variable[Any]], scores: Map[Seq[Any], Doub
   def score(state: State) = scores.getOrElse(hidden.view.map(v => state(v)), default)
 }
 
+/**
+ * Slightly more convenient version
+ */
+case class Table(hidden: Seq[Variable[Any]], scores: Seq[Any] => Double, override val default: Double = 0.0)
+  extends Potential {
+  val scoreMap = CollectionUtil.allTuples(hidden.map(_.domain)).map(t => t -> scores(t)).toMap
+  def score(state: State) = scoreMap.getOrElse(hidden.view.map(v => state(v)), default)
+}
+
+
 object Potential {
 
-  def table(hidden: Seq[Variable[Any]], scores: Map[Seq[Any], Double], default: Double = 0.0) =
-    TablePotential(hidden,scores,default)
+  def table(hidden: Seq[Variable[Any]], scores: Seq[Any] => Double) = Table(hidden, scores)
 
-  def sum(sumArgs:Seq[Potential]) = new SumPotential {
+  def sum(sumArgs: Seq[Potential]) = new SumPotential {
     def args = sumArgs
   }
 
-  val zero = new Potential {
-    def hidden = Seq.empty
-    def score(state: State) = 0.0
+  /**
+   * Convenience method to score a state with added penalties.
+   */
+  def penalizedScore(potential: Term[Double], penalties: Messages, state: State) = {
+    potential.eval(state).get + potential.variables.map(v => penalties.msg(v, state(v))).sum
   }
+
 
 }
 

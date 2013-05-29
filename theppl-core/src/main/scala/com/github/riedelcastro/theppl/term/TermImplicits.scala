@@ -18,7 +18,10 @@ trait TermImplicits {
   //    case _ => sys.error(term + " can't be converted into loglinear representation")
   //  }
 
-  implicit def toPotential(term: Term[Double]) = new TermPotential(term)
+  implicit def toPotential(term: Term[Double]) = term match {
+    case p:Potential => p
+    case _ => TermPotential(term)
+  }
 
   def forall(builder: BuilderN[Variable[Any], Term[Boolean]]) = Forall(builder.arguments, builder.built)
 
@@ -95,6 +98,8 @@ trait TermImplicits {
     def arg1: Term[Double]
     def *(arg2: Term[Double]) = DoubleTimes(arg1, arg2)
     def *(arg2: Double) = DoubleTimes(arg1, Constant(arg2))
+    def +(arg2: Term[Double]) = DoubleAdd(arg1,arg2)
+
   }
 
   trait ParameterVectorTermBuilder {

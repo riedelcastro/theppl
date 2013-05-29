@@ -202,7 +202,7 @@ object MathUtil {
   }
 }
 
-object StreamUtil {
+object CollectionUtil {
   @tailrec
   def allSubSequences[T](items: Seq[T], tail: Stream[Seq[T]] = Stream(Seq.empty)): Stream[Seq[T]] = {
     if (items.size == 0) tail
@@ -223,27 +223,54 @@ object StreamUtil {
     }
   }
 
+  @tailrec
+  def allTuplesIterator[T](domains: Seq[Iterable[T]], tail: Iterator[Seq[T]] = Iterator(Seq.empty)): Iterator[Seq[T]] = {
+    if (domains.size == 0) tail
+    else {
+      val domain = domains.head
+      val tuples = tail flatMap (prefix => domain map (prefix :+ _))
+      allTuplesIterator(domains.drop(1), tuples)
+    }
+  }
+
   def allStates(variables: Seq[Variable[Any]]) = {
     val domains = variables.map(_.domain).toSeq
-    val tuples = StreamUtil.allTuples(domains)
+    val tuples = CollectionUtil.allTuples(domains)
     val states = tuples.map(State(variables, _))
     states
   }
+
+  def allStatesIterator(variables: Seq[Variable[Any]]) = {
+    val domains = variables.map(_.domain).toSeq
+    val tuples = CollectionUtil.allTuplesIterator(domains)
+    val states = tuples.map(State(variables, _))
+    states
+  }
+
+  def allStatesIterator(variables: Seq[Variable[Any]], fixedVariables: Seq[Variable[Any]], fixedValues: Seq[Any]) = {
+    val domains = variables.map(_.domain).toSeq ++ fixedValues.map(Seq(_))
+    val tuples = CollectionUtil.allTuplesIterator(domains)
+    val states = tuples.map(State(variables ++ fixedVariables, _))
+    states
+  }
+
 
 }
 
 object SetUtil {
 
-  case class SetMinus[T](set:Set[T],without:Set[T]) extends Set[T] {
+  case class SetMinus[T](set: Set[T], without: Set[T]) extends Set[T] {
     def contains(elem: T) = set.contains(elem) && !without.contains(elem)
     def +(elem: T) = SetMinus(set + elem, without)
     def -(elem: T) = SetMinus(set, without + elem)
     def iterator = set.iterator.filterNot(without)
   }
-  case class Union[T](sets:Set[Set[T]]) extends Set[T] {
+
+  case class Union[T](sets: Set[Set[T]]) extends Set[T] {
     def contains(elem: T) = sets.exists(_.contains(elem))
     def +(elem: T) = Union(sets + Set(elem))
     def -(elem: T) = SetMinus(this, Set(elem))
     def iterator = sets.iterator.flatMap(_.iterator)
   }
+
 }

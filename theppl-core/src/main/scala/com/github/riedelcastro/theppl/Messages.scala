@@ -1,7 +1,7 @@
 package com.github.riedelcastro.theppl
 
 import collection.mutable.HashMap
-import util.{Util, ArrayImports, StreamUtil}
+import util.{Util, ArrayImports, CollectionUtil}
 import ArrayImports._
 
 /**
@@ -144,6 +144,17 @@ object Message {
   }
 }
 
+trait MutableMessage[T] extends Message[T] {
+  def update(value:T,score:Double)
+  def :=(message:Message[T]) = {
+    for (value <- variable.domain) this(value) = message(value)
+  }
+}
+
+trait MutableMessages extends Messages {
+  def update[T](variable:Variable[T], message:Message[T])
+}
+
 /**
  * An object with a score.
  */
@@ -230,7 +241,7 @@ object State {
    */
   def allStates(variables: Seq[Variable[Any]]) = {
     val domains = variables.map(_.domain).toSeq
-    val tuples = StreamUtil.allTuples(domains)
+    val tuples = CollectionUtil.allTuples(domains)
     val states = tuples.map(State(variables, _))
     states
   }
