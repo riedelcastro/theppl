@@ -17,6 +17,7 @@ trait SumProductBP extends Expectator with HasLogger {
     val incoming = new Messages {
       def message[V](variable: Variable[V]) =
         factor.edges.find(_.node.variable == variable).get.n2f.asInstanceOf[Message[V]]
+      def variables = factor.potential.variables.toSet
     }
     incoming
   }
@@ -72,6 +73,8 @@ trait SumProductBP extends Expectator with HasLogger {
     new Messages {
       val map: Map[Variable[Any], Message[Any]] = fg.nodes.map(n => n.variable -> n.belief).toMap
       def message[V](variable: Variable[V]) = map(variable).asInstanceOf[Message[V]]
+      def variables = fg.nodes.map(_.variable).toSet
+
     }
   }
 

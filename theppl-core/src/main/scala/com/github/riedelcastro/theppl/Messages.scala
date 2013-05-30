@@ -3,6 +3,7 @@ package com.github.riedelcastro.theppl
 import collection.mutable.HashMap
 import util.{Util, ArrayImports, CollectionUtil}
 import ArrayImports._
+import scala.collection.mutable
 
 /**
  * A message is a mapping from variable-value assignments to real numbers.
@@ -10,6 +11,7 @@ import ArrayImports._
  * @author sriedel
  */
 trait Messages {
+  self =>
   def message[V](variable: Variable[V]): Message[V]
   def msg[V](variable: Variable[V], value: V) = message(variable)(value)
   def apply[V](variable: Variable[V], value: V) = message(variable)(value)
@@ -19,6 +21,21 @@ trait Messages {
   def toString(variables: TraversableOnce[Variable[Any]]) = {
     variables.map(v => "%s\n%s".format(v, message(v).toString)).mkString("\n")
   }
+
+  /**
+   * Creates a state that maps variables to the value that maximizes the message
+   * @return state mapping variables to the value that maximizes the message
+   */
+  def argmaxState = {
+    val map = new mutable.HashMap[Variable[Any], Any]()
+    new State {
+      def get[V](variable: Variable[V]) = Some(map.getOrElseUpdate(variable, message(variable).argmax).asInstanceOf[V])
+      override def variables = self.variables
+    }
+  }
+
+  def variables: Set[Variable[Any]]
+
 }
 
 trait MessageVar[V] {
@@ -145,14 +162,14 @@ object Message {
 }
 
 trait MutableMessage[T] extends Message[T] {
-  def update(value:T,score:Double)
-  def :=(message:Message[T]) = {
+  def update(value: T, score: Double)
+  def :=(message: Message[T]) = {
     for (value <- variable.domain) this(value) = message(value)
   }
 }
 
 trait MutableMessages extends Messages {
-  def update[T](variable:Variable[T], message:Message[T])
+  def update[T](variable: Variable[T], message: Message[T])
 }
 
 /**
@@ -162,8 +179,8 @@ case class Scored[T](value: T, score: Double)
 
 object Messages {
 
-  def fromArrays(variables: IndexedSeq[Variable[Any]], arrays: IndexedSeq[Array[Double]]) = {
-    val varMap = variables.zipWithIndex.toMap
+  def fromArrays(vars: IndexedSeq[Variable[Any]], arrays: IndexedSeq[Array[Double]]) = {
+    val varMap = vars.zipWithIndex.toMap
     new Messages {
       def message[V](v: Variable[V]) = {
         val array = arrays(varMap(v))
@@ -173,24 +190,28 @@ object Messages {
           def apply(value: V) = array(valMap(value))
         }
       }
-      override def toArrays = (variables, arrays)
+      override def toArrays = (vars, arrays)
+      def variables = vars.toSet
     }
   }
 
   val empty = new Messages {
     def message[V](variable: Variable[V]) = Message.empty(variable)
+    def variables = Util.infinity
   }
   def fromFunction(f: (Variable[Any], Any) => Double) = new Messages {
     def message[V](v: Variable[V]) = new Message[V] {
       def apply(value: V) = f(v, value)
       def variable = v
     }
+    def variables = Util.infinity
   }
   def fromMap(f: scala.collection.Map[(Variable[Any], Any), Double]) = new Messages {
     def message[V](v: Variable[V]) = new Message[V] {
       def apply(value: V) = f(v, value)
       def variable = v
     }
+    def variables = f.keySet.map(_._1).toSet
   }
 
 }
@@ -201,6 +222,7 @@ class SingletonMessages[Value](val variable: Variable[Value], val value: Value, 
     def apply(value: V) = if (v == self.variable && value == self.value) msg else 0.0
     def variable = v
   }
+  def variables = Set(variable)
 }
 
 class SingletonState[Value](val variable: Variable[Value], val state: Value) extends State {
@@ -267,7 +289,7 @@ trait State extends Messages {
    * get returns Some([default state for that variable].
    * @return a closed world version of the given state.
    */
-  def closed(vars:Set[Variable[Any]] = Variables.All) = new State {
+  def closed(vars: Set[Variable[Any]] = Variables.All) = new State {
     def get[V](variable: Variable[V]) = self.get(variable).orElse(if (variables(variable)) Some(variable.default) else None)
     override def variables = self.variables ++ vars
   }
@@ -279,7 +301,7 @@ trait State extends Messages {
    */
   def target = new State {
     def get[V](variable: Variable[V]) = self.get(variable).orElse(self.get(Target(variable)))
-    override def variables = self.variables.map({case Target(v) => v; case v => v})
+    override def variables = self.variables.map({ case Target(v) => v; case v => v })
   }
 
   /**
@@ -330,13 +352,13 @@ trait State extends Messages {
     def variable = v
   }
   def toPrettyString = {
-    variables.map(v => "%30s -> %s".format(v,apply(v))).mkString("\n")
+    variables.map(v => "%30s -> %s".format(v, apply(v))).mkString("\n")
   }
   override def toString = {
-    variables.map(v => "%s->%s".format(v,apply(v))).mkString(",")
+    variables.map(v => "%s->%s".format(v, apply(v))).mkString(",")
   }
   override def equals(p1: Any) = p1 match {
-    case s:State => super.equals(s) || s.variables.size == variables.size && s.variables.forall(v => s.get(v) == get(v))
+    case s: State => super.equals(s) || s.variables.size == variables.size && s.variables.forall(v => s.get(v) == get(v))
     case _ => false
   }
 }

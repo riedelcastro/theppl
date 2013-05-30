@@ -36,6 +36,11 @@ trait Term[+V] {
     states
   }
 
+  /**
+   * An ordered list of the variables in this term.
+   */
+  lazy val orderedVariables = variables.toSeq
+
 }
 
 case class Substituted[+V](term: Term[V], condition: Substitution) extends Composite[V, Substituted[V]] {

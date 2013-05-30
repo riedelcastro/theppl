@@ -219,6 +219,7 @@ trait LatentDistantSupervisionTemplate[EntityType] extends EntityMentionTemplate
             case x if (x == hiddenEntity) => entityMsg.asInstanceOf[Message[V]]
             case m => mentionMsgs(m).asInstanceOf[Message[V]]
           }
+          def variables =  mentionMsgs.keySet //todo: this should also contain the hiddenEntity
         }
 
         //calculate feature expectations
