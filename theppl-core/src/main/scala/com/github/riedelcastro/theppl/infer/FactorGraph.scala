@@ -35,6 +35,7 @@ class FactorGraph[N, E, F](terms: Seq[Potential],
       val edge = new Edge(factor, node, edgeContent(term, v))
       factor.edges += edge
       node.edges += edge
+      edges += edge
     }
     factors += factor
     term2Factor(term) = factor

@@ -22,6 +22,8 @@ trait Messages {
     variables.map(v => "%s\n%s".format(v, message(v).toString)).mkString("\n")
   }
 
+  override def toString = toString(variables)
+
   /**
    * Creates a state that maps variables to the value that maximizes the message
    * @return state mapping variables to the value that maximizes the message
@@ -29,7 +31,7 @@ trait Messages {
   def argmaxState = {
     val map = new mutable.HashMap[Variable[Any], Any]()
     new State {
-      def get[V](variable: Variable[V]) = Some(map.getOrElseUpdate(variable, message(variable).argmax).asInstanceOf[V])
+      def get[V](variable: Variable[V]) = Some(map.getOrElseUpdate(variable, self.message(variable).argmax).asInstanceOf[V])
       override def variables = self.variables
     }
   }
@@ -57,7 +59,7 @@ class ArrayMessage[V](val variable: Variable[V], array: Array[Double]) extends M
   override def -(that: Message[V]) = {
     new ArrayMessage[V](variable, array - that.toArray)
   }
-  override def materialize = this
+  override def memoize = this
   override def dot(that: Message[V]) = array.dot(that.toArray)
   override def map(f: (Double) => Double) = new ArrayMessage[V](variable, array.map(f(_)))
 
@@ -135,7 +137,7 @@ trait Message[V] {
     variable.domain.view.map(v => "%20s %8.4f".format(v, this(v))).mkString("\n")
   }
 
-  def materialize: Message[V] = new Message[V] {
+  def memoize: Message[V] = new Message[V] {
     def variable = self.variable
     val map = new HashMap[V, Double]
     def apply(value: V) = map.getOrElseUpdate(value, self(value))

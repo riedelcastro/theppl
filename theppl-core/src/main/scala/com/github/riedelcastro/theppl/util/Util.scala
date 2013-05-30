@@ -270,7 +270,7 @@ object SetUtil {
     def contains(elem: T) = sets.exists(_.contains(elem))
     def +(elem: T) = Union(sets + Set(elem))
     def -(elem: T) = SetMinus(this, Set(elem))
-    def iterator = sets.iterator.flatMap(_.iterator)
+    def iterator = sets.flatMap(identity).iterator
   }
 
 }

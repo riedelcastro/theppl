@@ -38,9 +38,9 @@ trait SumProductBP extends Expectator with HasLogger {
 
   def msgV2Fs(node: fg.NodeType, penalties: Messages) {
     node.belief =
-      node.edges.view.map(_.f2n).foldLeft[Message[Any]](penalties.message(node.variable))(_ + _).normalize.materialize
+      node.edges.view.map(_.f2n).foldLeft[Message[Any]](penalties.message(node.variable))(_ + _).normalize.memoize
     for (edge <- node.edges) {
-      edge.n2f = (node.belief - edge.f2n).normalize.materialize
+      edge.n2f = (node.belief - edge.f2n).normalize.memoize
     }
   }
 

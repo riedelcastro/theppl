@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl.infer
 
-import com.github.riedelcastro.theppl.term.{Term, Unroller, Loglinear}
+import com.github.riedelcastro.theppl.term.{TermImplicits, Term, Unroller, Loglinear}
 import com.github.riedelcastro.theppl._
 import com.github.riedelcastro.theppl.util.CollectionUtil
 import scala.util.Random
@@ -11,18 +11,17 @@ import scala.collection.mutable
 /**
  * @author Sebastian Riedel
  */
-object SimpleMaxProduct {
+class MaxProduct(val potential:Potential) extends MaxMarginalizer {
 
-  import com.github.riedelcastro.theppl.term.TermImplicits._
 
   class FactorContent(val maxMarginalizer: MaxMarginalizer)
-
   class EdgeContent(var f2n: Message[Any], var n2f: Message[Any])
-
   class NodeContent(var belief: Message[Any])
 
-  def infer(model: Potential, penalties: Messages = Messages.empty) = {
-    val unrolled = Unroller.unrollDoubleSum(model).map(toPotential)
+
+  def maxMarginals(penalties: Messages, vars: Iterable[Variable[Any]]) = {
+
+    val unrolled = Unroller.unrollDoubleSum(potential).map(TermImplicits.toPotential)
 
     //create graph
     val fg = new FactorGraph(unrolled,
@@ -54,46 +53,63 @@ object SimpleMaxProduct {
     def updateNode2Factor(edge: fg.Edge) {
       var result = penalties.message(edge.node.variable)
       for (other <- edge.node.edges; if (other != edge)) result = result + other.content.f2n
-      edge.content.n2f = result
+      edge.content.n2f = result.normalize.memoize
     }
 
     //perform message passing (on edges)
-    for (i <- 0 until 10) {
-      var maxResidual = 0.0
+    var i = 0
+    var maxResidual = Double.PositiveInfinity
+    while (i < 10 && maxResidual > 0.001) {
+      maxResidual = 0.0
       for (edge <- fg.edges) {
         for (other <- edge.factor.edges; if (other != edge)) updateNode2Factor(other)
         maxResidual = math.max(updateFactor2Node(edge), maxResidual)
       }
+      println(maxResidual)
+      i += 1
     }
 
     //calculate node marginals
-    for (n <- fg.nodes) n.content.belief = n.edges.map(_.content.f2n).foldLeft(penalties.message(n.variable))(_ + _)
+    for (n <- fg.nodes) n.content.belief = n.edges.view.map(_.content.f2n).foldLeft(penalties.message(n.variable))(_ + _)
 
     MaxMarginalizationResult(
       messages = new Messages {
         def message[V](variable: Variable[V]) = fg.variable2Node(variable).content.belief.asInstanceOf[Message[V]]
-        def variables = model.variables.toSet
+        def variables = vars.toSet
       },
       max = 0.0 // todo
     )
   }
 
+
+}
+
+object MaxProduct {
+  import com.github.riedelcastro.theppl.term.TermImplicits._
+
   def main(args: Array[String]) {
 
-    def table(arg1: Variable[Any], arg2: Variable[Any]) = Table(Seq(arg1, arg2), { case _ => Random.nextGaussian() })
+    val random = new Random(10)
+    def table(arg1: Variable[Any], arg2: Variable[Any]) = Table(Seq(arg1, arg2), { case _ => random.nextGaussian() })
     val Domain = Seq(1, 2, 3)
     val Seq(a, b, c) = Seq('A, 'B, 'C).map(LabelVar(_, Domain))
     val terms = Seq(a -> b, b -> c, c -> a).map(p => table(p._1, p._2))
     val Seq(ab, bc, ca) = terms
     val model = ab + bc + ca
 
-    val maxMarginals = SimpleMaxProduct.infer(model)
-    val gold = model.argmax().state
+    val maxProduct = new MaxProduct(model)
 
+    val maxMarginals = maxProduct.maxMarginals()
+    val exact = model.argmax()
+
+    println(maxMarginals.messages)
     println(maxMarginals.messages.argmaxState)
+    println(exact.state)
+
+
+
 
 
   }
 
 }
-

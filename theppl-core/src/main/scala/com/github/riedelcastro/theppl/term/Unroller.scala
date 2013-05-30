@@ -25,6 +25,7 @@ object Unroller {
       case DoubleAdd(arg1, arg2) => unrollDoubleSum(arg1) ++ unrollDoubleSum(arg2)
       case q: QuantifiedSum => unrollDoubleSum(q.groundConditioned)
       case l: Loglinear => unrollAndGroupLogLinear(l)
+      case TermPotential(term) => unrollDoubleSum(term)
       case _ => Seq(term)
     }
   }

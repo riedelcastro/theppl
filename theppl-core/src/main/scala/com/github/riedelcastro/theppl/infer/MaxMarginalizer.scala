@@ -7,7 +7,7 @@ import com.github.riedelcastro.theppl.util.CollectionUtil
 /**
  * @author Sebastian Riedel
  */
-case class MaxMarginalizationResult(messages: Messages, max: Double)
+case class MaxMarginalizationResult(messages: Messages, max: Double) //todo: max should be objective?
 
 trait MaxMarginalizer {
   def potential: Potential
