@@ -43,7 +43,7 @@ class MaxProduct(val potential:Potential) extends MaxMarginalizer {
       val in = incoming(edge.factor, variable)
       val out = edge.factor.content.maxMarginalizer.maxMarginals(in, Seq(variable))
       val old = edge.content.f2n
-      edge.content.f2n = out.messages.message(variable)
+      edge.content.f2n = out.messages.message(variable).normalizeByMax.memoize
       (edge.content.f2n - old).norm1
     }
 
@@ -51,7 +51,7 @@ class MaxProduct(val potential:Potential) extends MaxMarginalizer {
     def updateNode2Factor(edge: fg.Edge) {
       var result = penalties.message(edge.node.variable)
       for (other <- edge.node.edges; if (other != edge)) result = result + other.content.f2n
-      edge.content.n2f = result.normalizeByMax.memoize
+      edge.content.n2f = result
     }
 
     //perform message passing (on edges)

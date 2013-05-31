@@ -23,7 +23,7 @@ object MaxMarginalizers {
       val scores = new HashMap[(Variable[Any], Any), Double]
       for (state <- CollectionUtil.allStatesIterator(pot.variables.toSeq)) {
         val score = pot.penalizedScore(penalties, state)
-        for (v <- variables) scores(v -> state(v)) = math.max(scores.getOrElse(v -> state(v), 0.0), score)
+        for (v <- variables) scores(v -> state(v)) = math.max(scores.getOrElse(v -> state(v), Double.NegativeInfinity), score)
         if (score > max) max = score
       }
       MaxMarginalizationResult(Messages.fromMap(scores), max)

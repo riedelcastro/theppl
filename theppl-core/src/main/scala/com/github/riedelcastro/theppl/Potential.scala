@@ -97,6 +97,10 @@ case class Table(hidden: Seq[Variable[Any]], scores: Seq[Any] => Double, overrid
   extends Potential {
   val scoreMap = CollectionUtil.allTuples(hidden.map(_.domain)).map(t => t -> scores(t)).toMap
   def score(state: State) = scoreMap.getOrElse(hidden.view.map(v => state(v)), default)
+  override def toString =
+    hidden.mkString(",") + "\n" +
+    CollectionUtil.allTuplesIterator(hidden.map(_.domain)).map(
+    t => "%20s %8.4f".format(t.mkString(","),scores(t))).mkString("\n")
 }
 
 

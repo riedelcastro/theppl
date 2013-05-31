@@ -144,7 +144,7 @@ trait Message[V] {
   }
 
   override def toString = {
-    variable.domain.view.map(v => "%20s %8.4f".format(v, this(v))).mkString("\n")
+    variable.domain.view.map(v => "%20s %10.6f".format(v, this(v))).mkString("\n")
   }
 
   def memoize: Message[V] = new Message[V] {
