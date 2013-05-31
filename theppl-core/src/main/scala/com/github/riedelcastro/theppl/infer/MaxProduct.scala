@@ -17,18 +17,16 @@ class MaxProduct(val potential:Potential) extends MaxMarginalizer {
   class FactorContent(val maxMarginalizer: MaxMarginalizer)
   class EdgeContent(var f2n: Message[Any], var n2f: Message[Any])
   class NodeContent(var belief: Message[Any])
+  val unrolled = Unroller.unrollDoubleSum(potential).map(TermImplicits.toPotential)
 
+  //create graph
+  val fg = new FactorGraph(unrolled,
+    p => new FactorContent(MaxMarginalizers.exhaustive(p)),
+    v => new NodeContent(Message.empty(v)),
+    (p, v) => new EdgeContent(Message.empty(v), Message.empty(v))
+  )
 
   def maxMarginals(penalties: Messages, vars: Iterable[Variable[Any]]) = {
-
-    val unrolled = Unroller.unrollDoubleSum(potential).map(TermImplicits.toPotential)
-
-    //create graph
-    val fg = new FactorGraph(unrolled,
-      p => new FactorContent(MaxMarginalizers.exhaustive(p)),
-      v => new NodeContent(Message.empty(v)),
-      (p, v) => new EdgeContent(Message.empty(v), Message.empty(v))
-    )
 
     //prepares the incoming message to a factor
     def incoming(factor: fg.Factor, without: Variable[Any]) = new Messages {
@@ -53,7 +51,7 @@ class MaxProduct(val potential:Potential) extends MaxMarginalizer {
     def updateNode2Factor(edge: fg.Edge) {
       var result = penalties.message(edge.node.variable)
       for (other <- edge.node.edges; if (other != edge)) result = result + other.content.f2n
-      edge.content.n2f = result.normalize.memoize
+      edge.content.n2f = result.normalizeByMax.memoize
     }
 
     //perform message passing (on edges)
@@ -89,7 +87,7 @@ object MaxProduct {
 
   def main(args: Array[String]) {
 
-    val random = new Random(10)
+    val random = new Random(20)
     def table(arg1: Variable[Any], arg2: Variable[Any]) = Table(Seq(arg1, arg2), { case _ => random.nextGaussian() })
     val Domain = Seq(1, 2, 3)
     val Seq(a, b, c) = Seq('A, 'B, 'C).map(LabelVar(_, Domain))
@@ -103,6 +101,9 @@ object MaxProduct {
     val exact = model.argmax()
 
     println(maxMarginals.messages)
+    println("----")
+    println(MaxMarginalizers.exhaustive(model).maxMarginals().messages)
+    println("====")
     println(maxMarginals.messages.argmaxState)
     println(exact.state)
 

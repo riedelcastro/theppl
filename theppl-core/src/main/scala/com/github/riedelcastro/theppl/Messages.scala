@@ -104,6 +104,16 @@ trait Message[V] {
     this.map(_ - normalizer)
   }
 
+  def normalizeBySum = {
+    val normalizer = variable.domain.map(apply).sum
+    this.map(_ - normalizer)
+  }
+
+  def normalizeByMax = {
+    val normalizer = variable.domain.map(apply).max
+    this.map(_ - normalizer)
+  }
+
   def map(f: Double => Double) = {
     new Message[V] {
       def apply(value: V) = f(self(value))
