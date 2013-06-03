@@ -1,10 +1,16 @@
 // MLN for social networks section in tutorial
+age = {18, ..., 22}
+person = { Alice, Bob }
 // Evidence
 Friends(person, person)
 // Some evidence, some query
 Smokes(person)
 // Query
 Cancer(person)
+
+// Function definition
+person SpouseOf(person)
+
 // Rules
 // If you smoke, you get cancer
 Smokes(x) => Cancer(x)

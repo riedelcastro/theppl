@@ -22,3 +22,5 @@ Smokes(Gary)
 
 Cancer(Anna)
 Cancer(Edward)
+
+Alice = SpouseOf(Bob)

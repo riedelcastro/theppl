@@ -14,8 +14,8 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   val LowerCaseID = """[a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*""".r
   val UpperCaseID = """[A-Z]([a-zA-Z0-9]|_[a-zA-Z0-9])*""".r
   val NumDouble = "-?\\d+(\\.\\d+)?".r
-  val NumPosInt = "\\d+"
-  val StringLit = "(\\w)*"
+  val NumPosInt = "\\d+".r
+  val StringLit = "(\\w)*".r
   val multiline = "(/\\*(?:.|[\\n\\r])*?\\*/)"
 
   val minPrec = 1
@@ -25,8 +25,17 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
 
   def expression: Parser[Expression] =
-    (weightedFormula | formula | integerTypeDefinition | constantTypeDefinition | include)
+    (typeDefinitions | function | weightedFormula | formula | include)
 
+
+  def typeDefinitions: Parser[Expression] = (integerTypeDefinition ||| constantTypeDefinition)
+
+  /**
+   * Types and constants can be declared in an .mln file with the following syntax:
+   * <typename> = { <constant1>, <constant2>, ... },
+   * e.g., person = { Alice, Bob }.
+   * integer types, e.g., ageOfStudent = { 18, ..., 22 }.
+   */
   def constantTypeDefinition: Parser[ConstantTypeDefinition] =
     (LowerCaseID ~ "=" ~ "{" ~ repsep(UpperCaseID, ",") ~ "}") ^^ {
       case name ~ "=" ~ "{" ~ constants ~ "}" => ConstantTypeDefinition(name, constants)
@@ -36,6 +45,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     (LowerCaseID ~ "=" ~ "{" ~ NumPosInt ~ "," ~ "..." ~ "," ~ NumPosInt ~ "}") ^^ {
       case name ~ "=" ~ "{" ~ from ~ "," ~ "..." ~ "," ~ to ~ "}" => IntegerTypeDefinition(name, from.toInt, to.toInt)
     }
+
 
   def include: Parser[Include] = ("#include" ~> stringLiteral) ^^ {
     s => Include(s)
@@ -69,6 +79,16 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   def termList: Parser[List[Term]] = repsep(term, ",") ^^ {
     case t => t
   }
+
+  def typeList: Parser[List[VariableOrType]] = repsep(variable, ",") ^^ {
+    case t => t
+  }
+
+  //  <returntype> <functionname>(<type1>, ... , <typen>)
+  def function: Parser[FunctionDefinition] =
+    LowerCaseID ~ StringLit ~ "(" ~ typeList ~ ")" ^^ {
+      case retType ~ fName ~ "(" ~ t ~ ")" => FunctionDefinition(VariableOrType(retType), fName, t)
+    }
 
   def groundedTermList: Parser[List[Term]] = repsep(groundedTerm, ",") ^^ {
     case t => t
@@ -125,10 +145,14 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     else binary(level + 1) * binaryOp(level)
   }
 
+
   /**
    * parsing the database files
    *
    */
+
+  def db: Parser[Any] = (dbFunctions ||| database)
+
   val positive = true
 
   def positiveDatabaseAtom: Parser[DatabaseAtom] = UpperCaseID ~ "(" ~ groundedTermList ~ ")" ^^ {
@@ -147,6 +171,14 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     case t => t
   }
 
+  def dbFunctions: Parser[List[DatabaseFunction]] = rep(databaseFunction) ^^ {
+    case t => t
+  }
+
+  def databaseFunction: Parser[DatabaseFunction] = constant ~ "=" ~ StringLit ~ "(" ~ groundedTermList ~ ")" ^^ {
+    case value ~ "=" ~ fName ~ "(" ~ cons ~ ")" => DatabaseFunction(value, fName, cons)
+  }
+
 
   trait Expression
 
@@ -155,6 +187,9 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   case class ConstantTypeDefinition(name: String, constants: Seq[String]) extends Expression
 
   case class Include(fileName: String) extends Expression
+
+
+  case class FunctionDefinition(returnType: VariableOrType, name: String, types: List[VariableOrType]) extends Expression
 
 
   trait Term extends Expression {
@@ -173,6 +208,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   trait Variable extends Term {
     def name: String
   }
+
 
   case class Constant(value: String) extends Term
 
@@ -203,6 +239,8 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   case class Atom(predicate: String, args: List[Term]) extends Formula
 
   case class DatabaseAtom(predicate: String, args: List[Term], positive: Boolean)
+
+  case class DatabaseFunction(returnValue: Term, name: String, values: List[Term])
 
   case class Not(arg: Formula) extends Formula {
     override def subformulas = Seq(arg)

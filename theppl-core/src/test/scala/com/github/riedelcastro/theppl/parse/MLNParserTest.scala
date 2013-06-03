@@ -33,12 +33,14 @@ class MLNParserTest extends FunSpec with MustMatchers {
       val mln_as_list = mln_file.getLines().filter(nonMLNElements(_)).map(MLNParser.parse(mln_exp, _)).foreach(x => println("parsed mln: " + x))
       mln_file.close()
 
+
+      val db=MLNParser.db
       val db_train_file = scala.io.Source.fromFile(mln_dir + "smoking-train.db")
-      val db_train_as_list = db_train_file.getLines().filter(nonMLNElements(_)).map(MLNParser.parse(mln_exp, _)).foreach(x => println("parsed db: " + x))
+      val db_train_as_list = db_train_file.getLines().filter(nonMLNElements(_)).map(MLNParser.parse(db, _)).foreach(x => println("parsed train db: " + x))
       db_train_file.close()
 
-      val db_test_file = scala.io.Source.fromFile(mln_dir + "smoking-train.db")
-      val db_test_as_list = db_test_file.getLines().filter(nonMLNElements(_)).map(MLNParser.parse(mln_exp, _)).foreach(x => println("parsed db: " + x))
+      val db_test_file = scala.io.Source.fromFile(mln_dir + "smoking-test.db")
+      val db_test_as_list = db_test_file.getLines().filter(nonMLNElements(_)).map(MLNParser.parse(db, _)).foreach(x => println("parsed test db: " + x))
       db_test_file.close()
 
     }
