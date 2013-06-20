@@ -10,6 +10,10 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
+     "org.scalanlp" %% "breeze-math" % "0.3",
+     "org.scalanlp" %% "breeze-learn" % "0.3",
+     "org.scalanlp" %% "breeze-process" % "0.3",
+     "org.scalanlp" %% "breeze-viz" % "0.3",
      "org.scalatest" %% "scalatest" % "1.9.1" % "test",
      "log4j" % "log4j" % "1.2.16",
      "com.typesafe" % "config" % "0.4.1",

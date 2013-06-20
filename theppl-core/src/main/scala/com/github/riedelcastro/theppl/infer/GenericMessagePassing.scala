@@ -8,10 +8,9 @@ import com.github.riedelcastro.theppl._
  */
 trait GenericMessagePassing {
 
-  type ResultType
   type MessageCalculator
 
-  class FactorContent(val maxMarginalizer: MessageCalculator)
+  class FactorContent(val calculator: MessageCalculator)
   class EdgeContent(var f2n: Message[Any], var n2f: Message[Any])
   class NodeContent(var belief: Message[Any])
 
@@ -91,7 +90,8 @@ trait GenericMessagePassing {
    */
   def updateNode2Factor(penalties: Messages, edge: fg.Edge) {
     var result = penalties.message(edge.node.variable)
-    for (other <- edge.node.edges; if (other != edge)) result = messageAggregation(result, other.content.f2n)
+    for (other <- edge.node.edges; if (other != edge))
+      result = messageAggregation(result, translate(other, edge, other.content.f2n))
     edge.content.n2f = result
   }
 
@@ -102,6 +102,12 @@ trait GenericMessagePassing {
    * @return the aggregated message.
    */
   def messageAggregation(msg1: Message[Any], msg2: Message[Any]) = msg1 + msg2
+
+  /**
+   * Translates message to node before message aggregation,
+   * according to the factor that will receive the node to factor message.
+   */
+  def translate(other:fg.Edge, edge: fg.Edge, msg:Message[Any]):Message[Any] = msg
 
   /**
    * Performs message passing until convergence, and updates node beliefs afterwards.

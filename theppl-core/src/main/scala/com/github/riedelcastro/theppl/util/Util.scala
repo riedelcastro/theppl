@@ -15,6 +15,12 @@ object Util extends HasLogger {
 
   def infinity = sys.error("Infinite data structure")
 
+  val infiniteSeq:Seq[Nothing] = new Seq[Nothing] {
+    def length = sys.error("Infinite data structure")
+    def apply(idx: Int) = sys.error("Infinite data structure")
+    def iterator = sys.error("Infinite data structure")
+  }
+
   /**
    * Returns an iterator over strings in the stream, as delimited by the given string
    * @param in the input stream

@@ -53,6 +53,7 @@ case class IntVar[Id](id:Id) extends Variable[Int] {
 }
 
 case class LabelVar[Id,L](id:Id,domain:Seq[L]) extends Variable[L] {
+  override def toString = "L(" + id.toString + ")"
 }
 
 case class StringVar[Id](id:Id) extends Variable[String] {

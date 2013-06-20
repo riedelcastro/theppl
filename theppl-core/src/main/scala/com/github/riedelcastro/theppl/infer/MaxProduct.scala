@@ -16,13 +16,14 @@ class MaxProduct(val potential:Potential) extends GenericMessagePassing with Max
 
   type MessageCalculator = MaxMarginalizer
   type ResultType = MaxMarginalizationResult
+  type MessageType = Message[Any]
 
   lazy val potentials = Unroller.unrollDoubleSum(potential).map(TermImplicits.toPotential)
 
   def messageCalculator(potential: Potential) = MaxMarginalizers.exhaustive(potential)
 
   def calculateOutgoingFactorMessage(factor: fg.Factor, incoming: Messages, target: Variable[Any]) = {
-    factor.content.maxMarginalizer.maxMarginals(incoming, Seq(target)).messages.message(target)
+    factor.content.calculator.maxMarginals(incoming, Seq(target)).messages.message(target)
   }
 
   def maxMarginals(penalties: Messages, variables: Iterable[Variable[Any]]) = {
