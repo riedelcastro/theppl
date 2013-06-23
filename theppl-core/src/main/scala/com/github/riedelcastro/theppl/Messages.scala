@@ -356,7 +356,12 @@ trait State extends Messages {
    * Set of variables this state *explicitly* defines variables for.
    * @return explicitly defined variables.
    */
-  def variables: Set[Variable[Any]] = Util.infinity
+  def variables: Set[Variable[Any]] = new Set[Variable[Any]] {
+    def contains(elem: Variable[Any]) = get(elem).isDefined
+    def +(elem: Variable[Any]) = this
+    def -(elem: Variable[Any]) = sys.error("Can't do")
+    def iterator = Util.infinity
+  }
 
   def message[V](v: Variable[V]) = new Message[V] {
     thisMsg =>

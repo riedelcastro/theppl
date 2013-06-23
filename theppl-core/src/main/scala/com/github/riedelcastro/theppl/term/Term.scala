@@ -392,6 +392,8 @@ case class SingletonVector(args: SeqTerm[Any], value: Term[Double]) extends Comp
   }
 }
 
+object Ints extends Dom('Ints, Range(0,Int.MaxValue))
+
 object Bool extends Dom('bools, Seq(false, true))
 
 object Strings extends Dom('strings, Stream.continually(Random.alphanumeric.take(3).toString))
