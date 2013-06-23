@@ -119,10 +119,13 @@ object KernelBPDemo {
       val tagVars = chain.variables.collect({ case v@StateVariable(('tag, _)) => v }).toSet
       val observation = gold.hide(chunkVars.map(_.asInstanceOf[Variable[Any]])) + model
       val result = KernelBP.messagePassing(edges, observation)
-      val first = result(chunkVars.head)
-      println(chunkVars.head)
-      println(first)
-      println(chunkDistribution(first).map{case (chunk,prob) => "%6.3f %s".format(prob, chunk)}.mkString("\n"))
+
+      for (chunkVar <- chunkVars) {
+        val msg = result(chunkVar)
+        println(chunkVar)
+        println(chunkDistribution(msg).map{case (chunk,prob) => "%6.3f %s".format(prob, chunk)}.mkString("\n"))
+      }
+
 
     }
 
@@ -204,6 +207,7 @@ object KernelBP {
         val fromOther = other.content.f2n
         require(fromOther != null)
         preMessage :*= translation * fromOther
+        preMessage
       }
       preMessage
 
