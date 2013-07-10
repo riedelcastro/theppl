@@ -22,7 +22,6 @@ class MLNEmbeddedTranslator {
 
   /*
   *  A .mln file consists of two basic parts: declarations and formulas.
-
     The declaration section must contain at least one predicate,
     while the formulas section contains 0 or more formulas.
     Optionally, one can enumerate the constants of each type used in the .mln and .db files;
@@ -53,16 +52,13 @@ class MLNEmbeddedTranslator {
         val constantsAsSymbols = constants.map(x => Symbol(x))
         domain(name) = Dom(Symbol(name), constantsAsSymbols)
       }
-      //predicate: String, args: List[Term]
 
       //a unary predicate
       //    Smokes(person)
-      //    Cancer(person)
-      //      val cancer = 'cancer := Persons -> Bool
-      //        val smokes = 'smokes := Persons -> Bool
+      //    val smokes = 'smokes := Persons -> Bool
       //a binary predicate
       //    Friends(person, person)
-      //        val friends = 'friends := (Persons, Persons) -> Bool
+      //    val friends = 'friends := (Persons, Persons) -> Bool
 
       //Atom(Friends,List(VariableOrType(person), VariableOrType(person)))
       //Atom(Smokes,List(VariableOrType(person)))
@@ -85,7 +81,7 @@ class MLNEmbeddedTranslator {
       case formula: MLNParser.Formula => {
         addFormula(0.0, formula)
       }
-      case _ => println(" more comming... " + expr.get.toString)
+      case _ => println(" more in progress... " + expr.get.toString)
     }
   }
 
@@ -100,7 +96,7 @@ class MLNEmbeddedTranslator {
   private def formula(f: Formula): Term[Boolean] = {
     f match {
       case MLNParser.Atom(predicate, args) => {
-        atoms(Symbol(predicate.toString))
+        atoms(Symbol(predicate.toString)).asInstanceOf[Term[Boolean]]
       }
       case MLNParser.And(lhs, rhs) => formula(lhs) && formula(rhs)
       case MLNParser.Implies(lhs, rhs) => formula(lhs) |=> formula(rhs)
@@ -110,26 +106,14 @@ class MLNEmbeddedTranslator {
   }
 
   /*
-    * A .db file consists of a
-
-      set of ground atoms, one per line.
-      Evidence predicates are assumed by default to be closed-world, meaning that if they are not present in the .db file, they are assumed false.(closed-world assumption: a ground atom not in the database is assumed to be false)
+    * A .db file consists of a set of ground atoms, one per line.
+      Evidence predicates are assumed by default to be closed-world,
+      meaning that if they are not present in the .db file, they are assumed false.
+      (closed-world assumption: a ground atom not in the database is assumed to be false)
       Non-evidence predicates, on the other hand, are assumed open-world by default.
 
     * */
   def translateDatabaseFromFile(file: String) = {
-    /*
-  List(DatabaseAtom(Friends,List(Constant(Gary), Constant(Helen)),true))
- List(DatabaseAtom(Friends,List(Constant(Helen), Constant(Gary)),true))
- List(DatabaseAtom(Friends,List(Constant(Gary), Constant(Anna)),true))
- List(DatabaseAtom(Friends,List(Constant(Anna), Constant(Gary)),true))
- List(DatabaseAtom(Smokes,List(Constant(Anna)),true))
- List(DatabaseAtom(Smokes,List(Constant(Edward)),true))
- List(DatabaseAtom(Smokes,List(Constant(Frank)),true))
-List(DatabaseAtom(Smokes,List(Constant(Gary)),true))
- List(DatabaseAtom(Cancer,List(Constant(Anna)),true))
- List(DatabaseAtom(Cancer,List(Constant(Edward)),true))
-     */
 
   }
 
