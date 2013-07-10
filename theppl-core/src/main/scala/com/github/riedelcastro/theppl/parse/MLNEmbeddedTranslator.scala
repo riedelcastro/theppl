@@ -5,6 +5,7 @@ import scala.collection.mutable.{ListBuffer, HashMap, Seq}
 import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.term.TermImplicits._
+import com.github.riedelcastro.theppl.parse.MLNParser.Formula
 
 /**
  * Translates the parsing output into processing statements on the fly.
@@ -15,7 +16,7 @@ import com.github.riedelcastro.theppl.term.TermImplicits._
 class MLNEmbeddedTranslator {
 
   val domain = new HashMap[String, Dom[Any]]
-  val atoms = new HashMap[Symbol, Pred[_, _]]
+  val atoms = new HashMap[Symbol, Term[Any]]
   val formulae = new ListBuffer[(Double, Term[Boolean])]()
 
 
@@ -68,7 +69,7 @@ class MLNEmbeddedTranslator {
       case MLNParser.Atom(predicate, args) => {
         val types = args map (x => domain.getOrElseUpdate(x.toString, defaultDomain(x.toString)))
 
-        val predicateDeclaration:Pred[_,_] = types match {
+        val predicateDeclaration = types match {
           case List(domain1) => Symbol(predicate) := domain1 -> Bool // type com.github.riedelcastro.theppl.term.Pred1
           case List(domain1, domain2) => Symbol(predicate) := (domain1, domain2) -> Bool //type com.github.riedelcastro.theppl.term.Pred2
           case _ => throw new Error("We do not support the predicate -arity: " + types.size)
@@ -78,12 +79,12 @@ class MLNEmbeddedTranslator {
       // Friends(x, y) => (Smokes(x) <=> Smokes(y))
       //Implies(Atom(Friends,List(x, y)),Equivalence(Atom(Smokes,List(x)),Atom(Smokes,List(y))))
       //Implies(Atom(Smokes,List(x)),Atom(Cancer,List(x)))
-//      case MLNParser.WeightedFormula(weight, formula) => {
-//        addFormula(weight, formula)
-//      }
-//      case formula: MLNParser.Formula => {
-//        addFormula(0.0, formula)
-//      }
+      case MLNParser.WeightedFormula(weight, formula) => {
+        addFormula(weight, formula)
+      }
+      case formula: MLNParser.Formula => {
+        addFormula(0.0, formula)
+      }
       case _ => println(" more comming... " + expr.get.toString)
     }
   }
@@ -92,21 +93,21 @@ class MLNEmbeddedTranslator {
     Dom(Symbol(name), Seq[AnyRef]())
   }
 
-//  private def addFormula(weight: Double, f: Formula) = {
-//    formulae += Tuple2(weight, formula(f))
-//  }
-//
-//  private def formula(f: Formula): Term[Boolean] = {
-//    f match {
-//      case MLNParser.Atom(predicate, args) => {
-//        atoms(Symbol(predicate.toString))
-//      }
-//      case MLNParser.And(lhs, rhs) => formula(lhs) && formula(rhs)
-//      case MLNParser.Implies(lhs, rhs) => formula(lhs) |=> formula(rhs)
-//      case MLNParser.Equivalence(lhs, rhs) => formula(lhs) === formula(rhs)
-//      case _ => throw new Error("more formulae in progress..")
-//    }
-//  }
+  private def addFormula(weight: Double, f: Formula) = {
+    formulae += Tuple2(weight, formula(f))
+  }
+
+  private def formula(f: Formula): Term[Boolean] = {
+    f match {
+      case MLNParser.Atom(predicate, args) => {
+        atoms(Symbol(predicate.toString))
+      }
+      case MLNParser.And(lhs, rhs) => formula(lhs) && formula(rhs)
+      case MLNParser.Implies(lhs, rhs) => formula(lhs) |=> formula(rhs)
+      case MLNParser.Equivalence(lhs, rhs) => formula(lhs) === formula(rhs)
+      case _ => throw new Error("more formulae in progress..")
+    }
+  }
 
   /*
     * A .db file consists of a
