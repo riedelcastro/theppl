@@ -4,6 +4,7 @@ import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.{Variables, VecVar, State}
 import com.github.riedelcastro.theppl.learn.LinearLearner
+import com.github.riedelcastro.theppl.term.TermImplicits._
 
 /**
  * @author Sebastian Riedel
@@ -18,7 +19,7 @@ learned (weights), and this makes learning easy.
 object MarkovLogicExample {
 
   def main(args: Array[String]) {
-    import com.github.riedelcastro.theppl.term.TermImplicits._
+
     //a domain of objects, here using scala Symbols, but can be anything
     val Persons = Dom('persons, Seq('Anna, 'Peter))
 
