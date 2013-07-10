@@ -30,11 +30,13 @@ class MLNParserTest extends FunSpec with MustMatchers {
          Methods without parameters are assumed to be side-effect free. That's the convention. */
         !((x startsWith "//") || (x isEmpty))
       }
-      val mln_as_list = mln_file.getLines().filter(nonMLNElements(_)).map(MLNParser.parse(mln_exp, _)).foreach(x => println("parsed mln: " + x))
+      val filter: Iterator[String] = mln_file.getLines().filter(nonMLNElements(_))
+      val mln_as_list = filter map (MLNParser.parse(mln_exp, _))
+      mln_as_list foreach (x => println("parsed mln: " + x))
       mln_file.close()
 
 
-      val db=MLNParser.db
+      val db = MLNParser.db
       val db_train_file = scala.io.Source.fromFile(mln_dir + "smoking-train.db")
       val db_train_as_list = db_train_file.getLines().filter(nonMLNElements(_)).map(MLNParser.parse(db, _)).foreach(x => println("parsed train db: " + x))
       db_train_file.close()
@@ -44,6 +46,8 @@ class MLNParserTest extends FunSpec with MustMatchers {
       db_test_file.close()
 
     }
+
+
 
   }
 

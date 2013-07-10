@@ -212,7 +212,9 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   case class Constant(value: String) extends Term
 
-  case class VariableOrType(name: String) extends Variable
+  case class VariableOrType(name: String) extends Variable {
+    override def toString: String = name
+  }
 
   case class ExclamationType(name: String) extends Term
 

@@ -1,12 +1,19 @@
 package com.github.riedelcastro.theppl.apps
 
 import com.github.riedelcastro.theppl.term._
-import com.github.riedelcastro.theppl.{Variables, VecVar, State}
 import com.github.riedelcastro.theppl.term.Dom
+import com.github.riedelcastro.theppl.{Variables, VecVar, State}
 import com.github.riedelcastro.theppl.learn.LinearLearner
 
 /**
  * @author Sebastian Riedel
+ *         A MLN is essentially a loglinear model that defines
+(a) a multi-dimensional feature function (sometimes called sufficient statistics)
+(b) a weight vector variable
+
+This is reflected in the example. One benefit of this formulation
+is that it explicitly separates what is given (formulae) from what is
+learned (weights), and this makes learning easy.
  */
 object MarkovLogicExample {
 
@@ -34,12 +41,17 @@ object MarkovLogicExample {
     //effectively this means that even though only one friend atom is defined per state,
     //the other 3 atoms are defined implicitly to be mapped to the default value for the predicate range (false).
     val state1 = State(Map(
-      smokes('Anna) -> true, cancer('Anna) -> true,
-      smokes('Peter) -> true, cancer('Peter) -> true,
+      smokes('Anna) -> true,
+      cancer('Anna) -> true,
+      smokes('Peter) -> true,
+      cancer('Peter) -> true,
       friends('Anna, 'Peter) -> true)).closed(observed)
+
     val state2 = State(Map(
-      smokes('Anna) -> true, cancer('Anna) -> true,
-      smokes('Peter) -> false, cancer('Peter) -> false,
+      smokes('Anna) -> true,
+      cancer('Anna) -> true,
+      smokes('Peter) -> false,
+      cancer('Peter) -> false,
       friends('Anna, 'Peter) -> false)).closed(observed)
 
     //this index maps feature indices to integers and vice versa
@@ -64,9 +76,13 @@ object MarkovLogicExample {
         smokes(p) |=> cancer(p)
       }
     }
+    // People with friends who smoke, also smoke
+    // and those with friends who don't smoke, don't smoke
+    //    Friends(x, y) => (Smokes(x) <=> Smokes(y))
     val f4 = vecSum {
       for (p1 <- Persons; p2 <- Persons) yield index('peer_pressure) --> I {
-        smokes(p1) && friends(p1, p2) |=> smokes(p2)
+        //        smokes(p1) && friends(p1, p2) |=> smokes(p2)
+        friends(p1, p2) |=> (smokes(p1) === smokes(p2))
       }
     }
 
@@ -99,7 +115,8 @@ object MarkovLogicExample {
     //the variable corresponding to the weight vector
     val weightsVar = VecVar('weights)
 
-    val features = f2 //f1 + f2 + f3 + f4
+    //    val features = f2
+    val features = f1 + f2 + f3 + f4
 
     println("Feature Values:")
     println(features.eval(state1).get)
