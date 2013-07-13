@@ -112,7 +112,6 @@ object MarkovLogicExample {
       }
     }
 
-
     //the variable corresponding to the weight vector
     val weightsVar = VecVar('weights)
 
@@ -123,8 +122,6 @@ object MarkovLogicExample {
     println(features.eval(state1).get)
     println(features.eval(state2).get)
     println(index)
-
-
 
     //the mln is simply the dot product of weights and the sum of all the sufficient statistics
     val mln = Loglinear(features, weightsVar)

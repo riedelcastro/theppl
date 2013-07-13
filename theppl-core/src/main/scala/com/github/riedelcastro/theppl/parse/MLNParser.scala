@@ -151,7 +151,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
    *
    */
 
-  def db: Parser[Any] = (dbFunctions ||| database)
+  def db: Parser[Any] = (dbFunctions ||| databaseAtom)
 
   val positive = true
 
@@ -167,9 +167,9 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     t => t
   }
 
-  def database: Parser[List[DatabaseAtom]] = rep(databaseAtom) ^^ {
-    case t => t
-  }
+//  def database: Parser[List[DatabaseAtom]] = rep(databaseAtom) ^^ {
+//    case t => t
+//  }
 
   def dbFunctions: Parser[List[DatabaseFunction]] = rep(databaseFunction) ^^ {
     case t => t
