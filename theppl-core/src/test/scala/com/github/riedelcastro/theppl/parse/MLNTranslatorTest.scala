@@ -13,16 +13,18 @@ class MLNTranslatorTest extends FunSpec with MustMatchers {
 
       val mln_file = "theppl-core/src/test/data/mln/social-network/smoking.mln"
       MLN.translateMLNFromFile(mln_file)
+      println("atoms  ")
       val atoms = MLN.atoms
       atoms.foreach(x => println(x))
 
+      println("formulae  ")
       val formulae = MLN.formulae
       formulae.foreach(x => println(x))
 
       val db_file = "theppl-core/src/test/data/mln/social-network/smoking-train.db"
       MLN.translateDatabaseFromFile(db_file)
-      val state = MLN.state
-      state.foreach(x => println(x))
+      val worldState = MLN.state
+      worldState.foreach(x => println(x))
 
 
     }

@@ -7,6 +7,7 @@ import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.term.TermImplicits._
 import com.github.riedelcastro.theppl.parse.MLNParser.Formula
 import com.github.riedelcastro.theppl.Variable
+import scala.collection.immutable.{List, Map}
 
 /**
  * Translates the parsing output into processing statements on the fly.
@@ -16,11 +17,17 @@ import com.github.riedelcastro.theppl.Variable
  */
 class MLNEmbeddedTranslator {
 
-  val domain = new HashMap[String, Dom[Any]]
+  def state: Map[Variable[Any], Any] = worldState.toMap
+
+  def formulae: List[(Double, Term[Boolean])] = mlnFormulae.toList
+
+  def domain: Map[String, Dom[Any]] = dom.toMap
+
+  val dom = new HashMap[String, Dom[Any]]
   val atoms = new HashMap[Symbol, Term[Any]]
-  val formulae = new ListBuffer[(Double, Term[Boolean])]()
-  val state = new HashMap[Variable[Any], Any]
-//  val lookupGroundings = new HashMap[Symbol, ListBuffer[Term[Boolean]]]
+  private val mlnFormulae = new ListBuffer[(Double, Term[Boolean])]()
+  private val worldState = new HashMap[Variable[Any], Any]
+  //  val lookupGroundings = new HashMap[Symbol, ListBuffer[Term[Boolean]]]
 
 
   /*
@@ -36,7 +43,8 @@ class MLNEmbeddedTranslator {
     val filtered: Iterator[String] = mln_file.getLines().filter(nonMLNElements(_))
     val expressions = filtered map (MLNParser.parse(MLNParser.expression, _))
 
-    for (expr <- expressions) expr.get match {
+    expressions foreach (expr => expr.get match {
+      //    for (expr <- expressions) expr.get match {
 
       /*Types and constants can be declared in an .mln file
       Each declared type must have at least one constant.
@@ -46,17 +54,17 @@ class MLNEmbeddedTranslator {
               or a ground atom (in a.db file). */
 
       case MLNParser.IntegerTypeDefinition(typeName, from, end) => {
-        domain(typeName) = Dom(Symbol(typeName), (from to end))
+        dom(typeName) = Dom(Symbol(typeName), (from to end))
       }
 
       case MLNParser.ConstantTypeDefinition(name, constants) => {
         val constantsAsSymbols = constants.map(x => Symbol(x))
-        domain(name) = Dom(Symbol(name), constantsAsSymbols)
+        dom(name) = Dom(Symbol(name), constantsAsSymbols)
       }
 
       //a unary/binary predicate
       case MLNParser.Atom(predicate, args) => {
-        val types = args map (x => domain.getOrElseUpdate(x.toString, defaultDomain(x.toString)))
+        val types = args map (x => dom.getOrElseUpdate(x.toString, defaultDomain(x.toString)))
 
         val predicateDeclaration = types match {
           case List(domain1) => Symbol(predicate) := domain1 -> Bool // type Pred1
@@ -67,14 +75,12 @@ class MLNEmbeddedTranslator {
       }
       // Friends(x, y) => (Smokes(x) <=> Smokes(y))
       //Implies(Atom(Friends,List(x, y)),Equivalence(Atom(Smokes,List(x)),Atom(Smokes,List(y))))
-      case MLNParser.WeightedFormula(weight, formula) => {
-        addFormula(weight, formula)
-      }
-      case formula: MLNParser.Formula => {
-        addFormula(0.0, formula)
-      }
+      //todo: formula consisting of a single predicate e.g. Smokes(x)
+      //todo: workaround: add default weight for the single predicate, to indicate this as a formula
+      case MLNParser.WeightedFormula(weight, formula) => addFormula(weight, formula)
+      case formula: MLNParser.Formula => addFormula(0.0, formula)
       case _ => println(" more in progress... " + expr.get.toString)
-    }
+    })
 
     mln_file.close()
   }
@@ -84,7 +90,7 @@ class MLNEmbeddedTranslator {
   }
 
   private def addFormula(weight: Double, f: Formula) = {
-    formulae += Tuple2(weight, formula(f))
+    mlnFormulae += Tuple2(weight, formula(f))
   }
 
   private def formula(f: Formula): Term[Boolean] = {
@@ -114,7 +120,7 @@ class MLNEmbeddedTranslator {
     val expressions = filtered map (MLNParser.parse(MLNParser.db, _))
 
 
-    for (expr <- expressions) expr.get match {
+    expressions foreach (expr => expr.get match {
       //    DatabaseAtom(Friends,List(Constant(Anna), Constant(Gary)),true)
       //    DatabaseAtom(Smokes,List(Constant(Anna)),true)
       case MLNParser.DatabaseAtom(predicate, args, positive) => {
@@ -125,7 +131,7 @@ class MLNEmbeddedTranslator {
               case MLNParser.Constant(value) => {
                 enhanceDomain(dom1, value)
                 val groundAtom = predicateDeclaration.asInstanceOf[Pred1[Any, Any]].apply(Symbol(value)) -> positive
-                state += groundAtom
+                worldState += groundAtom
               }
             }
           }
@@ -135,24 +141,24 @@ class MLNEmbeddedTranslator {
                 enhanceDomain(dom1, value1)
                 enhanceDomain(dom2, value2)
                 val groundAtom = predicateDeclaration.asInstanceOf[Pred2[Any, Any, Any]].apply(Symbol(value1), Symbol(value2)) -> positive
-                state += groundAtom
+                worldState += groundAtom
               }
             }
           }
         }
       }
-      case MLNParser.DatabaseFunction(returnValue, name, values) => throw new Error("OR in progress..")
+      case MLNParser.DatabaseFunction(returnValue, name, values) => throw new Error("DB function in progress..")
       case _ => println("Not a database element...")
-    }
+    })
 
     db_file.close()
   }
 
-  private def enhanceDomain(dom: Dom[Any], value: String) {
-    val domainName: String = dom.name.name
-    val initial: Dom[Any] = domain.getOrElseUpdate(domainName, defaultDomain(domainName))
+  private def enhanceDomain(thisDom: Dom[Any], value: String) {
+    val domainName: String = thisDom.name.name
+    val initial: Dom[Any] = dom.getOrElseUpdate(domainName, defaultDomain(domainName))
     val extendedDomain = initial.values :+ Symbol(value)
-    domain.update(domainName, Dom(dom.name, extendedDomain.distinct))
+    dom.update(domainName, Dom(thisDom.name, extendedDomain.distinct))
   }
 
   def nonMLNElements(x: String): Boolean = {

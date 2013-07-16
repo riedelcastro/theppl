@@ -66,6 +66,7 @@ object MarkovLogicExample {
         smokes(p)
       }
     }
+
     val f2 = vecSum {
       for (p <- Persons) yield index('cancer_bias) --> I {
         cancer(p)
