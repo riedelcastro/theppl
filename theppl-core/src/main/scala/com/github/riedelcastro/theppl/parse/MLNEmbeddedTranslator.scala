@@ -19,12 +19,14 @@ class MLNEmbeddedTranslator {
 
   def state: Map[Variable[Any], Any] = worldState.toMap
 
+
   def formulae: List[(Double, Term[Boolean])] = mlnFormulae.toList
 
   def domain: Map[String, Dom[Any]] = dom.toMap
 
   val dom = new HashMap[String, Dom[Any]]
   val atoms = new HashMap[Symbol, Term[Any]]
+
   private val mlnFormulae = new ListBuffer[(Double, Term[Boolean])]()
   private val worldState = new HashMap[Variable[Any], Any]
   //  val lookupGroundings = new HashMap[Symbol, ListBuffer[Term[Boolean]]]
@@ -93,10 +95,19 @@ class MLNEmbeddedTranslator {
     mlnFormulae += Tuple2(weight, formula(f))
   }
 
+
   private def formula(f: Formula): Term[Boolean] = {
     f match {
       case MLNParser.Atom(predicate, args) => {
-        atoms(Symbol(predicate.toString)).asInstanceOf[Term[Boolean]]
+        //                val atomByName: Term[Any]= args match {
+        //                  case List(a1) =>
+        //                  case List(a1, a2) =>
+        //                }
+        //todo: convertTerm. Args could be, Constant, ()Variable
+        val atomByName: Term[Any] = atom(predicate)
+//        println(args)
+        atomByName.asInstanceOf[Term[Boolean]]
+
       }
       case MLNParser.And(lhs, rhs) => formula(lhs) && formula(rhs)
       case MLNParser.Implies(lhs, rhs) => formula(lhs) |=> formula(rhs)
@@ -107,13 +118,26 @@ class MLNEmbeddedTranslator {
     }
   }
 
+
+  private def atom(predicate: String): Term[Any] = {
+    atoms(Symbol(predicate.toString))
+  }
+
+  //  def convertTerm(term: Term, values: Seq[Any]): Term[Any] = {
+  //    term match {
+  //      case Constant(text) => {}
+  //      case PlusVariable(name) =>
+  //      case VariableOrType(name) =>
+  //      case _ => error("we don't support a " + term + " term yet")
+  //    }
+  //  }
   /*
-    * A .db file consists of a set of ground atoms, one per line.
-      Evidence predicates are assumed by default to be closed-world,
-      meaning that if they are not present in the .db file, they are assumed false.
-      (closed-world assumption: a ground atom not in the database is assumed to be false)
-      Non-evidence predicates, on the other hand, are assumed open-world by default.
-    * */
+      * A .db file consists of a set of ground atoms, one per line.
+        Evidence predicates are assumed by default to be closed-world,
+        meaning that if they are not present in the .db file, they are assumed false.
+        (closed-world assumption: a ground atom not in the database is assumed to be false)
+        Non-evidence predicates, on the other hand, are assumed open-world by default.
+      * */
   def translateDatabaseFromFile(file: String) = {
     val db_file = scala.io.Source.fromFile(file)
     val filtered: Iterator[String] = db_file.getLines().filter(nonMLNElements(_))
