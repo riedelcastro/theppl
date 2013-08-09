@@ -31,6 +31,7 @@ class MLNEmbeddedTranslator {
   private val mlnFormulae = new ListBuffer[(Double, Term[Boolean])]()
   private val worldState = new HashMap[Variable[Any], Any]
 
+  //todo: This is dangerous as soon as we move to the real world cases. => this holds the whole groundings in memory
   private def groundPredicates = mlnFormulae.map(x => (x._1, injectConstants(x._2))).toList
 
 
