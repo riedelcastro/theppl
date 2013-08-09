@@ -20,7 +20,8 @@ class MLNEmbeddedTranslator {
   def state: Map[Variable[Any], Any] = worldState.toMap
 
 
-  def formulae: List[(Double, Term[Boolean])] = mlnFormulae.toList
+  //  def formulae: List[(Double, Term[Boolean])] = mlnFormulae.toList
+  def formulae: List[(Double, Term[Boolean])] = groundPredicates
 
   def domain: Map[String, Dom[Any]] = dom.toMap
 
@@ -29,7 +30,8 @@ class MLNEmbeddedTranslator {
 
   private val mlnFormulae = new ListBuffer[(Double, Term[Boolean])]()
   private val worldState = new HashMap[Variable[Any], Any]
-  //  val lookupGroundings = new HashMap[Symbol, ListBuffer[Term[Boolean]]]
+
+  private def groundPredicates = mlnFormulae.map(x => (x._1, injectConstants(x._2))).toList
 
 
   /*
@@ -105,7 +107,6 @@ class MLNEmbeddedTranslator {
         //                }
         //todo: convertTerm. Args could be, Constant, ()Variable
         val atomByName: Term[Any] = atom(predicate)
-//        println(args)
         atomByName.asInstanceOf[Term[Boolean]]
 
       }
@@ -123,14 +124,7 @@ class MLNEmbeddedTranslator {
     atoms(Symbol(predicate.toString))
   }
 
-  //  def convertTerm(term: Term, values: Seq[Any]): Term[Any] = {
-  //    term match {
-  //      case Constant(text) => {}
-  //      case PlusVariable(name) =>
-  //      case VariableOrType(name) =>
-  //      case _ => error("we don't support a " + term + " term yet")
-  //    }
-  //  }
+
   /*
       * A .db file consists of a set of ground atoms, one per line.
         Evidence predicates are assumed by default to be closed-world,
@@ -142,7 +136,6 @@ class MLNEmbeddedTranslator {
     val db_file = scala.io.Source.fromFile(file)
     val filtered: Iterator[String] = db_file.getLines().filter(nonMLNElements(_))
     val expressions = filtered map (MLNParser.parse(MLNParser.db, _))
-
 
     expressions foreach (expr => expr.get match {
       //    DatabaseAtom(Friends,List(Constant(Anna), Constant(Gary)),true)
@@ -174,8 +167,32 @@ class MLNEmbeddedTranslator {
       case MLNParser.DatabaseFunction(returnValue, name, values) => throw new Error("DB function in progress..")
       case _ => println("Not a database element...")
     })
-
     db_file.close()
+  }
+
+  private def injectConstants(formula: Term[Any]): Term[Boolean] = {
+    val groundedFormula = formula match {
+      case pred1@Pred1(name, dom, range) => {
+        val domainName: String = dom.name.name
+        val fullDom = domain(domainName)
+        Pred1(name, fullDom, range)
+      }
+      case pred2@Pred2(name, dom1, dom2, range) => {
+        val firstDomain = dom1.name.name
+        val firstFullDom = domain(firstDomain)
+        val secondDomain = dom2.name.name
+        val secondFullDom = domain(secondDomain)
+        Pred2(name, firstFullDom, secondFullDom, range)
+      }
+      case funApp1@FunApp1(f, a1) => {
+        FunApp1(f, injectConstants(a1))
+      }
+      case funApp2@FunApp2(f, a1, a2) => {
+        FunApp2(f, injectConstants(a1), injectConstants(a2))
+      }
+      case _ => throw new Error("unknown term...")
+    }
+    groundedFormula.asInstanceOf[Term[Boolean]]
   }
 
   private def enhanceDomain(thisDom: Dom[Any], value: String) {
