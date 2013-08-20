@@ -1,6 +1,6 @@
 // MLN for social networks section in tutorial
 age = {18, ..., 22}
-person = { Alice, Bob }
+//person = { Alice, Bob }
 // Some evidence, some query
 Smokes(person)
 // Query

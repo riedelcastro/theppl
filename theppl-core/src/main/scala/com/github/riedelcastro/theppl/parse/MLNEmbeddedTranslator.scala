@@ -49,7 +49,6 @@ class MLNEmbeddedTranslator {
     val expressions = filtered map (MLNParser.parse(MLNParser.expression, _))
 
     expressions foreach (expr => expr.get match {
-      //    for (expr <- expressions) expr.get match {
 
       /*Types and constants can be declared in an .mln file
       Each declared type must have at least one constant.
@@ -121,7 +120,7 @@ class MLNEmbeddedTranslator {
   }
 
 
-  private def atom(predicate: String): Term[Any] = {
+  def atom(predicate: String): Term[Any] = {
     atoms(Symbol(predicate.toString))
   }
 

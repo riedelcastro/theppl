@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl.parse
 
-import com.github.riedelcastro.theppl.{Variable, State}
+import com.github.riedelcastro.theppl.{Variables, VecVar, Variable, State}
 import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.TermImplicits._
 import com.github.riedelcastro.theppl.Variables.AllAtoms
@@ -24,29 +24,53 @@ object MLN extends App {
   MLN.translateDatabaseFromFile(db_file)
 
   /** markov logic in action */
-  val thisWorld = MLN.state
-
-  val possibleWorld = State(thisWorld)
-
-  println("state" + possibleWorld)
-
+  /*Get all formulae and evidence elements*/
   val formulae = MLN.formulae
-
   println(formulae)
-  val domain /*: Map[String, Dom[Any]] */ = MLN.domain
-
-  println(domain)
 
   val index = new Index()
+  val featureVec = formulae.map(tuple => processFormula(tuple._2).asInstanceOf[Term[Vec]])
+  val features = featureVec.reduceLeft(_ + _)
+  println("features = " + features)
 
-  for (tuple <- formulae) {
-    val weight = tuple._1
-    val term = tuple._2
-    processFormula(term)
-  }
+  /** ****************************************************************************************/
+
+  //this index maps feature indices to integers and vice versa
+  //the variable corresponding to the weight vector
+  val weightsVar = VecVar('weights)
+  //the mln is simply the dot product of weights and the sum of all the sufficient statistics
+  val mln = Loglinear(features, weightsVar)
+
+  /** ****************************************************************************************/
+
+  //todo: programmaticaly create a set of observed predicates
+  private val smokes = MLN.atom("Smokes").asInstanceOf[Pred[_, _]]
+  private val friends = MLN.atom("Friends").asInstanceOf[Pred[_, _]]
+  val observed = Variables.AllAtoms(Set(smokes, friends))
+  val thisWorld = MLN.state
+  val state = State(thisWorld).closed(observed)
+  println("state: " + state)
+
+  //todo: Why??
+  // java.lang.ClassCastException:
+  // com.github.riedelcastro.theppl.term.Pred1$$anonfun$eval$3 cannot be cast to java.lang.Boolean
+  //  at scala.runtime.BoxesRunTime.unboxToBoolean(Unknown Source)
+  //  at com.github.riedelcastro.theppl.term.Iverson$$anonfun$$init$$15.apply(Term.scala:406)
+  val vec: Vec = features.eval(state).get
+  println(vec)
+
+  /** ****************************************************************************************/
+  //todo: hidden  variables will be passed through an API call.
+  //training set (we hide cancer to learn how to predict it).
+  val hidden = Variables.AllAtoms(Set(smokes))
+  val trainingSet = Seq(state).map(_.hide(hidden))
+
+  /** ****************************************************************************************/
+  //  val learnedWeights = LinearLearner.learn(mln)(trainingSet)
+  //  println("learnedWeights = " + learnedWeights)
 
 
-  def processFormula(term: Term[_]): QuantifiedVecSum = {
+  private def processFormula(term: Term[_]): QuantifiedVecSum = {
 
     val variables = term.variables /*grounded predicates*/
     val filtered = variables match {
@@ -54,7 +78,7 @@ object MLN extends App {
         case _ => variables
       }
 
-    /**/
+    /*monads: as computational builder*/
     val builderN = new BuilderN[Variable[Any], Term[Vec]] {
       val arguments = filtered.toSeq
       val built = index(Symbol(term.toString)) --> I {
