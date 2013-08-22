@@ -51,11 +51,6 @@ object MLN extends App {
   val state = State(thisWorld).closed(observed)
   println("state: " + state)
 
-  //todo: Why??
-  // java.lang.ClassCastException:
-  // com.github.riedelcastro.theppl.term.Pred1$$anonfun$eval$3 cannot be cast to java.lang.Boolean
-  //  at scala.runtime.BoxesRunTime.unboxToBoolean(Unknown Source)
-  //  at com.github.riedelcastro.theppl.term.Iverson$$anonfun$$init$$15.apply(Term.scala:406)
   val vec: Vec = features.eval(state).get
   println(vec)
 
@@ -72,7 +67,7 @@ object MLN extends App {
 
   private def processFormula(term: Term[_]): QuantifiedVecSum = {
 
-    val variables = term.variables /*grounded predicates*/
+    val variables = term.variables
     val filtered = variables match {
         case Union(sets) => Union(sets.filterNot(_.isInstanceOf[AllAtoms]))
         case _ => variables
