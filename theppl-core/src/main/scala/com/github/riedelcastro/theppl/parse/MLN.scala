@@ -3,7 +3,7 @@ package com.github.riedelcastro.theppl.parse
 import com.github.riedelcastro.theppl.{Variables, VecVar, Variable, State}
 import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.TermImplicits._
-import com.github.riedelcastro.theppl.Variables.{AtomSet, AllAtoms}
+import com.github.riedelcastro.theppl.Variables.AtomSet
 import com.github.riedelcastro.theppl.util.SetUtil.Union
 import org.riedelcastro.nurupo.BuilderN
 import com.github.riedelcastro.theppl.learn.LinearLearner
@@ -43,32 +43,37 @@ object MLN extends App {
   //this index maps feature indices to integers and vice versa
   //the variable corresponding to the weight vector
   val weightsVar = VecVar('weights)
-  //the mln is simply the dot product of weights and the sum of all the sufficient statistics
-  val mln = Loglinear(features, weightsVar)
 
-  /** ****************************************************************************************/
+  execTimeOf {
+    //the mln is simply the dot product of weights and the sum of all the sufficient statistics
+    val mln = Loglinear(features, weightsVar)
 
-  //todo: programmaticaly create a set of observed predicates
-  private val smokes = MLN.predicate("Smokes").get.asInstanceOf[Pred[_, _]]
-  private val friends = MLN.predicate("Friends").get.asInstanceOf[Pred[_, _]]
-  val observed = Variables.AllAtoms(Set(smokes, friends))
-  val thisWorld = MLN.state
-  val state = State(thisWorld).closed(observed)
-  println("state: " + state)
 
-  val vec = features.eval(state).get
-  println("vec = " + vec)
-  println("index = " + index)
 
-  /** ****************************************************************************************/
-  //todo: hidden  variables will be passed through an API call.
-  //training set (we hide cancer to learn how to predict it).
-  val hidden = Variables.AllAtoms(Set(smokes))
-  val trainingSet = Seq(state).map(_.hide(hidden))
+    /** ****************************************************************************************/
 
-  /** ****************************************************************************************/
-  val learnedWeights = LinearLearner.learn(mln)(trainingSet)
-  println("learnedWeights = " + learnedWeights)
+    //todo: programmaticaly create a set of observed predicates
+    val smokes = MLN.predicate("Smokes").get.asInstanceOf[Pred[_, _]]
+    val friends = MLN.predicate("Friends").get.asInstanceOf[Pred[_, _]]
+    val observed = Variables.AllAtoms(Set(smokes, friends))
+    val thisWorld = MLN.state
+    val state = State(thisWorld).closed(observed)
+    println("state: " + state)
+
+    val vec = features.eval(state).get
+    println("vec = " + vec)
+    println("index = " + index)
+
+    /** ****************************************************************************************/
+    //todo: hidden  variables will be passed through an API call.
+    //training set (we hide cancer to learn how to predict it).
+    val hidden = Variables.AllAtoms(Set(smokes))
+    val trainingSet = Seq(state).map(_.hide(hidden))
+
+    /** ****************************************************************************************/
+    val learnedWeights = LinearLearner.learn(mln)(trainingSet)
+    println("learnedWeights = " + learnedWeights)
+  }
 
 
   private def processFormula(term: Term[_]): QuantifiedVecSum = {
@@ -87,5 +92,14 @@ object MLN extends App {
     }
     vecSum(builderN)
   }
+
+
+  def execTimeOf[A](f: => A) = {
+    val start = System.nanoTime
+    val result = f
+    println("time: " + (System.nanoTime - start) / 1000 + " ms")
+    result
+  }
+
 
 }
