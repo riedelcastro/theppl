@@ -5,7 +5,7 @@ import scala.collection.mutable.{ListBuffer, HashMap, Seq}
 import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.term.TermImplicits._
-import com.github.riedelcastro.theppl.parse.MLNParser.Formula
+import com.github.riedelcastro.theppl.parse.MLNParser.{VariableOrType, Formula}
 import com.github.riedelcastro.theppl.Variable
 import scala.collection.immutable.{List, Map}
 
@@ -22,19 +22,23 @@ class MLNEmbeddedTranslator {
 
   def formulae: List[(Double, Term[Boolean])] = mlnFormulae.toList
 
-  //  def formulae: List[(Double, Term[Boolean])] = groundPredicates
-
   def domain: Map[String, Dom[Any]] = dom.toMap
 
-  val dom = new HashMap[String, Dom[Any]]
   val atoms = new HashMap[Symbol, Term[Any]]
+  val predicates = new HashMap[Symbol, Term[Any]]
+
+  def predicate(name: String): Option[Term[Any]] = predicates.get(Symbol(name))
 
   private val mlnFormulae = new ListBuffer[(Double, Term[Boolean])]()
+
   private val worldState = new HashMap[Variable[Any], Any]
+  private val uniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
 
-  //This is dangerous as soon as we move to the real world cases. => this holds the whole groundings in memory
-  //  private def groundPredicates = mlnFormulae.map(x => (x._1, injectConstants(x._2))).toList
+  val dom = new HashMap[String, Dom[Any]]
 
+  def formulae2: List[(Double, Term[Boolean])] = fullDomainFormulae
+
+  private def fullDomainFormulae = mlnFormulae.map(x => (x._1, injectDomain(x._2))).toList
 
   /*
   *  A .mln file consists of two basic parts: declarations and formulas.
@@ -113,66 +117,35 @@ class MLNEmbeddedTranslator {
         val funApp = args match {
           case List(a1) => {
             val pred1: Pred1[Any, Any] = pred.asInstanceOf[Pred1[Any, Any]]
-            //todo: look up uniqueVariable
-            val variable: UniqueVar[Any] = pred1.dom1.argument
-            FunApp1.apply(pred1, variable)
+            val varName: String = a1.asInstanceOf[VariableOrType].name
+            val variable: UniqueVar[Any] = uniqueVarsDictionary.getOrElseUpdate(varName, pred1.dom1.argument)
+            FunApp1(pred1, variable)
           }
           case List(a1, a2) => {
             val pred2: Pred2[Any, Any, Any] = pred.asInstanceOf[Pred2[Any, Any, Any]]
-            //todo: look up uniqueVariable
-            val variable1: UniqueVar[Any] = pred2.dom1.argument
-            val variable2: UniqueVar[Any] = pred2.dom2.argument
-            FunApp2.apply(pred2, variable1, variable2)
+            val varName1: String = a1.asInstanceOf[VariableOrType].name
+            val variable1: UniqueVar[Any] = uniqueVarsDictionary.getOrElseUpdate(varName1, pred2.dom1.argument)
+
+            val varName2: String = a2.asInstanceOf[VariableOrType].name
+            val variable2: UniqueVar[Any] = uniqueVarsDictionary.getOrElseUpdate(varName2, pred2.dom2.argument)
+
+            FunApp2(pred2, variable1, variable2)
           }
         }
         funApp.asInstanceOf[Term[Boolean]]
       }
       case MLNParser.And(lhs, rhs) => {
-        initUniqueVariable
-        val formulaApp= formula(lhs) && formula(rhs)
-        flushUniqueVariable
-        formulaApp
+        formula(lhs) && formula(rhs)
       }
       case MLNParser.Implies(lhs, rhs) => {
-        initUniqueVariable
-        val formulaApp = formula(lhs) |=> formula(rhs)
-        flushUniqueVariable
-        formulaApp
+        formula(lhs) |=> formula(rhs)
       }
       case MLNParser.Equivalence(lhs, rhs) => {
-        initUniqueVariable
-        val formulaApp = formula(lhs) === formula(rhs)
-        flushUniqueVariable
-        formulaApp
+        formula(lhs) === formula(rhs)
       }
       case MLNParser.Or(lhs, rhs) => throw new Error("OR in progress..")
       case MLNParser.Not(form) => throw new Error("NOT in progress..")
       case _ => throw new Error("more formulae in progress..")
-    }
-  }
-
-  //todo:
-  def initUniqueVariable {
-    /*create dictionary for variables used in this formula...*/
-  }
-
-  //todo:
-  def flushUniqueVariable {
-    /*destroy dictionary created in initUniqueVariable*/
-  }
-
-  def variable(a: MLNParser.Term): Variable[Any] = {
-    new Variable[Any] {
-      override def toString: String = a.toString
-
-      def domain: Seq[Any] = a match {
-        case MLNParser.VariableOrType(name) => {
-          Seq(name.toString)
-        }
-        case _ => throw new Error("not a variable or type...")
-      }
-
-
     }
   }
 
@@ -226,32 +199,63 @@ class MLNEmbeddedTranslator {
     db_file.close()
   }
 
-  //  private def injectConstants(formula: Term[Any]): Term[Boolean] = {
-  //    val groundedFormula = formula match {
-  //      case pred1@Pred1(name, dom, range) => {
-  //        val domainName: String = dom.name.name
-  //        val fullDom = domain(domainName)
-  //        Pred1(name, fullDom, range)
-  //
-  //      }
-  //      case pred2@Pred2(name, dom1, dom2, range) => {
-  //        val firstDomain = dom1.name.name
-  //        val firstFullDom = domain(firstDomain)
-  //        val secondDomain = dom2.name.name
-  //        val secondFullDom = domain(secondDomain)
-  //        Pred2(name, firstFullDom, secondFullDom, range)
-  //
-  //      }
-  //      case funApp1@FunApp1(f, a1) => {
-  //        FunApp1(f, injectConstants(a1))
-  //      }
-  //      case funApp2@FunApp2(f, a1, a2) => {
-  //        FunApp2(f, injectConstants(a1), injectConstants(a2))
-  //      }
-  //      case _ => throw new Error("unknown term...")
-  //    }
-  //    groundedFormula.asInstanceOf[Term[Boolean]]
-  //  }
+  private def domainPredicate(predicate: Term[Any]): Term[Boolean] = {
+    val p = predicate match {
+      case pred1@Pred1(name, dom, range) => {
+        val domainName: String = dom.name.name
+        val fullDom = domain(domainName)
+        Pred1(name, fullDom, range)
+      }
+      case pred2@Pred2(name, dom1, dom2, range) => {
+        val firstDomain = dom1.name.name
+        val firstFullDom = domain(firstDomain)
+        val secondDomain = dom2.name.name
+        val secondFullDom = domain(secondDomain)
+        Pred2(name, firstFullDom, secondFullDom, range)
+      }
+      case _ => throw new Error("unknown term...")
+    }
+    p.asInstanceOf[Term[Boolean]]
+  }
+
+  private def injectDomain(formula: Term[Any]): Term[Boolean] = {
+    val groundedFormula = formula match {
+      case pred1@Pred1(name, dom, range) => {
+        val domainName: String = dom.name.name
+        val fullDom = domain(domainName)
+        val pred1: Pred1[Any, Any] = Pred1(name, fullDom, range)
+        predicates(name) = pred1
+        pred1
+      }
+      case pred2@Pred2(name, dom1, dom2, range) => {
+        val firstDomain = dom1.name.name
+        val firstFullDom = domain(firstDomain)
+        val secondDomain = dom2.name.name
+        val secondFullDom = domain(secondDomain)
+        val pred2: Pred2[Any, Any, Any] = Pred2(name, firstFullDom, secondFullDom, range)
+        predicates(name) = pred2
+        pred2
+      }
+      case funApp1@FunApp1(f, a1) => {
+        val innerFunApp1 = f match {
+          case pred1: Pred1[_, _] => injectDomain(pred1)
+          case _ => throw new Error("unknown term...")
+        }
+        FunApp1(innerFunApp1.asInstanceOf[Term[Any => Boolean]], a1)
+      }
+      case funApp2@FunApp2(f, a1, a2) => {
+        val innerFunApp2 = f match {
+          case pred2: Pred2[_, _, _] => (a1, a2) match {
+            case (arg1: UniqueVar[Any], arg2: UniqueVar[Any]) => FunApp2(injectDomain(pred2).asInstanceOf[Term[(Any, Any) => Boolean]], a1, a2)
+          }
+          case _ => FunApp2(f, injectDomain(a1), injectDomain(a2)) /*And, Implies, Eq*/
+        }
+        innerFunApp2
+      }
+      case _ => throw new Error("unknown term...")
+    }
+    groundedFormula.asInstanceOf[Term[Boolean]]
+  }
 
   private def enhanceDomain(thisDom: Dom[Any], value: String) {
     val domainName: String = thisDom.name.name

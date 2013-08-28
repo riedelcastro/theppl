@@ -6,6 +6,7 @@ import com.github.riedelcastro.theppl.term.TermImplicits._
 import com.github.riedelcastro.theppl.Variables.AllAtoms
 import com.github.riedelcastro.theppl.util.SetUtil.Union
 import org.riedelcastro.nurupo.BuilderN
+import com.github.riedelcastro.theppl.learn.LinearLearner
 
 /**
  * Created by larysa  15.07.13
@@ -25,13 +26,17 @@ object MLN extends App {
 
   /** markov logic in action */
   /*Get all formulae and evidence elements*/
-  val formulae = MLN.formulae
-  println(formulae)
+//  val formulae = MLN.formulae
+//  println("formulae = " + formulae)
+
+  val formulae2 = MLN.formulae2
+  println("formulae2 = " + formulae2)
 
   val index = new Index()
-  val featureVec = formulae.map(tuple => processFormula(tuple._2).asInstanceOf[Term[Vec]])
+  val featureVec = formulae2.map(tuple => processFormula(tuple._2).asInstanceOf[Term[Vec]])
   val features = featureVec.reduceLeft(_ + _)
   println("features = " + features)
+
 
   /** ****************************************************************************************/
 
@@ -44,15 +49,16 @@ object MLN extends App {
   /** ****************************************************************************************/
 
   //todo: programmaticaly create a set of observed predicates
-  private val smokes = MLN.atom("Smokes").asInstanceOf[Pred[_, _]]
-  private val friends = MLN.atom("Friends").asInstanceOf[Pred[_, _]]
+  private val smokes = MLN.predicate("Smokes").get.asInstanceOf[Pred[_, _]]
+  private val friends = MLN.predicate("Friends").get.asInstanceOf[Pred[_, _]]
   val observed = Variables.AllAtoms(Set(smokes, friends))
   val thisWorld = MLN.state
   val state = State(thisWorld).closed(observed)
   println("state: " + state)
 
-  val vec: Vec = features.eval(state).get
-  println(vec)
+  val vec = features.eval(state).get
+  println("vec = " + vec)
+  println("index = " + index)
 
   /** ****************************************************************************************/
   //todo: hidden  variables will be passed through an API call.
@@ -61,17 +67,16 @@ object MLN extends App {
   val trainingSet = Seq(state).map(_.hide(hidden))
 
   /** ****************************************************************************************/
-  //  val learnedWeights = LinearLearner.learn(mln)(trainingSet)
-  //  println("learnedWeights = " + learnedWeights)
+  val learnedWeights = LinearLearner.learn(mln)(trainingSet)
+  println("learnedWeights = " + learnedWeights)
 
 
   private def processFormula(term: Term[_]): QuantifiedVecSum = {
-
     val variables = term.variables
     val filtered = variables match {
-        case Union(sets) => Union(sets.filterNot(_.isInstanceOf[AllAtoms]))
-        case _ => variables
-      }
+      case Union(sets) => Union(sets.filterNot(_.isInstanceOf[AllAtoms]))
+      case _ => variables
+    }
 
     /*monads: as computational builder*/
     val builderN = new BuilderN[Variable[Any], Term[Vec]] {
