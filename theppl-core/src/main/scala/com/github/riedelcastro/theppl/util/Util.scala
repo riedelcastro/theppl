@@ -239,6 +239,17 @@ object CollectionUtil {
     }
   }
 
+  @tailrec
+  def allTuplesView[T](domains: Seq[Iterable[T]], tail: Seq[Seq[T]] = Seq(Seq.empty)): Seq[Seq[T]] = {
+    if (domains.size == 0) tail.view
+    else {
+      val domain = domains.head
+      val tuples = tail.view flatMap (prefix => domain.view map (prefix :+ _))
+      allTuplesView(domains.drop(1), tuples)
+    }
+  }
+
+
   def allStates(variables: Seq[Variable[Any]]) = {
     val domains = variables.map(_.domain).toSeq
     val tuples = CollectionUtil.allTuples(domains)

@@ -3,7 +3,7 @@ package com.github.riedelcastro.theppl.parse
 import com.github.riedelcastro.theppl.{Variables, VecVar, Variable, State}
 import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.TermImplicits._
-import com.github.riedelcastro.theppl.Variables.AllAtoms
+import com.github.riedelcastro.theppl.Variables.{AtomSet, AllAtoms}
 import com.github.riedelcastro.theppl.util.SetUtil.Union
 import org.riedelcastro.nurupo.BuilderN
 import com.github.riedelcastro.theppl.learn.LinearLearner
@@ -26,8 +26,8 @@ object MLN extends App {
 
   /** markov logic in action */
   /*Get all formulae and evidence elements*/
-//  val formulae = MLN.formulae
-//  println("formulae = " + formulae)
+  //  val formulae = MLN.formulae
+  //  println("formulae = " + formulae)
 
   val formulae2 = MLN.formulae2
   println("formulae2 = " + formulae2)
@@ -74,7 +74,7 @@ object MLN extends App {
   private def processFormula(term: Term[_]): QuantifiedVecSum = {
     val variables = term.variables
     val filtered = variables match {
-      case Union(sets) => Union(sets.filterNot(_.isInstanceOf[AllAtoms]))
+      case Union(sets) => Union(sets.filterNot(_.isInstanceOf[AtomSet]))
       case _ => variables
     }
 

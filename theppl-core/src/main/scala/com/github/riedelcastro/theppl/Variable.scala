@@ -73,6 +73,8 @@ case class VecVar[Id](id:Id) extends Variable[Vec] {
 object Variables {
 
 
+  trait AtomSet extends Set[Variable[Any]]
+
   object All extends Set[Variable[Any]] {
     def contains(elem: Variable[Any]) = true
     def +(elem: Variable[Any]) = this
@@ -80,7 +82,7 @@ object Variables {
     def iterator = Util.infinity
   }
 
-  case class AllAtoms(predicates:Set[Pred[_,_]]) extends Set[Variable[Any]] {
+  case class AllAtoms(predicates:Set[Pred[_,_]]) extends AtomSet {
     def contains(elem: Variable[Any]) = elem match {
       case GroundAtom(pred,_) => predicates(pred)
       case _ => false
@@ -90,7 +92,7 @@ object Variables {
     def iterator = predicates.iterator.flatMap(_.variables.toIterator)
   }
 
-  case class PartialAtoms(pred:Pred[_,_],args:Seq[Term[Any]], condition:State = State.empty) extends Set[Variable[Any]] {
+  case class PartialAtoms(pred:Pred[_,_],args:Seq[Term[Any]], condition:State = State.empty) extends AtomSet {
     lazy val evaluated = args.map(_.eval(condition))
     lazy val domains = evaluated.zip(pred.domains).map({case (Some(value),_) => Set(value); case (_,dom) => dom.values.toSet})
     def contains(elem: Variable[Any]) = elem match {
