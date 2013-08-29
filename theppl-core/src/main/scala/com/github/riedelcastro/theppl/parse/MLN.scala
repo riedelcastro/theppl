@@ -71,15 +71,23 @@ object MLN extends App {
     val trainingSet = Seq(state).map(_.hide(hidden))
 
     /** ****************************************************************************************/
-    val learnedWeights = LinearLearner.learn(mln)(trainingSet)
-    println("learnedWeights = " + learnedWeights)
+    //todo: currently only the brute force argmaxer works, and it takes too long on these examples
+    //todo: to test the learner, for now we should look at less hidden ground atoms.
+    //val learnedWeights = LinearLearner.learn(mln)(trainingSet)
+    //println("learnedWeights = " + learnedWeights)
   }
 
+  private def flattenUnion[T](sets:Set[Set[T]]):Set[Set[T]] = sets.flatMap(_ match {
+    case Union(inner) => flattenUnion(inner)
+    case set => Set(set)
+  })
 
   private def processFormula(term: Term[_]): QuantifiedVecSum = {
     val variables = term.variables
     val filtered = variables match {
-      case Union(sets) => Union(sets.filterNot(_.isInstanceOf[AtomSet]))
+      case Union(sets) =>
+        val flattened = flattenUnion(sets)
+        Union(flattened.filterNot(_.isInstanceOf[AtomSet]))
       case _ => variables
     }
 
