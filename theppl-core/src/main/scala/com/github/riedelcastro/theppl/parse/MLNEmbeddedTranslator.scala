@@ -33,6 +33,7 @@ class MLNEmbeddedTranslator {
 
   private val worldState = new HashMap[Variable[Any], Any]
   private val uniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
+  private val typedUniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
 
   val dom = new HashMap[String, Dom[Any]]
 
@@ -199,25 +200,6 @@ class MLNEmbeddedTranslator {
     db_file.close()
   }
 
-  private def domainPredicate(predicate: Term[Any]): Term[Boolean] = {
-    val p = predicate match {
-      case pred1@Pred1(name, dom, range) => {
-        val domainName: String = dom.name.name
-        val fullDom = domain(domainName)
-        Pred1(name, fullDom, range)
-      }
-      case pred2@Pred2(name, dom1, dom2, range) => {
-        val firstDomain = dom1.name.name
-        val firstFullDom = domain(firstDomain)
-        val secondDomain = dom2.name.name
-        val secondFullDom = domain(secondDomain)
-        Pred2(name, firstFullDom, secondFullDom, range)
-      }
-      case _ => throw new Error("unknown term...")
-    }
-    p.asInstanceOf[Term[Boolean]]
-  }
-
   private def injectDomain(formula: Term[Any]): Term[Boolean] = {
     val groundedFormula = formula match {
       case pred1@Pred1(name, dom, range) => {
@@ -237,16 +219,28 @@ class MLNEmbeddedTranslator {
         pred2
       }
       case funApp1@FunApp1(f, a1) => {
-        val innerFunApp1 = f match {
-          case pred1: Pred1[_, _] => injectDomain(pred1)
+        val (name, innerFunApp1) = f match {
+          case pred1: Pred1[_, _] => {
+            val domName = pred1.dom1.name.name
+            (domName, injectDomain(pred1))
+          }
           case _ => throw new Error("unknown term...")
         }
-        FunApp1(innerFunApp1.asInstanceOf[Term[Any => Boolean]], a1)
+        //        val dom1: Dom[Any] = dom(name)
+        //        val varName: String = a1.toString
+        val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(name, a1.toString) // new UniqueVar[Any](varName, dom1.values)
+
+        FunApp1(innerFunApp1.asInstanceOf[Term[Any => Boolean]], uniqueVar)
       }
       case funApp2@FunApp2(f, a1, a2) => {
         val innerFunApp2 = f match {
           case pred2: Pred2[_, _, _] => (a1, a2) match {
-            case (arg1: UniqueVar[Any], arg2: UniqueVar[Any]) => FunApp2(injectDomain(pred2).asInstanceOf[Term[(Any, Any) => Boolean]], a1, a2)
+            case (arg1: UniqueVar[Any], arg2: UniqueVar[Any]) => {
+              val uniqueVar1: UniqueVar[Any] = createTypedUniqueVar(pred2.dom1.name.name, arg1.toString)
+              val uniqueVar2: UniqueVar[Any] = createTypedUniqueVar(pred2.dom2.name.name, arg2.toString)
+
+              FunApp2(injectDomain(pred2).asInstanceOf[Term[(Any, Any) => Boolean]], uniqueVar1, uniqueVar2)
+            }
           }
           case _ => FunApp2(f, injectDomain(a1), injectDomain(a2)) /*And, Implies, Eq*/
         }
@@ -255,6 +249,12 @@ class MLNEmbeddedTranslator {
       case _ => throw new Error("unknown term...")
     }
     groundedFormula.asInstanceOf[Term[Boolean]]
+  }
+
+
+  private def createTypedUniqueVar(domainName: String, name: String): UniqueVar[Any] = {
+    val dom1: Dom[Any] = dom(domainName)
+    typedUniqueVarsDictionary.getOrElseUpdate(name, new UniqueVar[Any](name, dom1.values))
   }
 
   private def enhanceDomain(thisDom: Dom[Any], value: String) {

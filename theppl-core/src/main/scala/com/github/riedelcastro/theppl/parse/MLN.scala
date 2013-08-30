@@ -6,7 +6,6 @@ import com.github.riedelcastro.theppl.term.TermImplicits._
 import com.github.riedelcastro.theppl.Variables.AtomSet
 import com.github.riedelcastro.theppl.util.SetUtil.Union
 import org.riedelcastro.nurupo.BuilderN
-import com.github.riedelcastro.theppl.learn.LinearLearner
 
 /**
  * Created by larysa  15.07.13
@@ -48,26 +47,26 @@ object MLN extends App {
     //the mln is simply the dot product of weights and the sum of all the sufficient statistics
     val mln = Loglinear(features, weightsVar)
 
-
-
     /** ****************************************************************************************/
 
     //todo: programmaticaly create a set of observed predicates
     val smokes = MLN.predicate("Smokes").get.asInstanceOf[Pred[_, _]]
     val friends = MLN.predicate("Friends").get.asInstanceOf[Pred[_, _]]
-    val observed = Variables.AllAtoms(Set(smokes, friends))
+    val cancer = MLN.predicate("Cancer").get.asInstanceOf[Pred[_, _]]
+    val observed = Variables.AllAtoms(Set(smokes, friends, cancer))
     val thisWorld = MLN.state
     val state = State(thisWorld).closed(observed)
     println("state: " + state)
 
-    val vec = features.eval(state).get
+    val evalVec: Option[Vec] = features.eval(state)
+    val vec = evalVec.getOrElse(Vec.zero)
     println("vec = " + vec)
     println("index = " + index)
 
     /** ****************************************************************************************/
     //todo: hidden  variables will be passed through an API call.
     //training set (we hide cancer to learn how to predict it).
-    val hidden = Variables.AllAtoms(Set(smokes))
+    val hidden = Variables.AllAtoms(Set(cancer))
     val trainingSet = Seq(state).map(_.hide(hidden))
 
     /** ****************************************************************************************/
@@ -77,7 +76,7 @@ object MLN extends App {
     //println("learnedWeights = " + learnedWeights)
   }
 
-  private def flattenUnion[T](sets:Set[Set[T]]):Set[Set[T]] = sets.flatMap(_ match {
+  private def flattenUnion[T](sets: Set[Set[T]]): Set[Set[T]] = sets.flatMap(_ match {
     case Union(inner) => flattenUnion(inner)
     case set => Set(set)
   })
