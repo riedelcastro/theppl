@@ -8,6 +8,9 @@ import com.github.riedelcastro.theppl.term.TermImplicits._
 import com.github.riedelcastro.theppl.parse.MLNParser.{VariableOrType, Formula}
 import com.github.riedelcastro.theppl.Variable
 import scala.collection.immutable.{List, Map}
+import com.github.riedelcastro.theppl.util.SetUtil.Union
+import com.github.riedelcastro.theppl.Variables.AtomSet
+import org.riedelcastro.nurupo.BuilderN
 
 /**
  * Translates the parsing output into processing statements on the fly.
@@ -39,7 +42,43 @@ class MLNEmbeddedTranslator {
 
   def formulae2: List[(Double, Term[Boolean])] = fullDomainFormulae
 
+
   private def fullDomainFormulae = mlnFormulae.map(x => (x._1, injectDomain(x._2))).toList
+
+  //create MLN sufficient statistics formulae
+  //note that this is a sum of singleton vectors, one for each person.
+  //the singleton vector has a component at `index('smoke_bias)` that is 1 iff smokes(p) is true.
+  def processFormulae(index: Index, formulae: List[(Double, Term[Boolean])]): Term[Vec] = {
+    //todo: tuple._1 weights are not considered anymore!!!
+    val featureVec = formulae2.map(tuple => processFormula(index, tuple._2).asInstanceOf[Term[Vec]])
+    val features = featureVec.reduceLeft(_ + _)
+    features
+  }
+
+  private def processFormula(index: Index, term: Term[_]): QuantifiedVecSum = {
+    val variables = term.variables
+    val filtered = variables match {
+      case Union(sets) =>
+        val flattened = flattenUnion(sets)
+        Union(flattened.filterNot(_.isInstanceOf[AtomSet]))
+      case _ => variables
+    }
+
+    /*monads: as computational builder*/
+    val builderN = new BuilderN[Variable[Any], Term[Vec]] {
+      val arguments = filtered.toSeq
+      val built = index(Symbol(term.toString)) --> I {
+        term.asInstanceOf[Term[Boolean]]
+      }
+    }
+    vecSum(builderN)
+  }
+
+  private def flattenUnion[T](sets: Set[Set[T]]): Set[Set[T]] = sets.flatMap(_ match {
+    case Union(inner) => flattenUnion(inner)
+    case set => Set(set)
+  })
+
 
   /*
   *  A .mln file consists of two basic parts: declarations and formulas.

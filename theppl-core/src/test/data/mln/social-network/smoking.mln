@@ -14,7 +14,8 @@ Friends(person, person)
 // Rules
 // todo: formula consisting of single predicate:
 0.0 Smokes(x)
-0.0 Friends(x, y)
+0.0 Cancer(x)
+// 0.0 Friends(x, y)
 // If you smoke, you get cancer
 Smokes(x) => Cancer(x)
 // People with friends who smoke, also smoke

@@ -1,11 +1,8 @@
 package com.github.riedelcastro.theppl.parse
 
-import com.github.riedelcastro.theppl.{Variables, VecVar, Variable, State}
+import com.github.riedelcastro.theppl.{Variables, VecVar, State}
 import com.github.riedelcastro.theppl.term._
-import com.github.riedelcastro.theppl.term.TermImplicits._
-import com.github.riedelcastro.theppl.Variables.AtomSet
-import com.github.riedelcastro.theppl.util.SetUtil.Union
-import org.riedelcastro.nurupo.BuilderN
+import com.github.riedelcastro.theppl.learn.LinearLearner
 
 /**
  * Created by larysa  15.07.13
@@ -16,34 +13,32 @@ import org.riedelcastro.nurupo.BuilderN
 //todo: A: create API which simulates Alchemy CLI, and allow settings via parameters.
  */
 object MLN extends App {
-  val mln_file = "theppl-core/src/test/data/mln/social-network/smoking.mln"
-  val db_file = "theppl-core/src/test/data/mln/social-network/smoking-train.db"
-
-  val MLN = new MLNEmbeddedTranslator
-  MLN.translateMLNFromFile(mln_file)
-  MLN.translateDatabaseFromFile(db_file)
-
-  /** markov logic in action */
-  /*Get all formulae and evidence elements*/
-  //  val formulae = MLN.formulae
-  //  println("formulae = " + formulae)
-
-  val formulae2 = MLN.formulae2
-  println("formulae2 = " + formulae2)
-
-  val index = new Index()
-  val featureVec = formulae2.map(tuple => processFormula(tuple._2).asInstanceOf[Term[Vec]])
-  val features = featureVec.reduceLeft(_ + _)
-  println("features = " + features)
-
-
-  /** ****************************************************************************************/
-
-  //this index maps feature indices to integers and vice versa
-  //the variable corresponding to the weight vector
-  val weightsVar = VecVar('weights)
-
   execTimeOf {
+    val mln_file = "theppl-core/src/test/data/mln/social-network/smoking.mln"
+    val db_file = "theppl-core/src/test/data/mln/social-network/smoking-train.db"
+
+    val MLN = new MLNEmbeddedTranslator
+    MLN.translateMLNFromFile(mln_file)
+    MLN.translateDatabaseFromFile(db_file)
+
+    /** markov logic in action */
+    /*Get all formulae and evidence elements*/
+
+    val formulae = MLN.formulae2
+    println("formulae2 = " + formulae)
+
+    val index = new Index()
+    val features = MLN.processFormulae(index, formulae)
+    println("features = " + features)
+
+
+    /** ****************************************************************************************/
+
+    //this index maps feature indices to integers and vice versa
+    //the variable corresponding to the weight vector
+    val weightsVar = VecVar('weights)
+
+
     //the mln is simply the dot product of weights and the sum of all the sufficient statistics
     val mln = Loglinear(features, weightsVar)
 
@@ -61,7 +56,7 @@ object MLN extends App {
     val evalVec: Option[Vec] = features.eval(state)
     val vec = evalVec.getOrElse(Vec.zero)
     println("vec = " + vec)
-    println("index = " + index)
+    println("index = " + index.toVerboseString)
 
     /** ****************************************************************************************/
     //todo: hidden  variables will be passed through an API call.
@@ -72,39 +67,46 @@ object MLN extends App {
     /** ****************************************************************************************/
     //todo: currently only the brute force argmaxer works, and it takes too long on these examples
     //todo: to test the learner, for now we should look at less hidden ground atoms.
-    //val learnedWeights = LinearLearner.learn(mln)(trainingSet)
-    //println("learnedWeights = " + learnedWeights)
+    val learnedWeights = LinearLearner.learn(mln)(trainingSet)
+    println("learnedWeights = " + learnedWeights)
+
+    val inverseIndex = index.inverse()
+    println("----")
+    println(learnedWeights.toMap.map({
+      case (index, value) => inverseIndex.get(index).map(_.mkString(",")) -> value
+    }).mkString("\n"))
   }
 
-  private def flattenUnion[T](sets: Set[Set[T]]): Set[Set[T]] = sets.flatMap(_ match {
-    case Union(inner) => flattenUnion(inner)
-    case set => Set(set)
-  })
 
-  private def processFormula(term: Term[_]): QuantifiedVecSum = {
-    val variables = term.variables
-    val filtered = variables match {
-      case Union(sets) =>
-        val flattened = flattenUnion(sets)
-        Union(flattened.filterNot(_.isInstanceOf[AtomSet]))
-      case _ => variables
-    }
-
-    /*monads: as computational builder*/
-    val builderN = new BuilderN[Variable[Any], Term[Vec]] {
-      val arguments = filtered.toSeq
-      val built = index(Symbol(term.toString)) --> I {
-        term.asInstanceOf[Term[Boolean]]
-      }
-    }
-    vecSum(builderN)
-  }
+  //  def processFormula(term: Term[_]): QuantifiedVecSum = {
+  //    val variables = term.variables
+  //    val filtered = variables match {
+  //      case Union(sets) =>
+  //        val flattened = flattenUnion(sets)
+  //        Union(flattened.filterNot(_.isInstanceOf[AtomSet]))
+  //      case _ => variables
+  //    }
+  //
+  //    /*monads: as computational builder*/
+  //    val builderN = new BuilderN[Variable[Any], Term[Vec]] {
+  //      val arguments = filtered.toSeq
+  //      val built = index(Symbol(term.toString)) --> I {
+  //        term.asInstanceOf[Term[Boolean]]
+  //      }
+  //    }
+  //    vecSum(builderN)
+  //  }
+  //
+  //  def flattenUnion[T](sets: Set[Set[T]]): Set[Set[T]] = sets.flatMap(_ match {
+  //    case Union(inner) => flattenUnion(inner)
+  //    case set => Set(set)
+  //  })
 
 
   def execTimeOf[A](f: => A) = {
     val start = System.nanoTime
     val result = f
-    println("time: " + (System.nanoTime - start) / 1000 + " ms")
+    printf("time: %.3f sec", (System.nanoTime - start) / 1000000000.0)
     result
   }
 
