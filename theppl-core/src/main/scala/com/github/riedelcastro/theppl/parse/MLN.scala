@@ -31,26 +31,22 @@ object MLN extends App {
     val features = MLN.processFormulae(index, formulae)
     println("features = " + features)
 
-
     /** ****************************************************************************************/
-
     //this index maps feature indices to integers and vice versa
     //the variable corresponding to the weight vector
     val weightsVar = VecVar('weights)
-
 
     //the mln is simply the dot product of weights and the sum of all the sufficient statistics
     val mln = Loglinear(features, weightsVar)
 
     /** ****************************************************************************************/
-
     //todo: programmaticaly create a set of observed predicates
     val smokes = MLN.predicate("Smokes").get.asInstanceOf[Pred[_, _]]
     val friends = MLN.predicate("Friends").get.asInstanceOf[Pred[_, _]]
     val cancer = MLN.predicate("Cancer").get.asInstanceOf[Pred[_, _]]
     val observed = Variables.AllAtoms(Set(smokes, friends, cancer))
-    val thisWorld = MLN.state
-    val state = State(thisWorld).closed(observed)
+    val thisWorld2=MLN.state2
+    val state = State(thisWorld2).closed(observed)
     println("state: " + state)
 
     val evalVec: Option[Vec] = features.eval(state)
@@ -77,30 +73,6 @@ object MLN extends App {
     }).mkString("\n"))
   }
 
-
-  //  def processFormula(term: Term[_]): QuantifiedVecSum = {
-  //    val variables = term.variables
-  //    val filtered = variables match {
-  //      case Union(sets) =>
-  //        val flattened = flattenUnion(sets)
-  //        Union(flattened.filterNot(_.isInstanceOf[AtomSet]))
-  //      case _ => variables
-  //    }
-  //
-  //    /*monads: as computational builder*/
-  //    val builderN = new BuilderN[Variable[Any], Term[Vec]] {
-  //      val arguments = filtered.toSeq
-  //      val built = index(Symbol(term.toString)) --> I {
-  //        term.asInstanceOf[Term[Boolean]]
-  //      }
-  //    }
-  //    vecSum(builderN)
-  //  }
-  //
-  //  def flattenUnion[T](sets: Set[Set[T]]): Set[Set[T]] = sets.flatMap(_ match {
-  //    case Union(inner) => flattenUnion(inner)
-  //    case set => Set(set)
-  //  })
 
 
   def execTimeOf[A](f: => A) = {

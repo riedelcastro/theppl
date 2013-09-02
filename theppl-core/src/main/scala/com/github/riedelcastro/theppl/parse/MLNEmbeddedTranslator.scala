@@ -1,16 +1,27 @@
 package com.github.riedelcastro.theppl.parse
 
-import scala.collection.mutable.{ListBuffer, HashMap, Seq}
+import scala.collection.mutable.{Seq, ListBuffer, HashMap}
 
 import com.github.riedelcastro.theppl.term._
-import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.term.TermImplicits._
-import com.github.riedelcastro.theppl.parse.MLNParser.{VariableOrType, Formula}
+import com.github.riedelcastro.theppl.parse.MLNParser.Formula
 import com.github.riedelcastro.theppl.Variable
 import scala.collection.immutable.{List, Map}
-import com.github.riedelcastro.theppl.util.SetUtil.Union
 import com.github.riedelcastro.theppl.Variables.AtomSet
 import org.riedelcastro.nurupo.BuilderN
+import scala._
+import scala.AnyRef
+import com.github.riedelcastro.theppl.term.FunApp1
+import com.github.riedelcastro.theppl.term.Pred2
+import com.github.riedelcastro.theppl.term.Pred1
+import com.github.riedelcastro.theppl.term.Constant
+import com.github.riedelcastro.theppl.term.Dom
+import com.github.riedelcastro.theppl.term.QuantifiedVecSum
+import scala.Tuple3
+import com.github.riedelcastro.theppl.util.SetUtil.Union
+import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
+import com.github.riedelcastro.theppl.term.FunApp2
+import scala.Tuple2
 
 /**
  * Translates the parsing output into processing statements on the fly.
@@ -19,31 +30,43 @@ import org.riedelcastro.nurupo.BuilderN
  * http://alchemy.cs.washington.edu/user-manual/manual.html
  */
 class MLNEmbeddedTranslator {
+  val atoms = new HashMap[Symbol, Term[Any]]
+  val dom = new HashMap[String, Dom[Any]]
+  val predicates = new HashMap[Symbol, Term[Any]] /*predicates with full domains*/
 
-  def state: Map[Variable[Any], Any] = worldState.toMap
+  private val mlnFormulae = new ListBuffer[(Double, Term[Boolean])]()
+  private val uniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
+  private val typedUniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
+  private val databaseAtoms = new ListBuffer[(Term[Any], Seq[Constant[Any]], Any)]
 
-
-  def formulae: List[(Double, Term[Boolean])] = mlnFormulae.toList
+  def state2: Map[Variable[Any], Any] = databaseAtoms.map(x => (buildGroundAtom(x._1, x._2) -> x._3)).toMap
 
   def domain: Map[String, Dom[Any]] = dom.toMap
 
-  val atoms = new HashMap[Symbol, Term[Any]]
-  val predicates = new HashMap[Symbol, Term[Any]]
-
   def predicate(name: String): Option[Term[Any]] = predicates.get(Symbol(name))
-
-  private val mlnFormulae = new ListBuffer[(Double, Term[Boolean])]()
-
-  private val worldState = new HashMap[Variable[Any], Any]
-  private val uniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
-  private val typedUniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
-
-  val dom = new HashMap[String, Dom[Any]]
 
   def formulae2: List[(Double, Term[Boolean])] = fullDomainFormulae
 
-
   private def fullDomainFormulae = mlnFormulae.map(x => (x._1, injectDomain(x._2))).toList
+
+  private def buildGroundAtom(predDeclaration: Term[Any], args: Seq[Constant[Any]]): GroundAtom[Any] = {
+    predDeclaration match {
+      case Pred1(name, dom1, range) => {
+        val pred1: Pred1[Any, Any] = pred1Builder(name, dom1, range)
+        args match {
+          case Seq(Constant(value)) => pred1.apply(Symbol(value.toString))
+          case _ => sys.error("predicate of arity 1 can not take more than one argument.")
+        }
+      }
+      case Pred2(name, dom1, dom2, range) => {
+        val pred2: Pred2[Any, Any, Any] = pred2Builder(name, dom1, dom2, range)
+        args match {
+          case Seq(Constant(value1), Constant(value2)) => pred2.apply(Symbol(value1.toString), Symbol(value2.toString))
+          case _ => sys.error("predicate of arity 2 can take only two arguments.")
+        }
+      }
+    }
+  }
 
   //create MLN sufficient statistics formulae
   //note that this is a sum of singleton vectors, one for each person.
@@ -111,7 +134,8 @@ class MLNEmbeddedTranslator {
         dom(name) = Dom(Symbol(name), constantsAsSymbols)
       }
 
-      //a unary/binary predicate
+      //a unary/binary predicate declaration: might have a default domain,
+      // witch will be injected after database atoms are processed.
       case MLNParser.Atom(predicate, args) => {
         val types = args map (x => dom.getOrElseUpdate(x.toString, defaultDomain(x.toString)))
 
@@ -193,7 +217,6 @@ class MLNEmbeddedTranslator {
     atoms(Symbol(predicate.toString))
   }
 
-
   /*
       * A .db file consists of a set of ground atoms, one per line.
         Evidence predicates are assumed by default to be closed-world,
@@ -216,8 +239,9 @@ class MLNEmbeddedTranslator {
             args.head match {
               case MLNParser.Constant(value) => {
                 enhanceDomain(dom1, value)
-                val groundAtom = predicateDeclaration.asInstanceOf[Pred1[Any, Any]].apply(Symbol(value)) -> positive
-                worldState += groundAtom
+                /*here we just collect the information about the database atoms
+                in order to use this later when we know the full domain.*/
+                databaseAtoms += Tuple3(predicateDeclaration, Seq(Constant(value)), positive)
               }
             }
           }
@@ -226,8 +250,7 @@ class MLNEmbeddedTranslator {
               case (MLNParser.Constant(value1), MLNParser.Constant(value2)) => {
                 enhanceDomain(dom1, value1)
                 enhanceDomain(dom2, value2)
-                val groundAtom = predicateDeclaration.asInstanceOf[Pred2[Any, Any, Any]].apply(Symbol(value1), Symbol(value2)) -> positive
-                worldState += groundAtom
+                databaseAtoms += Tuple3(predicateDeclaration, Seq(Constant(value1), Constant(value2)), positive)
               }
             }
           }
@@ -236,27 +259,15 @@ class MLNEmbeddedTranslator {
       case MLNParser.DatabaseFunction(returnValue, name, values) => throw new Error("DB function in progress..")
       case _ => println("Not a database element...")
     })
+
     db_file.close()
+
   }
 
   private def injectDomain(formula: Term[Any]): Term[Boolean] = {
     val groundedFormula = formula match {
-      case pred1@Pred1(name, dom, range) => {
-        val domainName: String = dom.name.name
-        val fullDom = domain(domainName)
-        val pred1: Pred1[Any, Any] = Pred1(name, fullDom, range)
-        predicates(name) = pred1
-        pred1
-      }
-      case pred2@Pred2(name, dom1, dom2, range) => {
-        val firstDomain = dom1.name.name
-        val firstFullDom = domain(firstDomain)
-        val secondDomain = dom2.name.name
-        val secondFullDom = domain(secondDomain)
-        val pred2: Pred2[Any, Any, Any] = Pred2(name, firstFullDom, secondFullDom, range)
-        predicates(name) = pred2
-        pred2
-      }
+      case pred1@Pred1(name, dom, range) => pred1Builder(name, dom, range)
+      case pred2@Pred2(name, dom1, dom2, range) => pred2Builder(name, dom2, dom1, range)
       case funApp1@FunApp1(f, a1) => {
         val (name, innerFunApp1) = f match {
           case pred1: Pred1[_, _] => {
@@ -265,9 +276,7 @@ class MLNEmbeddedTranslator {
           }
           case _ => throw new Error("unknown term...")
         }
-        //        val dom1: Dom[Any] = dom(name)
-        //        val varName: String = a1.toString
-        val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(name, a1.toString) // new UniqueVar[Any](varName, dom1.values)
+        val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(name, a1.toString)
 
         FunApp1(innerFunApp1.asInstanceOf[Term[Any => Boolean]], uniqueVar)
       }
@@ -290,12 +299,35 @@ class MLNEmbeddedTranslator {
     groundedFormula.asInstanceOf[Term[Boolean]]
   }
 
+  /*unless predicate contains the name, build*/
+  def pred2Builder(name: Symbol, dom2: Dom[Any], dom1: Dom[Any], range: Dom[Any]): Pred2[Any, Any, Any] = {
+    predicates.getOrElseUpdate(name, buildPred2(name, dom2, dom1, range)).asInstanceOf[Pred2[Any, Any, Any]]
+  }
+
+  def pred1Builder(name: Symbol, dom: Dom[Any], range: Dom[Any]): Pred1[Any, Any] = {
+    predicates.getOrElseUpdate(name, buildPred1(name, dom, range)).asInstanceOf[Pred1[Any, Any]]
+  }
+
+  private def buildPred1(name: Symbol, dom: Dom[Any], range: Dom[Any]): Pred1[Any, Any] = {
+    val domainName: String = dom.name.name
+    val fullDom = domain(domainName)
+    Pred1(name, fullDom, range)
+  }
+
+  private def buildPred2(name: Symbol, dom2: Dom[Any], dom1: Dom[Any], range: Dom[Any]): Pred2[Any, Any, Any] = {
+    val firstDomain = dom1.name.name
+    val firstFullDom = domain(firstDomain)
+    val secondDomain = dom2.name.name
+    val secondFullDom = domain(secondDomain)
+    Pred2(name, firstFullDom, secondFullDom, range)
+  }
 
   private def createTypedUniqueVar(domainName: String, name: String): UniqueVar[Any] = {
     val dom1: Dom[Any] = dom(domainName)
     typedUniqueVarsDictionary.getOrElseUpdate(name, new UniqueVar[Any](name, dom1.values))
   }
 
+  /*deriving the full domain of the MLN*/
   private def enhanceDomain(thisDom: Dom[Any], value: String) {
     val domainName: String = thisDom.name.name
     val initial: Dom[Any] = dom.getOrElseUpdate(domainName, defaultDomain(domainName))
