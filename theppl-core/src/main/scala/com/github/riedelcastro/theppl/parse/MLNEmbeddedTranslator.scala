@@ -54,6 +54,7 @@ class MLNEmbeddedTranslator {
       case Pred1(name, dom1, range) => {
         val pred1: Pred1[Any, Any] = pred1Builder(name, dom1, range)
         args match {
+          //todo: type check of the constant value!
           case Seq(Constant(value)) => pred1.apply(Symbol(value.toString))
           case _ => sys.error("predicate of arity 1 can not take more than one argument.")
         }

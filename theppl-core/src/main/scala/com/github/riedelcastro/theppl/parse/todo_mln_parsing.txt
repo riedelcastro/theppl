@@ -1,0 +1,6 @@
+(see http://alchemy.cs.washington.edu/user-manual/4_2MLN_Syntax.html)
+Parsings TODOs:
+1) three additional operators: *, + and !
+2) hard formula definition by a period (.)
+3) formula definition could contain a constant.(not only variables)
+4) Alchemy internal predicates and functions
