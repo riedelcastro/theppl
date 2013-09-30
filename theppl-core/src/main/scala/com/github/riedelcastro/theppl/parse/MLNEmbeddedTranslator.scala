@@ -156,6 +156,13 @@ class MLNEmbeddedTranslator {
       //todo: formula consisting of a single predicate e.g. Smokes(x)
       //todo: workaround: add default weight for the single predicate, to indicate this as a formula
       case MLNParser.WeightedFormula(weight, formula) => addFormula(weight, formula)
+
+      /*todo: hard formula processing:
+      a formula is ``hard''   (i.e., worlds that violate it should have zero or negligible probability). */
+      case MLNParser.HardFormula(formula) => {
+        addFormula(Double.PositiveInfinity, formula)
+      }
+
       case formula: MLNParser.Formula => addFormula(0.0, formula)
       case _ => println(" more in progress... " + expr.get.toString)
     })

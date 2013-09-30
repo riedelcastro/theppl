@@ -52,12 +52,12 @@ class MarkovLogic {
       val trainingSet = Seq(state).map(_.hide(hidden))
       val learnedWeights = LinearLearner.learn(mln)(trainingSet)
 
-      /*todo: delete this
+//      todo: delete this
       val inverseIndex = index.inverse()
       println("----")
       println(learnedWeights.toMap.map({
         case (index, value) => inverseIndex.get(index).map(_.mkString(",")) -> value
-      }).mkString("\n"))    */
+      }).mkString("\n"))
 
     }
 

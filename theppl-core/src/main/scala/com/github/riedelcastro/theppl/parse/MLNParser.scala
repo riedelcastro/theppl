@@ -25,7 +25,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
 
   def expression: Parser[Expression] =
-    (typeDefinitions | function | weightedFormula | formula | include)
+    (typeDefinitions | function | hardFormula | weightedFormula | formula | include)
 
 
   def typeDefinitions: Parser[Expression] = (integerTypeDefinition ||| constantTypeDefinition)
@@ -55,6 +55,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   def formula: Parser[Formula] = (binary(minPrec) | negated | atomic)
 
+
   def atomic: Parser[Formula] = (parenthesized | atom)
 
   def parenthesized: Parser[Formula] = "(" ~> formula <~ ")"
@@ -69,6 +70,10 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   def negated: Parser[Not] = "!" ~ formula ^^ {
     case _ ~ f => Not(f)
+  }
+
+  def hardFormula: Parser[HardFormula] = formula <~ "." ^^ {
+    f => HardFormula(f)
   }
 
   def weightedFormula: Parser[WeightedFormula] =
@@ -167,9 +172,9 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     t => t
   }
 
-//  def database: Parser[List[DatabaseAtom]] = rep(databaseAtom) ^^ {
-//    case t => t
-//  }
+  //  def database: Parser[List[DatabaseAtom]] = rep(databaseAtom) ^^ {
+  //    case t => t
+  //  }
 
   def dbFunctions: Parser[List[DatabaseFunction]] = rep(databaseFunction) ^^ {
     case t => t
@@ -236,6 +241,10 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   case class WeightedFormula(weight: Double, formula: Formula) extends Formula {
     override def subformulas = Seq(formula)
+  }
+
+  case class HardFormula(formula: Formula) extends Formula {
+    override def subformulas: Seq[Formula] = Seq(formula)
   }
 
   case class Atom(predicate: String, args: List[Term]) extends Formula
