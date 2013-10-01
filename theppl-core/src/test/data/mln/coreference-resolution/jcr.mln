@@ -1,0 +1,68 @@
+// ------------------------------------------ //
+// PREDICATES
+// ------------------------------------------ //
+// Query
+InClust(constituent,clust)
+
+// Unknown
+EntityType(clust,entityType) // PERSON, ORG, LOC, MISC
+Number(clust,number) // SG,PL
+Gender(clust,gender) // M,F,N
+
+// Evid to predict
+Head(constituent,word)
+EntityType2(constituent,entityType) // PER, ORG, LOC, MISC
+Number2(constituent,number) // SG,PL
+Gender2(constituent,gender) // M,F,N
+
+// Evidence always conditioned on
+MentionType(constituent,mentionType) // PRP, NOM, PRN
+
+Apposition(constituent,constituent) // Mr. Bush, the president ...
+Be(constituent,constituent)	// Bush is the president ...
+
+// ------------------------------------------ //
+// Nominal head mixture
+// ------------------------------------------ //
+InClust(+x,+c)
+!MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)
+
+// ------------------------------------------ //
+// Entity type, number, gender
+// ------------------------------------------ //
+EntityType(+c,+t)
+Number(+c,+n)
+Gender(+c,+g)
+
+EntityType2(+x,+t)
+Number2(+x,+n)
+Gender2(+x,+g)
+
+EntityType2(x,t) ^ InClust(x,c) => EntityType(c,t).
+Number2(x,n) ^ InClust(x,c) => Number(c,n).
+Gender2(x,g) ^ InClust(x,c) => Gender(c,g).
+
+EntityType(c,t) ^ InClust(x,c) => EntityType2(x,t).
+Number(c,n) ^ InClust(x,c) => Number2(x,n).
+Gender(c,g) ^ InClust(x,c) => Gender2(x,g).
+
+// ------------------------------------------ //
+// Pronoun mixture
+// ------------------------------------------ //
+MentionType(x,PRN) ^ Head(x,+p) ^ EntityType(c,+t) ^ InClust(x,c)
+MentionType(x,PRN) ^ Head(x,+p) ^ Number(c,+n) ^ InClust(x,c)
+MentionType(x,PRN) ^ Head(x,+p) ^ Gender(c,+g) ^ InClust(x,c)
+
+// ------------------------------------------ //
+// Prior
+// ------------------------------------------ //
+// These are implemented directly for efficiency
+//-1*num-clust	// Exponential prior on num clust
+//-1*dist(x,y) InClust(x,c) // Salience prior; y=predecessor of x in c
+
+// ------------------------------------------ //
+// Joint inference
+// ------------------------------------------ //
+Apposition(x,y) ^ InClust(x,c) => InClust(y,c).
+Be(x,y) ^ InClust(x,c) => InClust(y,c).
+

@@ -53,10 +53,9 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   def mln: Parser[List[Expression]] = rep(expression)
 
-  def formula: Parser[Formula] = (binary(minPrec) | negated | atomic)
+  def formula: Parser[Formula] = binary(minPrec) ||| atomic ||| negatedFormula
 
-
-  def atomic: Parser[Formula] = (parenthesized | atom)
+  def atomic: Parser[Formula] = parenthesized ||| negatedAtom ||| starAtom ||| atom
 
   def parenthesized: Parser[Formula] = "(" ~> formula <~ ")"
 
@@ -64,12 +63,16 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     case s ~ "(" ~ terms ~ ")" => Atom(s, terms)
   }
 
-  def and: Parser[And] = (atom ~ "^" ~ formula) ^^ {
-    case lhs ~ "^" ~ rhs => And(lhs, rhs)
+  def negatedFormula: Parser[Not] = "!" ~ (parenthesized | formula) ^^ {
+    case _ ~ f => Not(f)
   }
 
-  def negated: Parser[Not] = "!" ~ formula ^^ {
-    case _ ~ f => Not(f)
+  def negatedAtom: Parser[Not] = "!" ~ (parenthesized | atom) ^^ {
+    case _ ~ a => Not(a)
+  }
+
+  def starAtom: Parser[StarAtom] = atom ~ "*" ^^ {
+    case a ~ _ => StarAtom(a.predicate, a.args)
   }
 
   def hardFormula: Parser[HardFormula] = formula <~ "." ^^ {
@@ -123,6 +126,8 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     f => WeightedFormula(Double.PositiveInfinity, f)
   }
 
+  /*Operator precedence is as follows:
+  not > and > or > implies > if and only if > forall = exists.*/
   def binaryOp(level: Int): Parser[((Formula, Formula) => Formula)] = {
     level match {
       case 1 =>
@@ -172,10 +177,6 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     t => t
   }
 
-  //  def database: Parser[List[DatabaseAtom]] = rep(databaseAtom) ^^ {
-  //    case t => t
-  //  }
-
   def dbFunctions: Parser[List[DatabaseFunction]] = rep(databaseFunction) ^^ {
     case t => t
   }
@@ -183,7 +184,6 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   def databaseFunction: Parser[DatabaseFunction] = constant ~ "=" ~ StringLit ~ "(" ~ groundedTermList ~ ")" ^^ {
     case value ~ "=" ~ fName ~ "(" ~ cons ~ ")" => DatabaseFunction(value, fName, cons)
   }
-
 
   trait Expression
 
@@ -193,9 +193,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   case class Include(fileName: String) extends Expression
 
-
   case class FunctionDefinition(returnType: VariableOrType, name: String, types: List[VariableOrType]) extends Expression
-
 
   trait Term extends Expression {
     def subterms: Seq[Term] = Seq()
@@ -213,7 +211,6 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   trait Variable extends Term {
     def name: String
   }
-
 
   case class Constant(value: String) extends Term
 
@@ -249,6 +246,10 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   case class Atom(predicate: String, args: List[Term]) extends Formula
 
+  case class NegatedAtom(predicate: String, args: List[Term]) extends Formula
+
+  case class StarAtom(predicate: String, args: List[Term]) extends Formula
+
   case class DatabaseAtom(predicate: String, args: List[Term], positive: Boolean)
 
   case class DatabaseFunction(returnValue: Term, name: String, values: List[Term])
@@ -267,7 +268,6 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   case class Implies(lhs: Formula, rhs: Formula) extends Formula {
     override def subformulas = Seq(lhs, rhs)
-
   }
 
   case class Equivalence(lhs: Formula, rhs: Formula) extends Formula {
