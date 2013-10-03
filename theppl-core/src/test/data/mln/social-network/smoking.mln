@@ -6,6 +6,7 @@ Smokes(person)
 // Query
 Cancer(person)
 
+
 // Function definition
 person SpouseOf(person)
 // Evidence

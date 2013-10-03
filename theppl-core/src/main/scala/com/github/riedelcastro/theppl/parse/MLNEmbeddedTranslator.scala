@@ -163,6 +163,11 @@ class MLNEmbeddedTranslator {
         addFormula(Double.PositiveInfinity, formula)
       }
 
+      case MLNParser.AsteriskFormula(formula) => {
+        //todo: expanding asterisk formula
+        //foreach expanded formula: => addFormula(0.0, formula)
+      }
+
       case formula: MLNParser.Formula => addFormula(0.0, formula)
       case _ => println(" more in progress... " + expr.get.toString)
     })
@@ -215,8 +220,8 @@ class MLNEmbeddedTranslator {
       case MLNParser.Equivalence(lhs, rhs) => {
         formula(lhs) === formula(rhs)
       }
-      case MLNParser.Or(lhs, rhs) => throw new Error("OR in progress..")
-      case MLNParser.Not(form) => throw new Error("NOT in progress..")
+      case MLNParser.Or(lhs, rhs) => formula(lhs) || formula(rhs)
+      case MLNParser.Not(form) => Not(formula(form)) /*throw new Error("NOT in progress..")*/
       case _ => throw new Error("more formulae in progress..")
     }
   }
@@ -277,16 +282,19 @@ class MLNEmbeddedTranslator {
       case pred1@Pred1(name, dom, range) => pred1Builder(name, dom, range)
       case pred2@Pred2(name, dom1, dom2, range) => pred2Builder(name, dom2, dom1, range)
       case funApp1@FunApp1(f, a1) => {
-        val (name, innerFunApp1) = f match {
+        /*val (name, innerFunApp1) =*/ f match {
           case pred1: Pred1[_, _] => {
-            val domName = pred1.dom1.name.name
-            (domName, injectDomain(pred1))
+            val domName: String = pred1.dom1.name.name
+            val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(domName, a1.toString)
+            FunApp1(injectDomain(pred1).asInstanceOf[Term[Any => Boolean]], uniqueVar)
+            //            (domName, injectDomain(pred1))
           }
-          case _ => throw new Error("unknown term...")
+          //          case _ => throw new Error("unknown term...")
+          case _ => FunApp1(f, injectDomain(a1))
         }
-        val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(name, a1.toString)
-
-        FunApp1(innerFunApp1.asInstanceOf[Term[Any => Boolean]], uniqueVar)
+        //        val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(name, a1.toString)
+        //
+        //        FunApp1(innerFunApp1.asInstanceOf[Term[Any => Boolean]], uniqueVar)
       }
       case funApp2@FunApp2(f, a1, a2) => {
         val innerFunApp2 = f match {

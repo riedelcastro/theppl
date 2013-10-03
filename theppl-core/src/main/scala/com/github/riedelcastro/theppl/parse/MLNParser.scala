@@ -23,9 +23,10 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   override val whiteSpace = """(\s|//.+\n|(/\*(?:.|[\n\r])*?\*/))+""".r
 
+  def mln: Parser[List[Expression]] = rep(expression)
 
   def expression: Parser[Expression] =
-    (typeDefinitions | function | hardFormula | weightedFormula | formula | include)
+    (typeDefinitions ||| function||| hardFormula||| weightedFormula ||| asteriskFormula ||| formula ||| include)
 
 
   def typeDefinitions: Parser[Expression] = (integerTypeDefinition ||| constantTypeDefinition)
@@ -51,11 +52,10 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     s => Include(s)
   }
 
-  def mln: Parser[List[Expression]] = rep(expression)
 
   def formula: Parser[Formula] = binary(minPrec) ||| atomic ||| negatedFormula
 
-  def atomic: Parser[Formula] = parenthesized ||| negatedAtom ||| starAtom ||| atom
+  def atomic: Parser[Formula] = parenthesized ||| negatedAtom ||| /*asteriskAtom |||*/ atom
 
   def parenthesized: Parser[Formula] = "(" ~> formula <~ ")"
 
@@ -63,7 +63,22 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     case s ~ "(" ~ terms ~ ")" => Atom(s, terms)
   }
 
-  def negatedFormula: Parser[Not] = "!" ~ (parenthesized | formula) ^^ {
+
+  def asteriskAtom: Parser[AsteriskAtom] = "*" ~ atom ^^ {
+    case _ ~ a => AsteriskAtom(a.predicate, a.args)
+  }
+
+  def asteriskFormula: Parser[AsteriskFormula] = (binaryAsterisk(minPrec) ||| asteriskAtomic) ^^ {
+    case f => AsteriskFormula(f)
+  }
+  def asteriskAtomic: Parser[Formula] =  asteriskAtom ||| atom
+
+  def binaryAsterisk(level: Int): Parser[Formula] = {
+    if (level > maxPrec) asteriskAtomic
+    else binaryAsterisk(level + 1) * binaryOp(level)
+  }
+
+  def negatedFormula: Parser[Not] = "!" ~ (parenthesized ) ^^ {
     case _ ~ f => Not(f)
   }
 
@@ -71,18 +86,14 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     case _ ~ a => Not(a)
   }
 
-  def starAtom: Parser[StarAtom] = atom ~ "*" ^^ {
-    case a ~ _ => StarAtom(a.predicate, a.args)
+  def weightedFormula: Parser[WeightedFormula] = (NumDouble ~ formula) ^^ {
+    case weight ~ formula => WeightedFormula(weight.toDouble, formula)
   }
 
   def hardFormula: Parser[HardFormula] = formula <~ "." ^^ {
     f => HardFormula(f)
   }
 
-  def weightedFormula: Parser[WeightedFormula] =
-    (NumDouble ~ formula) ^^ {
-      case weight ~ formula => WeightedFormula(weight.toDouble, formula)
-    }
 
   def termList: Parser[List[Term]] = repsep(term, ",") ^^ {
     case t => t
@@ -244,11 +255,15 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     override def subformulas: Seq[Formula] = Seq(formula)
   }
 
+  case class AsteriskFormula(formula: Formula) extends Formula {
+    override def subformulas: Seq[Formula] = Seq(formula)
+  }
+
   case class Atom(predicate: String, args: List[Term]) extends Formula
 
   case class NegatedAtom(predicate: String, args: List[Term]) extends Formula
 
-  case class StarAtom(predicate: String, args: List[Term]) extends Formula
+  case class AsteriskAtom(predicate: String, args: List[Term]) extends Formula
 
   case class DatabaseAtom(predicate: String, args: List[Term], positive: Boolean)
 
