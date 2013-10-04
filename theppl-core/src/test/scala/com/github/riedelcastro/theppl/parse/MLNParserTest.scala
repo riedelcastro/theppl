@@ -51,18 +51,18 @@ class MLNParserTest extends FunSpec with MustMatchers {
 
       val include = "#include \"Blah.mln\""
       val parse_include = MLNParser.parse(mln_exp, include)
-      // must be
-      println("parse_include = " + parse_include)
+      parse_include.get must be(Include("\"Blah.mln\""))
+      //      println("parse_include = " + parse_include)
 
       val f1 = "!Smokes(x) ^ !Cancer(x)"
       val parse1 = MLNParser.parse(mln_exp, f1)
       parse1.get must be(And(Not(Atom("Smokes", List(VariableOrType("x")))), Not(Atom("Cancer", List(VariableOrType("x"))))))
-      println(f1 + " = " + parse1)
+      //      println(f1 + " = " + parse1)
 
       val f2 = "!Cancer(x) v Smokes(y) ^ !Friends(x,y)"
       val parse2 = MLNParser.parse(mln_exp, f2)
-      // must be
-      println(f2 + " = " + parse2)
+      parse2.get must be(Or(Not(Atom("Cancer", List(VariableOrType("x")))), And(Atom("Smokes", List(VariableOrType("y"))), Not(Atom("Friends", List(VariableOrType("x"), VariableOrType("y")))))))
+      //      println(f2 + " = " + parse2)
 
       val f3 = "(Cancer(x) ^ Smokes(y)) => !Friends(x,y)"
       val parse3 = MLNParser.parse(mln_exp, f3)

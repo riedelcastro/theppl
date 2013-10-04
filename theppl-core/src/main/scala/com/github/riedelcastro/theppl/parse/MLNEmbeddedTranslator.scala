@@ -4,7 +4,7 @@ import scala.collection.mutable.{Seq, ListBuffer, HashMap}
 
 import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.TermImplicits._
-import com.github.riedelcastro.theppl.parse.MLNParser.Formula
+import com.github.riedelcastro.theppl.parse.MLNParser.{And, Or, Implies, Equivalence, Atom, AsteriskAtom, Formula, VariableOrType}
 import com.github.riedelcastro.theppl.Variable
 import scala.collection.immutable.{List, Map}
 import com.github.riedelcastro.theppl.Variables.AtomSet
@@ -19,7 +19,6 @@ import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.term.QuantifiedVecSum
 import scala.Tuple3
 import com.github.riedelcastro.theppl.util.SetUtil.Union
-import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
 import com.github.riedelcastro.theppl.term.FunApp2
 import scala.Tuple2
 
@@ -163,9 +162,10 @@ class MLNEmbeddedTranslator {
         addFormula(Double.PositiveInfinity, formula)
       }
 
+
       case MLNParser.AsteriskFormula(formula) => {
-        //todo: expanding asterisk formula
-        //foreach expanded formula: => addFormula(0.0, formula)
+        val formulas: List[Formula] = expandAsterisk(formula)
+        formulas foreach (f => addFormula(0.0, f))
       }
 
       case formula: MLNParser.Formula => addFormula(0.0, formula)
@@ -173,6 +173,30 @@ class MLNEmbeddedTranslator {
     })
 
     mln_file.close()
+  }
+
+  /* When predicates in a formula are preceded by *, consider all possible ways in which * can be replaced by !
+   * e.g *student(x) ^ *professor(x) is expanded into four formulas:
+        student(x) ^ professor(x)
+        !student(x) ^ professor(x)
+        student(x) ^ !professor(x)
+        !student(x) ^ !professor(x)    */
+  private def expandAsterisk(formula: Formula): List[Formula] = {
+    val expandedFormula = formula match {
+      case AsteriskAtom(predicate, args) => Atom(predicate, args) :: MLNParser.Not(Atom(predicate, args)) :: Nil
+      case Atom(predicate, args) => formula :: Nil
+      case And(lhs, rhs) =>
+        for (l <- expandAsterisk(lhs); r <- expandAsterisk(rhs)) yield And(l, r)
+      case Or(lhs, rhs) =>
+        for (l <- expandAsterisk(lhs); r <- expandAsterisk(rhs)) yield Or(l, r)
+      case Implies(lhs, rhs) =>
+        for (l <- expandAsterisk(lhs); r <- expandAsterisk(rhs)) yield Implies(l, r)
+      case Equivalence(lhs, rhs) =>
+        for (l <- expandAsterisk(lhs); r <- expandAsterisk(rhs)) yield Equivalence(l, r)
+      case Not(f) => throw new Error("Negation is not allowed together with *-operator.")
+      case _ => throw new Error("Unknown operator.")
+    }
+    expandedFormula
   }
 
   def defaultDomain(name: String): Dom[AnyRef] = {
@@ -221,7 +245,7 @@ class MLNEmbeddedTranslator {
         formula(lhs) === formula(rhs)
       }
       case MLNParser.Or(lhs, rhs) => formula(lhs) || formula(rhs)
-      case MLNParser.Not(form) => Not(formula(form)) /*throw new Error("NOT in progress..")*/
+      case MLNParser.Not(form) => Not(formula(form))
       case _ => throw new Error("more formulae in progress..")
     }
   }
@@ -282,19 +306,14 @@ class MLNEmbeddedTranslator {
       case pred1@Pred1(name, dom, range) => pred1Builder(name, dom, range)
       case pred2@Pred2(name, dom1, dom2, range) => pred2Builder(name, dom2, dom1, range)
       case funApp1@FunApp1(f, a1) => {
-        /*val (name, innerFunApp1) =*/ f match {
+        f match {
           case pred1: Pred1[_, _] => {
             val domName: String = pred1.dom1.name.name
             val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(domName, a1.toString)
             FunApp1(injectDomain(pred1).asInstanceOf[Term[Any => Boolean]], uniqueVar)
-            //            (domName, injectDomain(pred1))
           }
-          //          case _ => throw new Error("unknown term...")
-          case _ => FunApp1(f, injectDomain(a1))
+          case _ => FunApp1(f, injectDomain(a1)) /*Not*/
         }
-        //        val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(name, a1.toString)
-        //
-        //        FunApp1(innerFunApp1.asInstanceOf[Term[Any => Boolean]], uniqueVar)
       }
       case funApp2@FunApp2(f, a1, a2) => {
         val innerFunApp2 = f match {
