@@ -1,0 +1,256 @@
+// BEGIN: Common arguments
+  ARGS("i", ARGS::Req, ainMLNFiles,
+       "Comma-separated input .mln files."),
+
+  ARGS("cw", ARGS::Opt, aClosedWorldPredsStr,
+       "Specified non-evidence atoms (comma-separated with no space) are "
+       "closed world, otherwise, all non-evidence atoms are open world. Atoms "
+       "appearing here cannot be query atoms and cannot appear in the -o "
+       "option."),
+
+  ARGS("ow", ARGS::Opt, aOpenWorldPredsStr,
+       "Specified evidence atoms (comma-separated with no space) are open "
+       "world, while other evidence atoms are closed-world. "
+       "Atoms appearing here cannot appear in the -c option."),
+    // END: Common arguments
+
+  ARGS("queryEvidence", ARGS::Tog, aisQueryEvidence,
+       "If this flag is set, then all the groundings of query preds not in db "
+       "are assumed false evidence."),
+
+  // BEGIN: Args specific to stand-alone inference
+  ARGS("e", ARGS::Req, aevidenceFiles,
+       "Comma-separated .db files containing known ground atoms (evidence), "
+       "including function definitions."),
+
+  ARGS("r", ARGS::Req, aresultsFile,
+       "The probability estimates are written to this file."),
+
+  ARGS("q", ARGS::Opt, aqueryPredsStr,
+       "Query atoms (comma-separated with no space)  "
+       ",e.g., cancer,smokes(x),friends(Stan,x). Query atoms are always "
+       "open world."),
+
+  ARGS("f", ARGS::Opt, aqueryFile,
+       "A .db file containing ground query atoms, "
+       "which are are always open world."),
+    // END: Args specific to stand-alone inference
+
+    // BEGIN: Common inference arguments
+  ARGS("m", ARGS::Tog, amapPos,
+       "Run MAP inference and return only positive query atoms."),
+
+  ARGS("a", ARGS::Tog, amapAll,
+       "Run MAP inference and show 0/1 results for all query atoms."),
+
+  ARGS("p", ARGS::Tog, agibbsInfer,
+       "Run inference using MCMC (Gibbs sampling) and return probabilities "
+       "for all query atoms."),
+
+  ARGS("ms", ARGS::Tog, amcsatInfer,
+       "Run inference using MC-SAT and return probabilities "
+       "for all query atoms"),
+
+  ARGS("bp", ARGS::Tog, abpInfer,
+       "Run inference using belief propagation and return probabilities "
+       "for all query atoms"),
+
+  ARGS("efbp", ARGS::Tog, aefbpInfer,
+       "Run inference using expanding frontier belief propagation and return "
+       "probabilities for all query atoms"),
+
+  ARGS("decision", ARGS::Tog, adecisionInfer,
+       "Run decision inference using BP (or EFBP) and return "
+       "max. utility assignment of action atoms"),
+
+  ARGS("simtp", ARGS::Tog, asimtpInfer,
+       "Run inference using simulated tempering and return probabilities "
+       "for all query atoms"),
+
+  ARGS("outputNetwork", ARGS::Tog, aoutputNetwork,
+       "Build the network and output to results file, instead of "
+       "running inference"),
+
+  ARGS("counts", ARGS::Tog, aclauseCounts,
+       "Write clause counts, not atom values or probabilities"),
+
+  ARGS("seed", ARGS::Opt, aSeed,
+       "[2350877] Seed used to initialize the randomizer in the inference "
+       "algorithm. If not set, seed is initialized from a fixed random number."),
+
+  ARGS("lazy", ARGS::Opt, aLazy,
+       "[false] Run lazy version of inference if this flag is set."),
+
+  ARGS("lazyNoApprox", ARGS::Opt, aLazyNoApprox,
+       "[false] Lazy version of inference will not approximate by deactivating "
+       "atoms to save memory. This flag is ignored if -lazy is not set."),
+
+  ARGS("memLimit", ARGS::Opt, aMemLimit,
+       "[-1] Maximum limit in kbytes which should be used for inference. "
+       "-1 means main memory available on system is used."),
+
+  ARGS("PrintSamplePerIteration", ARGS::Opt, aPrintSamplePerIteration,
+       "Whether to print out variable values at each HMCS sample round."),
+
+  ARGS("SAInterval", ARGS::Opt, saInterval, "SA interval"),
+
+  ARGS("MaxSeconds", ARGS::Opt, aMaxSeconds, "Max seconds for HMWS and SA."),
+
+  ARGS("SATempDownRatio", ARGS::Opt, aSATempDownRatio, "Simulated annealing "
+       "temperature degrade ratio."),
+
+  ARGS("SA", ARGS::Opt, aSA, "simulated annealing inference."),
+
+  ARGS("hybrid", ARGS::Opt, aHybrid,
+           "Flag for HMLN inference."),
+
+  ARGS("propstdev", ARGS::Opt, aProposalStdev,
+           "[1.0]Proposal stdev for SA step in HybridSAT."),
+
+  ARGS("contSamples", ARGS::Opt, aContSamples,
+           "output file for continuous variable samples."),
+
+    // END: Common inference arguments
+
+    // BEGIN: MaxWalkSat args
+  ARGS("mwsMaxSteps", ARGS::Opt, amwsMaxSteps,
+       "[100000] (MaxWalkSat) The max number of steps taken."),
+
+  ARGS("tries", ARGS::Opt, amwsTries,
+       "[1] (MaxWalkSat) The max number of attempts taken to find a solution."),
+
+  ARGS("targetWt", ARGS::Opt, amwsTargetWt,
+       "[the best possible] (MaxWalkSat) MaxWalkSat tries to find a solution "
+       "with weight <= specified weight."),
+
+  ARGS("breakHardClauses", ARGS::Tog, amwsHard,
+       "[false] (MaxWalkSat) If true, MaxWalkSat can break a hard clause in "
+       "order to satisfy a soft one."),
+
+  ARGS("heuristic", ARGS::Opt, amwsHeuristic,
+       "[2] (MaxWalkSat) Heuristic used in MaxWalkSat (0 = RANDOM, 1 = BEST, "
+       "2 = TABU, 3 = SAMPLESAT)."),
+
+  ARGS("tabuLength", ARGS::Opt, amwsTabuLength,
+       "[5] (MaxWalkSat) Minimum number of flips between flipping the same "
+       "atom when using the tabu heuristic in MaxWalkSat." ),
+
+  ARGS("lazyLowState", ARGS::Opt, amwsLazyLowState,
+       "[false] (MaxWalkSat) If false, the naive way of saving low states "
+       "(each time a low state is found, the whole state is saved) is used; "
+       "otherwise, a list of variables flipped since the last low state is "
+       "kept and the low state is reconstructed. This can be much faster for "
+       "very large data sets."),
+    // END: MaxWalkSat args
+
+    // BEGIN: MCMC args
+  ARGS("burnMinSteps", ARGS::Opt, amcmcBurnMinSteps,
+       "[100] (MCMC) Minimun number of burn in steps (-1: no minimum)."),
+
+  ARGS("burnMaxSteps", ARGS::Opt, amcmcBurnMaxSteps,
+       "[100] (MCMC) Maximum number of burn-in steps (-1: no maximum)."),
+
+  ARGS("minSteps", ARGS::Opt, amcmcMinSteps,
+       "[-1] (MCMC) Minimum number of MCMC sampling steps."),
+
+  ARGS("maxSteps", ARGS::Opt, amcmcMaxSteps,
+       "[1000] (MCMC) Maximum number of MCMC sampling steps."),
+
+  ARGS("maxSeconds", ARGS::Opt, amcmcMaxSeconds,
+       "[-1] (MCMC) Max number of seconds to run MCMC (-1: no maximum)."),
+    // END: MCMC args
+
+    // BEGIN: Simulated tempering args
+  ARGS("subInterval", ARGS::Opt, asimtpSubInterval,
+        "[2] (Simulated Tempering) Selection interval between swap attempts"),
+
+  ARGS("numRuns", ARGS::Opt, asimtpNumST,
+        "[3] (Simulated Tempering) Number of simulated tempering runs"),
+
+  ARGS("numSwap", ARGS::Opt, asimtpNumSwap,
+        "[10] (Simulated Tempering) Number of swapping chains"),
+    // END: Simulated tempering args
+
+    // BEGIN: BP args
+  ARGS("lifted", ARGS::Tog, aliftedInfer,
+       "[false] If true, lifted inference is run"),
+
+  ARGS("useHC", ARGS::Tog, auseHC,
+       "[false] If true (and lifted is also true), use the hypercube representation"),
+
+  ARGS("useCT", ARGS::Tog, auseCT,
+       "[false] If true (and lifted and hc is also true), use the constraints for hypercube "
+           "representation"),
+
+  ARGS("convThresh", ARGS::Opt, abpConvergenceThresh,
+        "[1e-4] (BP) Max difference in probabilities to determine convergence"),
+
+  ARGS("convIterations", ARGS::Opt, abpConvergeRequiredItrCnt,
+        "[20] (BP) Number of converging iterations to determine convergence"),
+
+  ARGS("explicitRep", ARGS::Tog, aexplicitRep,
+       "[false] If true, explicit representation type is used in lifted "
+       "inference; otherwise, implicit representation type is used"),
+
+  ARGS("hcCreateType", ARGS::Opt, ahcCreateType,
+       "[Basic] Type of method used for creating hypercubes. DT/BAsic"),
+
+  ARGS("hcCreateNoise", ARGS::Opt, ahcCreateNoise,
+       "[0.0] Amount of noise while creating hypercubes"),
+
+  ARGS("lncIter", ARGS::Opt, alncIter,
+       "[0] Number of LNC Iterations (0 means run till end)"),
+
+  ARGS("noHC", ARGS::Opt, anoHCPredsStr,
+       "Comma separated list of predicates, for which hyperCubes should not be created i.e. "
+           " HyperCubes are not created for the specified predicates i.e. each ground tuple "
+           " is a hypercube"),
+
+  // END: BP args
+
+    // BEGIN: SampleSat args
+  ARGS("numSolutions", ARGS::Opt, amwsNumSolutions,
+       "[10] (MC-SAT) Return nth SAT solution in SampleSat"),
+
+  ARGS("saRatio", ARGS::Opt, assSaRatio,
+       "[0] (MC-SAT) Ratio of sim. annealing steps mixed with WalkSAT in "
+       "MC-SAT"),
+
+  ARGS("saTemperature", ARGS::Opt, assSaTemp,
+        "[10] (MC-SAT) Temperature (/100) for sim. annealing step in "
+        "SampleSat"),
+
+  ARGS("lateSa", ARGS::Tog, assLateSa,
+       "[true] Run simulated annealing from the start in SampleSat"),
+    // END: SampleSat args
+
+    // BEGIN: Gibbs sampling args
+  ARGS("numChains", ARGS::Opt, amcmcNumChains,
+       "[10] (Gibbs) Number of MCMC chains for Gibbs sampling (there must be "
+       "at least 2)."),
+
+  ARGS("delta", ARGS::Opt, agibbsDelta,
+       "[0.05] (Gibbs) During Gibbs sampling, probabilty that epsilon error is "
+       "exceeded is less than this value."),
+
+  ARGS("epsilonError", ARGS::Opt, agibbsEpsilonError,
+       "[0.01] (Gibbs) Fractional error from true probability."),
+
+  ARGS("fracConverged", ARGS::Opt, agibbsFracConverged,
+       "[0.95] (Gibbs) Fraction of ground atoms with probabilities that "
+       "have converged."),
+
+  ARGS("walksatType", ARGS::Opt, agibbsWalksatType,
+       "[1] (Gibbs) Use Max Walksat to initialize ground atoms' truth values "
+       "in Gibbs sampling (1: use Max Walksat, 0: random initialization)."),
+
+  ARGS("testConvergence", ARGS::Opt, agibbsTestConvergence,
+       "[false] Perform convergence test for Gibbs sampling."),
+
+  ARGS("samplesPerTest", ARGS::Opt, agibbsSamplesPerTest,
+       "[100] Perform convergence test once after this many number of samples "
+       "per chain."),
+    // END: Gibbs sampling args
+
+
+

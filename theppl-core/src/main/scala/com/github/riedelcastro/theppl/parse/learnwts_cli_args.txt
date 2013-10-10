@@ -1,0 +1,339 @@
+// BEGIN: Common arguments
+  ARGS("i", ARGS::Req, ainMLNFiles,
+       "Comma-separated input .mln files. (With the -multipleDatabases "
+       "option, the second file to the last one are used to contain constants "
+       "from different databases, and they correspond to the .db files "
+       "specified with the -t option.)"),
+
+  ARGS("cw", ARGS::Opt, aClosedWorldPredsStr,
+       "Specified non-evidence atoms (comma-separated with no space) are "
+       "closed world, otherwise, all non-evidence atoms are open world. Atoms "
+       "appearing here cannot be query atoms and cannot appear in the -o "
+       "option."),
+
+  ARGS("ow", ARGS::Opt, aOpenWorldPredsStr,
+       "Specified evidence atoms (comma-separated with no space) are open "
+       "world, while other evidence atoms are closed-world. "
+       "Atoms appearing here cannot appear in the -c option."),
+    // END: Common arguments
+
+    // BEGIN: Common inference arguments
+  ARGS("m", ARGS::Tog, amapPos,
+       "(Embed in -infer argument) "
+       "Run MAP inference and return only positive query atoms."),
+
+  ARGS("a", ARGS::Tog, amapAll,
+       "(Embed in -infer argument) "
+       "Run MAP inference and show 0/1 results for all query atoms."),
+
+  ARGS("p", ARGS::Tog, agibbsInfer,
+       "(Embed in -infer argument) "
+       "Run inference using MCMC (Gibbs sampling) and return probabilities "
+       "for all query atoms."),
+
+  ARGS("ms", ARGS::Tog, amcsatInfer,
+       "(Embed in -infer argument) "
+       "Run inference using MC-SAT and return probabilities "
+       "for all query atoms"),
+
+  ARGS("simtp", ARGS::Tog, asimtpInfer,
+       "(Embed in -infer argument) "
+       "Run inference using simulated tempering and return probabilities "
+       "for all query atoms"),
+
+  ARGS("seed", ARGS::Opt, aSeed,
+       "(Embed in -infer argument) "
+       "[2350877] Seed used to initialize the randomizer in the inference "
+       "algorithm. If not set, seed is initialized from a fixed random number."),
+
+  ARGS("lazy", ARGS::Opt, aLazy,
+       "(Embed in -infer argument) "
+       "[false] Run lazy version of inference if this flag is set."),
+
+  ARGS("lazyNoApprox", ARGS::Opt, aLazyNoApprox,
+       "(Embed in -infer argument) "
+       "[false] Lazy version of inference will not approximate by deactivating "
+       "atoms to save memory. This flag is ignored if -lazy is not set."),
+
+  ARGS("memLimit", ARGS::Opt, aMemLimit,
+       "(Embed in -infer argument) "
+       "[-1] Maximum limit in kbytes which should be used for inference. "
+       "-1 means main memory available on system is used."),
+    // END: Common inference arguments
+
+    // BEGIN: MaxWalkSat args
+  ARGS("mwsMaxSteps", ARGS::Opt, amwsMaxSteps,
+       "(Embed in -infer argument) "
+       "[100000] (MaxWalkSat) The max number of steps taken."),
+
+  ARGS("tries", ARGS::Opt, amwsTries,
+       "(Embed in -infer argument) "
+       "[1] (MaxWalkSat) The max number of attempts taken to find a solution."),
+
+  ARGS("targetWt", ARGS::Opt, amwsTargetWt,
+       "(Embed in -infer argument) "
+       "[the best possible] (MaxWalkSat) MaxWalkSat tries to find a solution "
+       "with weight <= specified weight."),
+
+  ARGS("hard", ARGS::Opt, amwsHard,
+       "(Embed in -infer argument) "
+       "[false] (MaxWalkSat) MaxWalkSat never breaks a hard clause in order to "
+       "satisfy a soft one."),
+
+  ARGS("heuristic", ARGS::Opt, amwsHeuristic,
+       "(Embed in -infer argument) "
+       "[2] (MaxWalkSat) Heuristic used in MaxWalkSat (0 = RANDOM, 1 = BEST, "
+       "2 = TABU, 3 = SAMPLESAT)."),
+
+  ARGS("tabuLength", ARGS::Opt, amwsTabuLength,
+       "(Embed in -infer argument) "
+       "[5] (MaxWalkSat) Minimum number of flips between flipping the same "
+       "atom when using the tabu heuristic in MaxWalkSat." ),
+
+  ARGS("lazyLowState", ARGS::Opt, amwsLazyLowState,
+       "(Embed in -infer argument) "
+       "[false] (MaxWalkSat) If false, the naive way of saving low states "
+       "(each time a low state is found, the whole state is saved) is used; "
+       "otherwise, a list of variables flipped since the last low state is "
+       "kept and the low state is reconstructed. This can be much faster for "
+       "very large data sets."),
+    // END: MaxWalkSat args
+
+    // BEGIN: MCMC args
+  ARGS("burnMinSteps", ARGS::Opt, amcmcBurnMinSteps,
+       "(Embed in -infer argument) "
+       "[0] (MCMC) Minimun number of burn in steps (-1: no minimum)."),
+
+  ARGS("burnMaxSteps", ARGS::Opt, amcmcBurnMaxSteps,
+       "(Embed in -infer argument) "
+       "[0] (MCMC) Maximum number of burn-in steps (-1: no maximum)."),
+
+  ARGS("minSteps", ARGS::Opt, amcmcMinSteps,
+       "(Embed in -infer argument) "
+       "[-1] (MCMC) Minimum number of MCMC sampling steps."),
+
+  ARGS("maxSteps", ARGS::Opt, amcmcMaxSteps,
+       "(Embed in -infer argument) "
+       "[optimal] (MCMC) Maximum number of MCMC sampling steps."),
+
+  ARGS("maxSeconds", ARGS::Opt, amcmcMaxSeconds,
+       "(Embed in -infer argument) "
+       "[-1] (MCMC) Max number of seconds to run MCMC (-1: no maximum)."),
+    // END: MCMC args
+
+    // BEGIN: Simulated tempering args
+  ARGS("subInterval", ARGS::Opt, asimtpSubInterval,
+       "(Embed in -infer argument) "
+        "[2] (Simulated Tempering) Selection interval between swap attempts"),
+
+  ARGS("numRuns", ARGS::Opt, asimtpNumST,
+       "(Embed in -infer argument) "
+        "[3] (Simulated Tempering) Number of simulated tempering runs"),
+
+  ARGS("numSwap", ARGS::Opt, asimtpNumSwap,
+       "(Embed in -infer argument) "
+        "[10] (Simulated Tempering) Number of swapping chains"),
+    // END: Simulated tempering args
+
+    // BEGIN: SampleSat args
+  ARGS("numSolutions", ARGS::Opt, amwsNumSolutions,
+       "(Embed in -infer argument) "
+       "[10] (MC-SAT) Return nth SAT solution in SampleSat"),
+
+  ARGS("saRatio", ARGS::Opt, assSaRatio,
+       "(Embed in -infer argument) "
+       "[50] (MC-SAT) Ratio of sim. annealing steps mixed with WalkSAT in "
+       "MC-SAT"),
+
+  ARGS("saTemperature", ARGS::Opt, assSaTemp,
+       "(Embed in -infer argument) "
+        "[10] (MC-SAT) Temperature (/100) for sim. annealing step in "
+        "SampleSat"),
+
+  ARGS("lateSa", ARGS::Tog, assLateSa,
+       "(Embed in -infer argument) "
+       "[false] Run simulated annealing from the start in SampleSat"),
+    // END: SampleSat args
+
+    // BEGIN: Gibbs sampling args
+  ARGS("numChains", ARGS::Opt, amcmcNumChains,
+       "(Embed in -infer argument) "
+       "[10] (Gibbs) Number of MCMC chains for Gibbs sampling (there must be "
+       "at least 2)."),
+
+  ARGS("delta", ARGS::Opt, agibbsDelta,
+       "(Embed in -infer argument) "
+       "[0.05] (Gibbs) During Gibbs sampling, probabilty that epsilon error is "
+       "exceeded is less than this value."),
+
+  ARGS("epsilonError", ARGS::Opt, agibbsEpsilonError,
+       "(Embed in -infer argument) "
+       "[0.01] (Gibbs) Fractional error from true probability."),
+
+  ARGS("fracConverged", ARGS::Opt, agibbsFracConverged,
+       "(Embed in -infer argument) "
+       "[0.95] (Gibbs) Fraction of ground atoms with probabilities that "
+       "have converged."),
+
+  ARGS("walksatType", ARGS::Opt, agibbsWalksatType,
+       "(Embed in -infer argument) "
+       "[1] (Gibbs) Use Max Walksat to initialize ground atoms' truth values "
+       "in Gibbs sampling (1: use Max Walksat, 0: random initialization)."),
+
+  ARGS("samplesPerTest", ARGS::Opt, agibbsSamplesPerTest,
+       "(Embed in -infer argument) "
+       "[100] Perform convergence test once after this many number of samples "
+       "per chain."),
+    // END: Gibbs sampling args
+
+    // BEGIN: Weight learning specific args
+  ARGS("periodic", ARGS::Tog, aPeriodicMLNs,
+       "Write out MLNs after 1, 2, 5, 10, 20, 50, etc. iterations"),
+
+  ARGS("infer", ARGS::Opt, aInferStr,
+       "Specified inference parameters when using discriminative learning. "
+       "The arguments are to be encapsulated in \"\" and the syntax is "
+       "identical to the infer command (run infer with no commands to see "
+       "this). If not specified, 5 steps of MC-SAT with no burn-in is used."),
+
+  ARGS("d", ARGS::Tog, discLearn, "Discriminative weight learning."),
+
+  ARGS("g", ARGS::Tog, genLearn, "Generative weight learning."),
+
+  ARGS("o", ARGS::Req, outMLNFile,
+       "Output .mln file containing formulas with learned weights."),
+
+  ARGS("t", ARGS::Opt, dbFiles,
+       "Comma-separated .db files containing the training database "
+       "(of true/false ground atoms), including function definitions, "
+       "e.g. ai.db,graphics.db,languages.db."),
+
+  ARGS("l", ARGS::Opt, ainDBListFile,
+       "list of database files used in learning"
+       ", each line contains a pointer to a database file."),
+
+  ARGS("ne", ARGS::Opt, nonEvidPredsStr,
+       "First-order non-evidence predicates (comma-separated with no space),  "
+       "e.g., cancer,smokes,friends. For discriminative learning, at least "
+       "one non-evidence predicate must be specified. For generative learning, "
+       "the specified predicates are included in the (weighted) pseudo-log-"
+       "likelihood computation; if none are specified, all are included."),
+
+  ARGS("noAddUnitClauses", ARGS::Tog, noAddUnitClauses,
+       "If specified, unit clauses are not included in the .mln file; "
+       "otherwise they are included."),
+
+  ARGS("multipleDatabases", ARGS::Tog, multipleDatabases,
+       "If specified, each .db file belongs to a separate database; "
+       "otherwise all .db files belong to the same database."),
+
+  ARGS("withEM", ARGS::Tog, withEM,
+       "If set, EM is used to fill in missing truth values; "
+       "otherwise missing truth values are set to false."),
+
+  ARGS("dNumIter", ARGS::Opt, numIter,
+       "[100] (For discriminative learning only.) "
+       "Number of iterations to run discriminative learning method."),
+
+  ARGS("dMaxSec", ARGS::Opt, maxSec,
+       "[-1] Maximum number of seconds to spend learning"),
+
+  ARGS("dMaxMin", ARGS::Opt, maxMin,
+       "[-1] Maximum number of minutes to spend learning"),
+
+  ARGS("dMaxHour", ARGS::Opt, maxHour,
+       "[-1] Maximum number of hours to spend learning"),
+
+  ARGS("dLearningRate", ARGS::Opt, learningRate,
+       "[0.001] (For discriminative learning only) "
+       "Learning rate for the gradient descent in disc. learning algorithm."),
+
+  ARGS("dMomentum", ARGS::Opt, momentum,
+       "[0.0] (For discriminative learning only) "
+       "Momentum term for the gradient descent in disc. learning algorithm."),
+
+  ARGS("dNoPW", ARGS::Tog, noUsePerWeight,
+       "[false] (For voted perceptron only.) "
+       "Do not use per-weight learning rates, based on the number of true "
+       "groundings per weight."),
+
+  ARGS("dVP", ARGS::Tog, useVP,
+       "[false] (For discriminative learning only) "
+       "Use voted perceptron to learn the weights."),
+
+  ARGS("dNewton", ARGS::Tog, useNewton,
+       "[false] (For discriminative learning only) "
+       "Use diagonalized Newton's method to learn the weights."),
+
+  ARGS("dCG", ARGS::Tog, useCG,
+       "[false] (For discriminative learning only) "
+       "Use rescaled conjugate gradient to learn the weights."),
+
+  ARGS("cgLambda", ARGS::Opt, cg_lambda,
+       "[100] (For CG only) Starting value of parameter to limit "
+       "step size"),
+
+  ARGS("cgMaxLambda", ARGS::Opt, cg_max_lambda,
+       "[no limit] (For CG only) Maximum value of parameter to limit step size"),
+
+  ARGS("cgMinLLChange", ARGS::Opt, min_ll_change,
+       "[0.00001] (For CG only) Minimum change in likelihood to keep iterating"),
+
+  ARGS("cgNoPrecond", ARGS::Tog, cg_noprecond,
+       "[false] (For CG only) precondition without the diagonal Hessian"),
+
+  ARGS("queryEvidence", ARGS::Tog, isQueryEvidence,
+       "[false] If this flag is set, then all the groundings of query preds not "
+       "in db are assumed false evidence."),
+
+  ARGS("dInitWithLogOdds", ARGS::Tog, initWithLogOdds,
+       "[false] (For discriminative learning only.) "
+       "Initialize clause weights to their log odds instead of zero."),
+
+  ARGS("dMwsMaxSubsequentSteps", ARGS::Opt, amwsMaxSubsequentSteps,
+       "[Same as mwsMaxSteps] (For discriminative learning only.) The max "
+       "number of MaxWalkSat steps taken in subsequent iterations (>= 2) of "
+       "disc. learning. If not specified, mwsMaxSteps is used in each "
+       "iteration"),
+
+  ARGS("gMaxIter", ARGS::Opt, maxIter,
+       "[10000] (For generative learning only.) "
+       "Max number of iterations to run L-BFGS-B, "
+       "the optimization algorithm for generative learning."),
+
+  ARGS("gConvThresh", ARGS::Opt, convThresh,
+       "[1e-5] (For generative learning only.) "
+       "Fractional change in pseudo-log-likelihood at which "
+       "L-BFGS-B terminates."),
+
+  ARGS("gNoEqualPredWt", ARGS::Opt, noEqualPredWt,
+       "[false] (For generative learning only.) "
+       "If specified, the predicates are not weighted equally in the "
+       "pseudo-log-likelihood computation; otherwise they are."),
+
+  ARGS("noPrior", ARGS::Tog, noPrior, "No Gaussian priors on formula weights."),
+
+  ARGS("priorMean", ARGS::Opt, priorMean,
+       "[0] Means of Gaussian priors on formula weights. By default, "
+       "for each formula, it is the weight given in the .mln input file, "
+       "or fraction thereof if the formula turns into multiple clauses. "
+       "This mean applies if no weight is given in the .mln file."),
+
+  ARGS("priorStdDev", ARGS::Opt, priorStdDev,
+       "[2 for discriminative learning. 100 for generative learning] "
+       "Standard deviations of Gaussian priors on clause weights."),
+   //PTP Options
+  ARGS("lvg", ARGS::Tog, aisLiftedGibbs,
+                  "(Embed in -infer argument) "
+                  "[true] Run Lifted Blocked Gibbs sampling"),
+
+
+
+ ARGS("ic", ARGS::Opt, aInputClusterFile,
+           "Input cluster file containing the clustering,"
+           "to be used with -lvg option"),
+
+
+
+
+  ARGS()
