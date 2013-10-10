@@ -42,6 +42,20 @@ class MLNParserTest extends FunSpec with MustMatchers {
     }
 
     it("MLN syntax playground") {
+
+      /*
+      *   todo:
+      * parser = [3.36] parsed: WeightedFormula(10.0,Implies(And(Atom(Same,List(PlusVariable(hallo), ExclamationType(po))),Atom(Popel,List(du, igel))),Atom(Same,List(du, nuss))))
+(Cancer(x) ^ Smokes(y)) => !Friends(x,y) = [1.41] parsed: Implies(And(Atom(Cancer,List(x)),Atom(Smokes,List(y))),Not(Atom(Friends,List(x, y))))
+Friends(x,y) v !Cancer(x) v Smokes(y)=[1.38] parsed: Or(Or(Atom(Friends,List(x, y)),Not(Atom(Cancer,List(x)))),Atom(Smokes,List(y)))
+Cancer(x) v *Smokes(y)=[1.23] parsed: AsteriskFormula(Or(Atom(Cancer,List(x)),AsteriskAtom(Smokes,List(y))))
+!(Cancer(x) ^ Smokes(y))=[1.25] parsed: Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y))))
+!(Cancer(x) ^ Smokes(y)) => Friends(x,y)=[1.41] parsed: Implies(Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))),Atom(Friends,List(x, y)))
+Friends(x,y) => !(Cancer(x) ^ Smokes(y))=[1.41] parsed: Implies(Atom(Friends,List(x, y)),Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))))
+!MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)=[1.49] parsed: And(And(Not(Atom(MentionType,List(x, Constant(PRN)))),Atom(Head,List(x, PlusVariable(h)))),Atom(InClust,List(x, PlusVariable(c))))
+
+      *
+      * */
       val mln_exp = expression
 
       val test = "10.0 Same(+hallo,!po) /* Hallo\nDu Igel */ ^ \n (Popel(du,igel)) => Same(du, nuss)"
