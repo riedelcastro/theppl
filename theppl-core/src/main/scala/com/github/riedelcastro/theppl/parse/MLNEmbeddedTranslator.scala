@@ -4,15 +4,23 @@ import scala.collection.mutable.{Seq, ListBuffer, HashMap}
 
 import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.TermImplicits._
-import com.github.riedelcastro.theppl.parse.MLNParser.{And, Or, Implies, Equivalence, Atom, AsteriskAtom, Formula, VariableOrType}
+import com.github.riedelcastro.theppl.parse.MLNParser._
 import com.github.riedelcastro.theppl.Variable
 import scala.collection.immutable.{List, Map}
 import com.github.riedelcastro.theppl.Variables.AtomSet
 import org.riedelcastro.nurupo.BuilderN
 import scala._
-import scala.AnyRef
 import com.github.riedelcastro.theppl.term.FunApp1
 import com.github.riedelcastro.theppl.term.Pred2
+import com.github.riedelcastro.theppl.term.Pred1
+import com.github.riedelcastro.theppl.term.Constant
+import com.github.riedelcastro.theppl.term.Dom
+import com.github.riedelcastro.theppl.term.QuantifiedVecSum
+import com.github.riedelcastro.theppl.util.SetUtil.Union
+import com.github.riedelcastro.theppl.term.FunApp2
+import com.github.riedelcastro.theppl.term.FunApp1
+import com.github.riedelcastro.theppl.term.Pred2
+import scala.AnyRef
 import com.github.riedelcastro.theppl.term.Pred1
 import com.github.riedelcastro.theppl.term.Constant
 import com.github.riedelcastro.theppl.term.Dom
@@ -21,6 +29,27 @@ import scala.Tuple3
 import com.github.riedelcastro.theppl.util.SetUtil.Union
 import com.github.riedelcastro.theppl.term.FunApp2
 import scala.Tuple2
+import com.github.riedelcastro.theppl.parse.MLNParser.Atom
+import com.github.riedelcastro.theppl.term.FunApp1
+import com.github.riedelcastro.theppl.term.Pred2
+import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
+import com.github.riedelcastro.theppl.parse.MLNParser.And
+import com.github.riedelcastro.theppl.term.Pred1
+import com.github.riedelcastro.theppl.parse.MLNParser.Equivalence
+import com.github.riedelcastro.theppl.parse.MLNParser.Or
+import com.github.riedelcastro.theppl.term.Term
+import com.github.riedelcastro.theppl.term.Constant
+import com.github.riedelcastro.theppl.term.Not
+import com.github.riedelcastro.theppl.term.Dom
+import com.github.riedelcastro.theppl.term.QuantifiedVecSum
+import scala.Tuple3
+import com.github.riedelcastro.theppl.util.SetUtil.Union
+import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
+import com.github.riedelcastro.theppl.term.FunApp2
+import scala.Tuple2
+import scala.Error
+import com.github.riedelcastro.theppl.parse.MLNParser.Implies
+import com.github.riedelcastro.theppl.parse.MLNParser
 
 /**
  * Translates the parsing output into processing statements on the fly.
@@ -34,6 +63,8 @@ class MLNEmbeddedTranslator {
   val predicates = new HashMap[Symbol, Term[Any]] /*predicates with full domains*/
 
   private val mlnFormulae = new ListBuffer[(Double, Term[Boolean])]()
+  private val mlnPlusFormulae = new ListBuffer[(Double, Formula)]()
+
   private val uniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
   private val typedUniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
   private val databaseAtoms = new ListBuffer[(Term[Any], Seq[Constant[Any]], Any)]
@@ -46,7 +77,10 @@ class MLNEmbeddedTranslator {
 
   def formulae2: List[(Double, Term[Boolean])] = fullDomainFormulae
 
-  private def fullDomainFormulae = mlnFormulae.map(x => (x._1, injectDomain(x._2))).toList
+  private def fullDomainFormulae = {
+    /*todo: process mlnPlusFormulae -> expand plus variables formulae according to the appropriate domain. and add them to the mlnFormulae  */
+    mlnFormulae.map(x => (x._1, injectDomain(x._2))).toList
+  }
 
   private def buildGroundAtom(predDeclaration: Term[Any], args: Seq[Constant[Any]]): GroundAtom[Any] = {
     predDeclaration match {
@@ -157,11 +191,11 @@ class MLNEmbeddedTranslator {
       case MLNParser.WeightedFormula(weight, formula) => addFormula(weight, formula)
 
       /*todo: hard formula processing:
-      a formula is ``hard''   (i.e., worlds that violate it should have zero or negligible probability). */
+       a formula is ``hard''   (i.e., worlds that violate it should have zero or negligible probability).
+       all formulas must be preceded by a weight or terminated by a period (but not both). */
       case MLNParser.HardFormula(formula) => {
         addFormula(Double.PositiveInfinity, formula)
       }
-
 
       case MLNParser.AsteriskFormula(formula) => {
         val formulas: List[Formula] = expandAsterisk(formula)
@@ -204,11 +238,10 @@ class MLNEmbeddedTranslator {
   }
 
   private def addFormula(weight: Double, f: Formula) = {
-    mlnFormulae += Tuple2(weight, formula(f))
+    if (f.allPlusVariables.size != 0) mlnPlusFormulae += Tuple2(weight, f)
+    else mlnFormulae += Tuple2(weight, formula(f))
   }
 
-  // Friends(x, y) => (Smokes(x) <=> Smokes(y))
-  //Implies(Atom(Friends,List(x, y)),Equivalence(Atom(Smokes,List(x)),Atom(Smokes,List(y))))
   private def formula(f: Formula): Term[Boolean] = {
     f match {
       case MLNParser.Atom(predicate, args) => {
@@ -218,18 +251,38 @@ class MLNEmbeddedTranslator {
         val funApp = args match {
           case List(a1) => {
             val pred1: Pred1[Any, Any] = pred.asInstanceOf[Pred1[Any, Any]]
-            val varName: String = a1.asInstanceOf[VariableOrType].name
-            val variable: UniqueVar[Any] = uniqueVarsDictionary.getOrElseUpdate(varName, pred1.dom1.argument)
+            val variable: Term[Any] = a1 match {
+              case VariableOrType(name) => {
+                val varName: String = a1.asInstanceOf[VariableOrType].name // todo use "name" here instead of instantiation
+                uniqueVarsDictionary.getOrElseUpdate(varName, pred1.dom1.argument)
+              }
+              case MLNParser.Constant(value) => Constant(value)
+            }
             FunApp1(pred1, variable)
           }
           case List(a1, a2) => {
             val pred2: Pred2[Any, Any, Any] = pred.asInstanceOf[Pred2[Any, Any, Any]]
-            val varName1: String = a1.asInstanceOf[VariableOrType].name
-            val variable1: UniqueVar[Any] = uniqueVarsDictionary.getOrElseUpdate(varName1, pred2.dom1.argument)
+            val variable1: Term[Any] = {
+              a1 match {
+                case VariableOrType(name) => {
+                  val varName1: String = a1.asInstanceOf[VariableOrType].name // todo use "name" here instead of instantiation
+                  uniqueVarsDictionary.getOrElseUpdate(varName1, pred2.dom1.argument)
+                }
+                case MLNParser.Constant(value) => Constant(value)
+              }
 
-            val varName2: String = a2.asInstanceOf[VariableOrType].name
-            val variable2: UniqueVar[Any] = uniqueVarsDictionary.getOrElseUpdate(varName2, pred2.dom2.argument)
+            }
 
+            val variable2: Term[Any] = {
+              a2 match {
+                case VariableOrType(name) => {
+                  val varName2: String = a2.asInstanceOf[VariableOrType].name // todo use "name" here instead of instantiation
+                  uniqueVarsDictionary.getOrElseUpdate(varName2, pred2.dom2.argument)
+                }
+                case MLNParser.Constant(value) => Constant(value)
+              }
+
+            }
             FunApp2(pred2, variable1, variable2)
           }
         }
@@ -308,22 +361,18 @@ class MLNEmbeddedTranslator {
       case funApp1@FunApp1(f, a1) => {
         f match {
           case pred1: Pred1[_, _] => {
-            val domName: String = pred1.dom1.name.name
-            val uniqueVar: UniqueVar[Any] = createTypedUniqueVar(domName, a1.toString)
-            FunApp1(injectDomain(pred1).asInstanceOf[Term[Any => Boolean]], uniqueVar)
+            val arg: Term[Any] = term1(pred1, a1)
+            FunApp1(injectDomain(pred1).asInstanceOf[Term[Any => Boolean]], arg)
           }
           case _ => FunApp1(f, injectDomain(a1)) /*Not*/
         }
       }
       case funApp2@FunApp2(f, a1, a2) => {
         val innerFunApp2 = f match {
-          case pred2: Pred2[_, _, _] => (a1, a2) match {
-            case (arg1: UniqueVar[Any], arg2: UniqueVar[Any]) => {
-              val uniqueVar1: UniqueVar[Any] = createTypedUniqueVar(pred2.dom1.name.name, arg1.toString)
-              val uniqueVar2: UniqueVar[Any] = createTypedUniqueVar(pred2.dom2.name.name, arg2.toString)
-
-              FunApp2(injectDomain(pred2).asInstanceOf[Term[(Any, Any) => Boolean]], uniqueVar1, uniqueVar2)
-            }
+          case pred2: Pred2[_, _, _] => {
+            val arg1: Term[Any] = term2(pred2, a1)
+            val arg2: Term[Any] = term2(pred2, a2)
+            FunApp2(injectDomain(pred2).asInstanceOf[Term[(Any, Any) => Boolean]], arg1, arg2)
           }
           case _ => FunApp2(f, injectDomain(a1), injectDomain(a2)) /*And, Implies, Eq*/
         }
@@ -332,6 +381,23 @@ class MLNEmbeddedTranslator {
       case _ => throw new Error("unknown term...")
     }
     groundedFormula.asInstanceOf[Term[Boolean]]
+  }
+
+
+  /*argument instantiation from the predicate with 2 parameters*/
+  private def term2(pred2: Pred2[_, _, _], a: Term[Any]): Term[Any] = {
+    a match {
+      case arg: UniqueVar[Any] => createTypedUniqueVar(pred2.dom1.name.name, arg.toString)
+      case Constant(value) => Constant(Symbol(value.toString))
+    }
+  }
+
+  /*argument instantiation from the predicate with a single param*/
+  private def term1(pred: Pred1[_, _], a: Term[Any]): Term[Any] = {
+    a match {
+      case arg1: UniqueVar[Any] => createTypedUniqueVar(pred.dom1.name.name, a.toString)
+      case Constant(value) => Constant(Symbol(value.toString))
+    }
   }
 
   /*unless predicate contains the name, build*/

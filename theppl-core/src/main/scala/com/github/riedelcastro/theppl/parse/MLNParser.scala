@@ -125,8 +125,8 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     s => Constant(s)
   }
 
-  def exclType: Parser[ExclamationType] = "!" ~> LowerCaseID ^^ {
-    s => ExclamationType(s)
+  def exclType: Parser[ExclamationVariable] = "!" ~> LowerCaseID ^^ {
+    s => ExclamationVariable(s)
   }
 
   def plusVariable: Parser[PlusVariable] = "+" ~> LowerCaseID ^^ {
@@ -219,17 +219,15 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
       allVariables.filter(_.isInstanceOf[PlusVariable]).map(_.asInstanceOf[PlusVariable]).toSeq
   }
 
+  case class Constant(value: String) extends Term
+
   trait Variable extends Term {
     def name: String
   }
-
-  case class Constant(value: String) extends Term
-
   case class VariableOrType(name: String) extends Variable {
     override def toString: String = name
   }
-
-  case class ExclamationType(name: String) extends Term
+  case class ExclamationVariable(name: String) extends Variable
 
   case class PlusVariable(name: String) extends Variable
 

@@ -5,7 +5,7 @@ import org.scalatest.FunSpec
 /**
  * Created by larysa  05.09.13
  */
-class MarkovLogicTest extends FunSpec  {
+class MarkovLogicTest extends FunSpec {
   describe("markov logic in action") {
     it("loads MLN specification and performs inference") {
       val mln_file = "theppl-core/src/test/data/mln/social-network/smoking.mln"

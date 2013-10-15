@@ -43,23 +43,12 @@ class MLNParserTest extends FunSpec with MustMatchers {
 
     it("MLN syntax playground") {
 
-      /*
-      *   todo:
-      * parser = [3.36] parsed: WeightedFormula(10.0,Implies(And(Atom(Same,List(PlusVariable(hallo), ExclamationType(po))),Atom(Popel,List(du, igel))),Atom(Same,List(du, nuss))))
-(Cancer(x) ^ Smokes(y)) => !Friends(x,y) = [1.41] parsed: Implies(And(Atom(Cancer,List(x)),Atom(Smokes,List(y))),Not(Atom(Friends,List(x, y))))
-Friends(x,y) v !Cancer(x) v Smokes(y)=[1.38] parsed: Or(Or(Atom(Friends,List(x, y)),Not(Atom(Cancer,List(x)))),Atom(Smokes,List(y)))
-Cancer(x) v *Smokes(y)=[1.23] parsed: AsteriskFormula(Or(Atom(Cancer,List(x)),AsteriskAtom(Smokes,List(y))))
-!(Cancer(x) ^ Smokes(y))=[1.25] parsed: Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y))))
-!(Cancer(x) ^ Smokes(y)) => Friends(x,y)=[1.41] parsed: Implies(Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))),Atom(Friends,List(x, y)))
-Friends(x,y) => !(Cancer(x) ^ Smokes(y))=[1.41] parsed: Implies(Atom(Friends,List(x, y)),Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))))
-!MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)=[1.49] parsed: And(And(Not(Atom(MentionType,List(x, Constant(PRN)))),Atom(Head,List(x, PlusVariable(h)))),Atom(InClust,List(x, PlusVariable(c))))
-
-      *
-      * */
       val mln_exp = expression
 
       val test = "10.0 Same(+hallo,!po) /* Hallo\nDu Igel */ ^ \n (Popel(du,igel)) => Same(du, nuss)"
       val parser = MLNParser.parse(mln_exp, test)
+      // parser = [3.36] parsed: WeightedFormula(10.0,Implies(And(Atom(Same,List(PlusVariable(hallo), ExclamationType(po))),Atom(Popel,List(du, igel))),Atom(Same,List(du, nuss))))
+      parser.get must be(WeightedFormula(10.0, Implies(And(Atom("Same", List(PlusVariable("hallo"), ExclamationVariable("po"))), Atom("Popel", List(VariableOrType("du"), VariableOrType("igel")))), Atom("Same", List(VariableOrType("du"), VariableOrType("nuss"))))))
       // must be
       println("parser = " + parser)
 
@@ -78,14 +67,27 @@ Friends(x,y) => !(Cancer(x) ^ Smokes(y))=[1.41] parsed: Implies(Atom(Friends,Lis
       parse2.get must be(Or(Not(Atom("Cancer", List(VariableOrType("x")))), And(Atom("Smokes", List(VariableOrType("y"))), Not(Atom("Friends", List(VariableOrType("x"), VariableOrType("y")))))))
       //      println(f2 + " = " + parse2)
 
+
+      /*
+      *   todo:
+Friends(x,y) v !Cancer(x) v Smokes(y)=[1.38] parsed: Or(Or(Atom(Friends,List(x, y)),Not(Atom(Cancer,List(x)))),Atom(Smokes,List(y)))
+Cancer(x) v *Smokes(y)=[1.23] parsed: AsteriskFormula(Or(Atom(Cancer,List(x)),AsteriskAtom(Smokes,List(y))))
+!(Cancer(x) ^ Smokes(y))=[1.25] parsed: Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y))))
+!(Cancer(x) ^ Smokes(y)) => Friends(x,y)=[1.41] parsed: Implies(Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))),Atom(Friends,List(x, y)))
+Friends(x,y) => !(Cancer(x) ^ Smokes(y))=[1.41] parsed: Implies(Atom(Friends,List(x, y)),Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))))
+!MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)=[1.49]
+parsed: And(And(Not(Atom(MentionType,List(x, Constant(PRN)))),Atom(Head,List(x, PlusVariable(h)))),Atom(InClust,List(x, PlusVariable(c))))
+
+      *
+      * */
       val f3 = "(Cancer(x) ^ Smokes(y)) => !Friends(x,y)"
       val parse3 = MLNParser.parse(mln_exp, f3)
-      // must be
+      parse3.get must be(MLNParser.Implies(And(Atom("Cancer", List(VariableOrType("x"))), Atom("Smokes", List(VariableOrType("y")))), Not(Atom("Friends", List(VariableOrType("x"), VariableOrType("y"))))))
       println(f3 + " = " + parse3)
 
       val f4 = "Friends(x,y) v !Cancer(x) v Smokes(y)"
       val parse4 = MLNParser.parse(mln_exp, f4)
-      // must be
+      parse4.get must be(Or(Or(Atom("Friends", List(VariableOrType("x"), VariableOrType("y"))), Not(Atom("Cancer", List(VariableOrType("x"))))), Atom("Smokes", List(VariableOrType("y")))))
       println(f4 + "=" + parse4)
 
       val f5 = "Cancer(x) v *Smokes(y)"
@@ -112,6 +114,11 @@ Friends(x,y) => !(Cancer(x) ^ Smokes(y))=[1.41] parsed: Implies(Atom(Friends,Lis
       val parse9 = MLNParser.parse(mln_exp, f9)
       // must be
       println(f9 + "=" + parse9)
+
+      val f10 = "Friends(x, Anna) ^ Smokes(Anna) => Smokes(x)"
+      val parse10 = MLNParser.parse(mln_exp, f10)
+      parse10.get must be(Implies(And(Atom("Friends", List(VariableOrType("x"), Constant("Anna"))), Atom("Smokes", List(Constant("Anna")))), Atom("Smokes", List(VariableOrType("x")))))
+      println(f10 + " = " + parse10)
     }
 
 
