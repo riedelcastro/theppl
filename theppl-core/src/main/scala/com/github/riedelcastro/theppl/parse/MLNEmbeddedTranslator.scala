@@ -249,39 +249,29 @@ class MLNEmbeddedTranslator {
         val atomByName: Term[Any] = atom(predicate)
         val pred: Term[Boolean] = atomByName.asInstanceOf[Term[Boolean]]
         val funApp = args match {
+
           case List(a1) => {
             val pred1: Pred1[Any, Any] = pred.asInstanceOf[Pred1[Any, Any]]
             val variable: Term[Any] = a1 match {
-              case VariableOrType(name) => {
-                val varName: String = a1.asInstanceOf[VariableOrType].name // todo use "name" here instead of instantiation
-                uniqueVarsDictionary.getOrElseUpdate(varName, pred1.dom1.argument)
-              }
+              case VariableOrType(name) => uniqueVarsDictionary.getOrElseUpdate(name, pred1.dom1.argument)
               case MLNParser.Constant(value) => Constant(value)
             }
             FunApp1(pred1, variable)
           }
+
           case List(a1, a2) => {
             val pred2: Pred2[Any, Any, Any] = pred.asInstanceOf[Pred2[Any, Any, Any]]
             val variable1: Term[Any] = {
               a1 match {
-                case VariableOrType(name) => {
-                  val varName1: String = a1.asInstanceOf[VariableOrType].name // todo use "name" here instead of instantiation
-                  uniqueVarsDictionary.getOrElseUpdate(varName1, pred2.dom1.argument)
-                }
+                case VariableOrType(name) => uniqueVarsDictionary.getOrElseUpdate(name, pred2.dom1.argument)
                 case MLNParser.Constant(value) => Constant(value)
               }
-
             }
-
             val variable2: Term[Any] = {
               a2 match {
-                case VariableOrType(name) => {
-                  val varName2: String = a2.asInstanceOf[VariableOrType].name // todo use "name" here instead of instantiation
-                  uniqueVarsDictionary.getOrElseUpdate(varName2, pred2.dom2.argument)
-                }
+                case VariableOrType(name) => uniqueVarsDictionary.getOrElseUpdate(name, pred2.dom2.argument)
                 case MLNParser.Constant(value) => Constant(value)
               }
-
             }
             FunApp2(pred2, variable1, variable2)
           }
