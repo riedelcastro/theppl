@@ -10,25 +10,8 @@ import scala.collection.immutable.{List, Map}
 import com.github.riedelcastro.theppl.Variables.AtomSet
 import org.riedelcastro.nurupo.BuilderN
 import scala._
-import com.github.riedelcastro.theppl.term.FunApp1
-import com.github.riedelcastro.theppl.term.Pred2
-import com.github.riedelcastro.theppl.term.Pred1
-import com.github.riedelcastro.theppl.term.Constant
-import com.github.riedelcastro.theppl.term.Dom
-import com.github.riedelcastro.theppl.term.QuantifiedVecSum
-import com.github.riedelcastro.theppl.util.SetUtil.Union
-import com.github.riedelcastro.theppl.term.FunApp2
-import com.github.riedelcastro.theppl.term.FunApp1
-import com.github.riedelcastro.theppl.term.Pred2
-import scala.AnyRef
-import com.github.riedelcastro.theppl.term.Pred1
-import com.github.riedelcastro.theppl.term.Constant
-import com.github.riedelcastro.theppl.term.Dom
-import com.github.riedelcastro.theppl.term.QuantifiedVecSum
-import scala.Tuple3
-import com.github.riedelcastro.theppl.util.SetUtil.Union
-import com.github.riedelcastro.theppl.term.FunApp2
-import scala.Tuple2
+
+
 import com.github.riedelcastro.theppl.parse.MLNParser.Atom
 import com.github.riedelcastro.theppl.term.FunApp1
 import com.github.riedelcastro.theppl.term.Pred2
@@ -38,8 +21,60 @@ import com.github.riedelcastro.theppl.term.Pred1
 import com.github.riedelcastro.theppl.parse.MLNParser.Equivalence
 import com.github.riedelcastro.theppl.parse.MLNParser.Or
 import com.github.riedelcastro.theppl.term.Term
-import com.github.riedelcastro.theppl.term.Constant
 import com.github.riedelcastro.theppl.term.Not
+import com.github.riedelcastro.theppl.term.Constant
+import com.github.riedelcastro.theppl.term.Dom
+import com.github.riedelcastro.theppl.term.QuantifiedVecSum
+import com.github.riedelcastro.theppl.util.SetUtil.Union
+import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
+import com.github.riedelcastro.theppl.term.FunApp2
+import com.github.riedelcastro.theppl.parse.MLNParser.Implies
+import com.github.riedelcastro.theppl.parse.MLNParser.Atom
+import com.github.riedelcastro.theppl.term.FunApp1
+import com.github.riedelcastro.theppl.term.Pred2
+import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
+import com.github.riedelcastro.theppl.parse.MLNParser.And
+import com.github.riedelcastro.theppl.term.Pred1
+import com.github.riedelcastro.theppl.parse.MLNParser.Equivalence
+import com.github.riedelcastro.theppl.parse.MLNParser.PlusVariable
+import com.github.riedelcastro.theppl.parse.MLNParser.Or
+import com.github.riedelcastro.theppl.parse.MLNParser.PlusAtom
+import com.github.riedelcastro.theppl.term.Constant
+import com.github.riedelcastro.theppl.term.Dom
+import com.github.riedelcastro.theppl.term.QuantifiedVecSum
+import com.github.riedelcastro.theppl.util.SetUtil.Union
+import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
+import com.github.riedelcastro.theppl.term.FunApp2
+import com.github.riedelcastro.theppl.parse.MLNParser.Implies
+import com.github.riedelcastro.theppl.parse.MLNParser.Atom
+import com.github.riedelcastro.theppl.term.FunApp1
+import com.github.riedelcastro.theppl.term.Pred2
+import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
+import com.github.riedelcastro.theppl.parse.MLNParser.And
+import com.github.riedelcastro.theppl.term.Pred1
+import com.github.riedelcastro.theppl.parse.MLNParser.Equivalence
+import com.github.riedelcastro.theppl.parse.MLNParser.PlusVariable
+import com.github.riedelcastro.theppl.parse.MLNParser.Or
+import com.github.riedelcastro.theppl.parse.MLNParser.PlusAtom
+import com.github.riedelcastro.theppl.term.Constant
+import com.github.riedelcastro.theppl.term.Dom
+import com.github.riedelcastro.theppl.term.QuantifiedVecSum
+import com.github.riedelcastro.theppl.util.SetUtil.Union
+import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
+import com.github.riedelcastro.theppl.term.FunApp2
+import com.github.riedelcastro.theppl.parse.MLNParser.Implies
+import com.github.riedelcastro.theppl.parse.MLNParser.Atom
+import com.github.riedelcastro.theppl.term.FunApp1
+import com.github.riedelcastro.theppl.term.Pred2
+import scala.AnyRef
+import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
+import com.github.riedelcastro.theppl.parse.MLNParser.And
+import com.github.riedelcastro.theppl.term.Pred1
+import com.github.riedelcastro.theppl.parse.MLNParser.Equivalence
+import com.github.riedelcastro.theppl.parse.MLNParser.PlusVariable
+import com.github.riedelcastro.theppl.parse.MLNParser.Or
+import com.github.riedelcastro.theppl.parse.MLNParser.PlusAtom
+import com.github.riedelcastro.theppl.term.Constant
 import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.term.QuantifiedVecSum
 import scala.Tuple3
@@ -49,7 +84,6 @@ import com.github.riedelcastro.theppl.term.FunApp2
 import scala.Tuple2
 import scala.Error
 import com.github.riedelcastro.theppl.parse.MLNParser.Implies
-import com.github.riedelcastro.theppl.parse.MLNParser
 
 /**
  * Translates the parsing output into processing statements on the fly.
@@ -77,9 +111,71 @@ class MLNEmbeddedTranslator {
 
   def formulae2: List[(Double, Term[Boolean])] = fullDomainFormulae
 
+
   private def fullDomainFormulae = {
-    /*todo: process mlnPlusFormulae -> expand plus variables formulae according to the appropriate domain. and add them to the mlnFormulae  */
+    mlnFormulae ++= expandPlusVars
     mlnFormulae.map(x => (x._1, injectDomain(x._2))).toList
+  }
+
+  private def expandPlusVars: List[(Double, Term[Boolean])] = {
+    /*we can expand plus variables if domains are known.*/
+    val expandedPlusFormulae: List[(Double, Formula)] = mlnPlusFormulae.flatMap(x => {
+      for (v <- expandPlusVariable(x._2)) yield (x._1, v)
+    }).toList
+
+    val plusFormulae = expandedPlusFormulae.map(x => (x._1, formula(x._2)))
+    plusFormulae.toList
+  }
+
+  private def expandPlusVariable(formula: Formula): List[Formula] = {
+    formula match {
+      case PlusAtom(name, args) => {
+        val predDef: Term[Any] = atoms.get(Symbol(name)).get
+        val expanded = args match {
+          case List(a1) => {
+            val dom1Name = predDef.asInstanceOf[Pred1[_, _]].dom1.name.name
+            val domainVals = dom.get(dom1Name).get.values
+            val instantiatedPlusVar = domainVals.map(value => Atom(name, List(MLNParser.Constant(value.toString))).asInstanceOf[Formula])
+            instantiatedPlusVar.toList
+          }
+          case List(a1, a2) => {
+            val pred2Def = predDef.asInstanceOf[Pred2[_, _, _]]
+            val firstArgValues: scala.collection.Seq[MLNParser.Term] = a1 match {
+              case PlusVariable(x) => {
+                val dom1name: String = pred2Def.dom1.name.name
+                val dom1values = dom.get(dom1name).get.values
+                dom1values.map(v => MLNParser.Constant(v.toString))
+              }
+              case _ => Seq(a1)
+            }
+            val secondArgValues: scala.collection.Seq[MLNParser.Term] = a2 match {
+              case PlusVariable(x) => {
+                val dom2name: String = pred2Def.dom2.name.name
+                val dom2values = dom.get(dom2name).get.values
+                dom2values.map(v => MLNParser.Constant(v.toString))
+              }
+              case _ => Seq(a2)
+            }
+            val reconstructedFormulas = for (arg1 <- firstArgValues; arg2 <- secondArgValues) yield {
+              Atom(name, List(arg1, arg2)).asInstanceOf[Formula]
+            }
+            reconstructedFormulas.toList
+          }
+        }
+        expanded
+      }
+      case Atom(predicate, args) => formula :: Nil
+      case And(lhs, rhs) =>
+        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield And(l, r)
+      case Or(lhs, rhs) =>
+        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Or(l, r)
+      case Implies(lhs, rhs) =>
+        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Implies(l, r)
+      case Equivalence(lhs, rhs) =>
+        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Equivalence(l, r)
+      case MLNParser.Not(f) => for (x <- expandPlusVariable(f)) yield MLNParser.Not(x)
+      case _ => throw new Error("Unknown operator.")
+    }
   }
 
   private def buildGroundAtom(predDeclaration: Term[Any], args: Seq[Constant[Any]]): GroundAtom[Any] = {
@@ -190,7 +286,7 @@ class MLNEmbeddedTranslator {
       //todo: workaround: add default weight for the single predicate, to indicate this as a formula
       case MLNParser.WeightedFormula(weight, formula) => addFormula(weight, formula)
 
-      /*todo: hard formula processing:
+      /*Hard formula processing:
        a formula is ``hard''   (i.e., worlds that violate it should have zero or negligible probability).
        all formulas must be preceded by a weight or terminated by a period (but not both). */
       case MLNParser.HardFormula(formula) => {
@@ -227,7 +323,7 @@ class MLNEmbeddedTranslator {
         for (l <- expandAsterisk(lhs); r <- expandAsterisk(rhs)) yield Implies(l, r)
       case Equivalence(lhs, rhs) =>
         for (l <- expandAsterisk(lhs); r <- expandAsterisk(rhs)) yield Equivalence(l, r)
-      case Not(f) => throw new Error("Negation is not allowed together with *-operator.")
+      case MLNParser.Not(f) => throw new Error("Negation is not allowed together with *-operator.")
       case _ => throw new Error("Unknown operator.")
     }
     expandedFormula
@@ -255,6 +351,7 @@ class MLNEmbeddedTranslator {
             val variable: Term[Any] = a1 match {
               case VariableOrType(name) => uniqueVarsDictionary.getOrElseUpdate(name, pred1.dom1.argument)
               case MLNParser.Constant(value) => Constant(value)
+              case ExclamationVariable(name) => throw new UnsupportedOperationException("Exclamation variable processing is not supported for now..")
             }
             FunApp1(pred1, variable)
           }
@@ -265,12 +362,14 @@ class MLNEmbeddedTranslator {
               a1 match {
                 case VariableOrType(name) => uniqueVarsDictionary.getOrElseUpdate(name, pred2.dom1.argument)
                 case MLNParser.Constant(value) => Constant(value)
+                case ExclamationVariable(name) => throw new UnsupportedOperationException("Exclamation variable processing is not supported for now..")
               }
             }
             val variable2: Term[Any] = {
               a2 match {
                 case VariableOrType(name) => uniqueVarsDictionary.getOrElseUpdate(name, pred2.dom2.argument)
                 case MLNParser.Constant(value) => Constant(value)
+                case ExclamationVariable(name) => throw new UnsupportedOperationException("Exclamation variable processing is not supported for now..")
               }
             }
             FunApp2(pred2, variable1, variable2)

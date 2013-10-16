@@ -55,14 +55,16 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   def formula: Parser[Formula] = binary(minPrec) ||| atomic ||| negatedFormula
 
-  def atomic: Parser[Formula] = parenthesized ||| negatedAtom ||| /*asteriskAtom |||*/ atom
+  def atomic: Parser[Formula] = parenthesized ||| negatedAtom ||| plusAtom ||| /*asteriskAtom |||*/ atom
 
   def parenthesized: Parser[Formula] = "(" ~> formula <~ ")"
 
   def atom: Parser[Atom] = UpperCaseID ~ "(" ~ termList ~ ")" ^^ {
     case s ~ "(" ~ terms ~ ")" => Atom(s, terms)
   }
-
+  def plusAtom: Parser[PlusAtom]=    UpperCaseID ~ "(" ~ plusTermList ~ ")" ^^ {
+    case s ~ "(" ~ terms ~ ")" => PlusAtom(s, terms)
+  }
 
   def asteriskAtom: Parser[AsteriskAtom] = "*" ~ atom ^^ {
     case _ ~ a => AsteriskAtom(a.predicate, a.args)
@@ -82,7 +84,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     case _ ~ f => Not(f)
   }
 
-  def negatedAtom: Parser[Not] = "!" ~ (parenthesized | atom) ^^ {
+  def negatedAtom: Parser[Not] = "!" ~ (parenthesized |plusAtom| atom) ^^ {
     case _ ~ a => Not(a)
   }
 
@@ -94,8 +96,11 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     f => HardFormula(f)
   }
 
-
   def termList: Parser[List[Term]] = repsep(term, ",") ^^ {
+    case t => t
+  }
+
+  def plusTermList: Parser[List[Term]] = repsep(plusTerm, ",") ^^ {
     case t => t
   }
 
@@ -113,7 +118,9 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     case t => t
   }
 
-  def term: Parser[Term] = (variable | constant | exclType | plusVariable)
+  def term: Parser[Term] = (variable | constant | exclType )
+
+  def plusTerm: Parser[Term] = (variable | constant | exclType | plusVariable)
 
   def groundedTerm: Parser[Term] = (constant)
 
@@ -236,6 +243,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
     lazy val allVariables: Set[Variable] = this match {
       case Atom(_, args) => args.foldLeft(Set[Variable]())(_ ++ _.allVariables)
+      case PlusAtom(_, args) => args.foldLeft(Set[Variable]())(_ ++ _.allVariables)
       case _ => this.subformulas.foldLeft(Set[Variable]()) {
         _ ++ _.allVariables
       }
@@ -262,6 +270,8 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   case class NegatedAtom(predicate: String, args: List[Term]) extends Formula
 
   case class AsteriskAtom(predicate: String, args: List[Term]) extends Formula
+
+  case class PlusAtom(predicate: String, args: List[Term]) extends Formula
 
   case class DatabaseAtom(predicate: String, args: List[Term], positive: Boolean)
 

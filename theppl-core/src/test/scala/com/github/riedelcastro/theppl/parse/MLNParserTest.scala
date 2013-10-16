@@ -48,7 +48,7 @@ class MLNParserTest extends FunSpec with MustMatchers {
       val test = "10.0 Same(+hallo,!po) /* Hallo\nDu Igel */ ^ \n (Popel(du,igel)) => Same(du, nuss)"
       val parser = MLNParser.parse(mln_exp, test)
       // parser = [3.36] parsed: WeightedFormula(10.0,Implies(And(Atom(Same,List(PlusVariable(hallo), ExclamationType(po))),Atom(Popel,List(du, igel))),Atom(Same,List(du, nuss))))
-      parser.get must be(WeightedFormula(10.0, Implies(And(Atom("Same", List(PlusVariable("hallo"), ExclamationVariable("po"))), Atom("Popel", List(VariableOrType("du"), VariableOrType("igel")))), Atom("Same", List(VariableOrType("du"), VariableOrType("nuss"))))))
+      parser.get must be(WeightedFormula(10.0, Implies(And(PlusAtom("Same", List(PlusVariable("hallo"), ExclamationVariable("po"))), Atom("Popel", List(VariableOrType("du"), VariableOrType("igel")))), Atom("Same", List(VariableOrType("du"), VariableOrType("nuss"))))))
       // must be
       println("parser = " + parser)
 
@@ -112,7 +112,8 @@ parsed: And(And(Not(Atom(MentionType,List(x, Constant(PRN)))),Atom(Head,List(x, 
 
       val f9 = "!MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)"
       val parse9 = MLNParser.parse(mln_exp, f9)
-      // must be
+      parse9.get must be(And(And(Not(Atom("MentionType", List(VariableOrType("x"), Constant("PRN")))), PlusAtom("Head", List(VariableOrType("x"), PlusVariable("h")))), PlusAtom("InClust", List(VariableOrType("x"), PlusVariable("c")))))
+
       println(f9 + "=" + parse9)
 
       val f10 = "Friends(x, Anna) ^ Smokes(Anna) => Smokes(x)"

@@ -18,10 +18,11 @@ Friends(person, person)
 0.0 Cancer(x)
 // 0.0 Friends(x, y)
 // If you smoke, you get cancer
-Friends(x, Anna) <=> Friends(Anna, x)
-//Friends(+x, y) => Smokes(y)
-//Friends(!x, y) ^ Smokes(y)
 Smokes(x) => Cancer(x)
 // People with friends who smoke, also smoke
 // and those with friends who don't smoke, don't smoke
 Friends(x, y) => (Smokes(x) <=> Smokes(y))
+//mln playground
+//Friends(x, Anna) <=> Friends(Anna, x)
+//Friends(Anna,y) => !Smokes(+y)
+//Friends(!x, y) ^ Smokes(y)
