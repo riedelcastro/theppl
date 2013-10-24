@@ -26,7 +26,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   def mln: Parser[List[Expression]] = rep(expression)
 
   def expression: Parser[Expression] =
-    (typeDefinitions ||| function||| hardFormula||| weightedFormula ||| asteriskFormula ||| formula ||| include)
+    (typeDefinitions ||| function ||| hardFormula ||| weightedFormula ||| asteriskFormula ||| formula ||| include)
 
 
   def typeDefinitions: Parser[Expression] = (integerTypeDefinition ||| constantTypeDefinition)
@@ -62,7 +62,8 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   def atom: Parser[Atom] = UpperCaseID ~ "(" ~ termList ~ ")" ^^ {
     case s ~ "(" ~ terms ~ ")" => Atom(s, terms)
   }
-  def plusAtom: Parser[PlusAtom]=    UpperCaseID ~ "(" ~ plusTermList ~ ")" ^^ {
+
+  def plusAtom: Parser[PlusAtom] = UpperCaseID ~ "(" ~ plusTermList ~ ")" ^^ {
     case s ~ "(" ~ terms ~ ")" => PlusAtom(s, terms)
   }
 
@@ -73,18 +74,19 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   def asteriskFormula: Parser[AsteriskFormula] = (binaryAsterisk(minPrec) ||| asteriskAtomic) ^^ {
     case f => AsteriskFormula(f)
   }
-  def asteriskAtomic: Parser[Formula] =  asteriskAtom ||| atom
+
+  def asteriskAtomic: Parser[Formula] = asteriskAtom ||| atom
 
   def binaryAsterisk(level: Int): Parser[Formula] = {
     if (level > maxPrec) asteriskAtomic
     else binaryAsterisk(level + 1) * binaryOp(level)
   }
 
-  def negatedFormula: Parser[Not] = "!" ~ (parenthesized ) ^^ {
+  def negatedFormula: Parser[Not] = "!" ~ (parenthesized) ^^ {
     case _ ~ f => Not(f)
   }
 
-  def negatedAtom: Parser[Not] = "!" ~ (parenthesized |plusAtom| atom) ^^ {
+  def negatedAtom: Parser[Not] = "!" ~ (parenthesized | atom | plusAtom) ^^ {
     case _ ~ a => Not(a)
   }
 
@@ -118,9 +120,9 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     case t => t
   }
 
-  def term: Parser[Term] = (variable | constant | exclType )
+  def term: Parser[Term] = (variable | constant | exclType)
 
-  def plusTerm: Parser[Term] = (variable | constant | exclType | plusVariable)
+  def plusTerm: Parser[Term] = (plusVariable | variable | constant | exclType)
 
   def groundedTerm: Parser[Term] = (constant)
 
@@ -231,9 +233,11 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   trait Variable extends Term {
     def name: String
   }
+
   case class VariableOrType(name: String) extends Variable {
     override def toString: String = name
   }
+
   case class ExclamationVariable(name: String) extends Variable
 
   case class PlusVariable(name: String) extends Variable

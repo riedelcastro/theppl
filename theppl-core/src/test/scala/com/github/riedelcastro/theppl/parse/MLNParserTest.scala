@@ -70,10 +70,6 @@ class MLNParserTest extends FunSpec with MustMatchers {
 
       /*
       *   todo:
-Friends(x,y) v !Cancer(x) v Smokes(y)=[1.38] parsed: Or(Or(Atom(Friends,List(x, y)),Not(Atom(Cancer,List(x)))),Atom(Smokes,List(y)))
-Cancer(x) v *Smokes(y)=[1.23] parsed: AsteriskFormula(Or(Atom(Cancer,List(x)),AsteriskAtom(Smokes,List(y))))
-!(Cancer(x) ^ Smokes(y))=[1.25] parsed: Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y))))
-!(Cancer(x) ^ Smokes(y)) => Friends(x,y)=[1.41] parsed: Implies(Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))),Atom(Friends,List(x, y)))
 Friends(x,y) => !(Cancer(x) ^ Smokes(y))=[1.41] parsed: Implies(Atom(Friends,List(x, y)),Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))))
 !MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)=[1.49]
 parsed: And(And(Not(Atom(MentionType,List(x, Constant(PRN)))),Atom(Head,List(x, PlusVariable(h)))),Atom(InClust,List(x, PlusVariable(c))))
@@ -92,22 +88,22 @@ parsed: And(And(Not(Atom(MentionType,List(x, Constant(PRN)))),Atom(Head,List(x, 
 
       val f5 = "Cancer(x) v *Smokes(y)"
       val parse5 = MLNParser.parse(mln_exp, f5)
-      // must be
+      parse5.get must be(AsteriskFormula(Or(Atom("Cancer", List(VariableOrType("x"))), AsteriskAtom("Smokes", List(VariableOrType("y"))))))
       println(f5 + "=" + parse5)
 
       val f6 = "!(Cancer(x) ^ Smokes(y))"
       val parse6 = MLNParser.parse(mln_exp, f6)
-      // must be
+      parse6.get must be(Not(And(Atom("Cancer", List(VariableOrType("x"))), Atom("Smokes", List(VariableOrType("y"))))))
       println(f6 + "=" + parse6)
 
       val f7 = "!(Cancer(x) ^ Smokes(y)) => Friends(x,y)"
       val parse7 = MLNParser.parse(mln_exp, f7)
-      // must be
+      parse7.get must be(Implies(Not(And(Atom("Cancer", List(VariableOrType("x"))), Atom("Smokes", List(VariableOrType("y"))))), Atom("Friends", List(VariableOrType("x"), VariableOrType("y")))))
       println(f7 + "=" + parse7)
 
       val f8 = "Friends(x,y) => !(Cancer(x) ^ Smokes(y))"
       val parse8 = MLNParser.parse(mln_exp, f8)
-      // must be
+      parse8.get must be(Implies(Atom("Friends", List(VariableOrType("x"), VariableOrType("y"))), Not(And(Atom("Cancer", List(VariableOrType("x"))), Atom("Smokes", List(VariableOrType("y")))))))
       println(f8 + "=" + parse8)
 
       val f9 = "!MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)"
