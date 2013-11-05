@@ -68,14 +68,7 @@ class MLNParserTest extends FunSpec with MustMatchers {
       //      println(f2 + " = " + parse2)
 
 
-      /*
-      *   todo:
-Friends(x,y) => !(Cancer(x) ^ Smokes(y))=[1.41] parsed: Implies(Atom(Friends,List(x, y)),Not(And(Atom(Cancer,List(x)),Atom(Smokes,List(y)))))
-!MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)=[1.49]
-parsed: And(And(Not(Atom(MentionType,List(x, Constant(PRN)))),Atom(Head,List(x, PlusVariable(h)))),Atom(InClust,List(x, PlusVariable(c))))
 
-      *
-      * */
       val f3 = "(Cancer(x) ^ Smokes(y)) => !Friends(x,y)"
       val parse3 = MLNParser.parse(mln_exp, f3)
       parse3.get must be(MLNParser.Implies(And(Atom("Cancer", List(VariableOrType("x"))), Atom("Smokes", List(VariableOrType("y")))), Not(Atom("Friends", List(VariableOrType("x"), VariableOrType("y"))))))
@@ -109,7 +102,6 @@ parsed: And(And(Not(Atom(MentionType,List(x, Constant(PRN)))),Atom(Head,List(x, 
       val f9 = "!MentionType(x,PRN) ^ Head(x,+h) ^ InClust(x,+c)"
       val parse9 = MLNParser.parse(mln_exp, f9)
       parse9.get must be(And(And(Not(Atom("MentionType", List(VariableOrType("x"), Constant("PRN")))), PlusAtom("Head", List(VariableOrType("x"), PlusVariable("h")))), PlusAtom("InClust", List(VariableOrType("x"), PlusVariable("c")))))
-
       println(f9 + "=" + parse9)
 
       val f10 = "Friends(x, Anna) ^ Smokes(Anna) => Smokes(x)"

@@ -12,61 +12,15 @@ import org.riedelcastro.nurupo.BuilderN
 import scala._
 
 
-import com.github.riedelcastro.theppl.parse.MLNParser.Atom
-import com.github.riedelcastro.theppl.term.FunApp1
-import com.github.riedelcastro.theppl.term.Pred2
-import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
-import com.github.riedelcastro.theppl.parse.MLNParser.And
-import com.github.riedelcastro.theppl.term.Pred1
-import com.github.riedelcastro.theppl.parse.MLNParser.Equivalence
-import com.github.riedelcastro.theppl.parse.MLNParser.Or
 import com.github.riedelcastro.theppl.term.Term
 import com.github.riedelcastro.theppl.term.Not
-import com.github.riedelcastro.theppl.term.Constant
-import com.github.riedelcastro.theppl.term.Dom
-import com.github.riedelcastro.theppl.term.QuantifiedVecSum
-import com.github.riedelcastro.theppl.util.SetUtil.Union
-import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
-import com.github.riedelcastro.theppl.term.FunApp2
-import com.github.riedelcastro.theppl.parse.MLNParser.Implies
-import com.github.riedelcastro.theppl.parse.MLNParser.Atom
-import com.github.riedelcastro.theppl.term.FunApp1
-import com.github.riedelcastro.theppl.term.Pred2
-import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
-import com.github.riedelcastro.theppl.parse.MLNParser.And
-import com.github.riedelcastro.theppl.term.Pred1
-import com.github.riedelcastro.theppl.parse.MLNParser.Equivalence
-import com.github.riedelcastro.theppl.parse.MLNParser.PlusVariable
-import com.github.riedelcastro.theppl.parse.MLNParser.Or
-import com.github.riedelcastro.theppl.parse.MLNParser.PlusAtom
-import com.github.riedelcastro.theppl.term.Constant
-import com.github.riedelcastro.theppl.term.Dom
-import com.github.riedelcastro.theppl.term.QuantifiedVecSum
-import com.github.riedelcastro.theppl.util.SetUtil.Union
-import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
-import com.github.riedelcastro.theppl.term.FunApp2
-import com.github.riedelcastro.theppl.parse.MLNParser.Implies
-import com.github.riedelcastro.theppl.parse.MLNParser.Atom
-import com.github.riedelcastro.theppl.term.FunApp1
-import com.github.riedelcastro.theppl.term.Pred2
-import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
-import com.github.riedelcastro.theppl.parse.MLNParser.And
-import com.github.riedelcastro.theppl.term.Pred1
-import com.github.riedelcastro.theppl.parse.MLNParser.Equivalence
-import com.github.riedelcastro.theppl.parse.MLNParser.PlusVariable
-import com.github.riedelcastro.theppl.parse.MLNParser.Or
-import com.github.riedelcastro.theppl.parse.MLNParser.PlusAtom
-import com.github.riedelcastro.theppl.term.Constant
-import com.github.riedelcastro.theppl.term.Dom
-import com.github.riedelcastro.theppl.term.QuantifiedVecSum
-import com.github.riedelcastro.theppl.util.SetUtil.Union
-import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
-import com.github.riedelcastro.theppl.term.FunApp2
-import com.github.riedelcastro.theppl.parse.MLNParser.Implies
-import com.github.riedelcastro.theppl.parse.MLNParser.Atom
-import com.github.riedelcastro.theppl.term.FunApp1
-import com.github.riedelcastro.theppl.term.Pred2
+import com.github.riedelcastro.theppl.util.{MongoFactory, LoanResourceManager}
 import scala.AnyRef
+import scala.Error
+
+import com.github.riedelcastro.theppl.parse.MLNParser.Atom
+import com.github.riedelcastro.theppl.term.FunApp1
+import com.github.riedelcastro.theppl.term.Pred2
 import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
 import com.github.riedelcastro.theppl.parse.MLNParser.And
 import com.github.riedelcastro.theppl.term.Pred1
@@ -78,12 +32,16 @@ import com.github.riedelcastro.theppl.term.Constant
 import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.term.QuantifiedVecSum
 import scala.Tuple3
+import com.github.riedelcastro.theppl.parse.MLNParser.ExclamationVariable
 import com.github.riedelcastro.theppl.util.SetUtil.Union
 import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
 import com.github.riedelcastro.theppl.term.FunApp2
 import scala.Tuple2
-import scala.Error
 import com.github.riedelcastro.theppl.parse.MLNParser.Implies
+import org.riedelcastro.frontlets.{MongoFrontletCollection, Frontlet}
+import com.mongodb.{DBCursor, DBCollection, DB}
+import java.nio.file.Paths
+
 
 /**
  * Translates the parsing output into processing statements on the fly.
@@ -101,101 +59,52 @@ class MLNEmbeddedTranslator {
 
   private val uniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
   private val typedUniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
-  private val databaseAtoms = new ListBuffer[(Term[Any], Seq[Constant[Any]], Any)]
+  private val db = new ListBuffer[(String, Seq[Constant[Any]], Any)]
+  var dbName: String = ""
 
-  def state2: Map[Variable[Any], Any] = databaseAtoms.map(x => (buildGroundAtom(x._1, x._2) -> x._3)).toMap
+
+  def state2: Map[Variable[Any], Any] = buildFullState.toMap
+
 
   def domain: Map[String, Dom[Any]] = dom.toMap
 
   def predicate(name: String): Option[Term[Any]] = predicates.get(Symbol(name))
 
-  def formulae2: List[(Double, Term[Boolean])] = fullDomainFormulae
+  def formulae2: List[(Double, Term[Boolean])] = mlnFormulae.toList
 
+  //todo: depending on selected strategy, create full state from memory or db.
+  //todo: make this code beautiful.
+  private def buildFullState = {
+    //db-based:
+    val fullState = new HashMap[Variable[Any], Any]
+    val predicateNames: collection.Set[Symbol] = predicates.keySet
+    val mongo: DB = MongoFactory.forDB(dbName)
+    predicateNames foreach (predicate => {
+      val coll: DBCollection = mongo.getCollection(predicate.name)
+      val predDef: Option[Term[Any]] = predicates.get(predicate)
 
-  private def fullDomainFormulae = {
-    mlnFormulae ++= expandPlusVars
-    mlnFormulae.map(x => (x._1, injectDomain(x._2))).toList
-  }
-
-  private def expandPlusVars: List[(Double, Term[Boolean])] = {
-    /*we can expand plus variables if domains are known.*/
-    val expandedPlusFormulae: List[(Double, Formula)] = mlnPlusFormulae.flatMap(x => {
-      for (v <- expandPlusVariable(x._2)) yield (x._1, v)
-    }).toList
-
-    val plusFormulae = expandedPlusFormulae.map(x => (x._1, formula(x._2)))
-    plusFormulae.toList
-  }
-
-  private def expandPlusVariable(formula: Formula): List[Formula] = {
-    formula match {
-      case PlusAtom(name, args) => {
-        val predDef: Term[Any] = atoms.get(Symbol(name)).get
-        val expanded = args match {
-          case List(a1) => {
-            val dom1Name = predDef.asInstanceOf[Pred1[_, _]].dom1.name.name
-            val domainVals = dom.get(dom1Name).get.values
-            val instantiatedPlusVar = domainVals.map(value => Atom(name, List(MLNParser.Constant(value.toString))).asInstanceOf[Formula])
-            instantiatedPlusVar.toList
-          }
-          case List(a1, a2) => {
-            val pred2Def = predDef.asInstanceOf[Pred2[_, _, _]]
-            val firstArgValues: scala.collection.Seq[MLNParser.Term] = a1 match {
-              case PlusVariable(x) => {
-                val dom1name: String = pred2Def.dom1.name.name
-                val dom1values = dom.get(dom1name).get.values
-                dom1values.map(v => MLNParser.Constant(v.toString))
-              }
-              case _ => Seq(a1)
-            }
-            val secondArgValues: scala.collection.Seq[MLNParser.Term] = a2 match {
-              case PlusVariable(x) => {
-                val dom2name: String = pred2Def.dom2.name.name
-                val dom2values = dom.get(dom2name).get.values
-                dom2values.map(v => MLNParser.Constant(v.toString))
-              }
-              case _ => Seq(a2)
-            }
-            val reconstructedFormulas = for (arg1 <- firstArgValues; arg2 <- secondArgValues) yield {
-              Atom(name, List(arg1, arg2)).asInstanceOf[Formula]
-            }
-            reconstructedFormulas.toList
-          }
-        }
-        expanded
+      val frontlet: Frontlet = predDef.get match {
+        case pred1: Pred1[_, _] => new GroundAtom1Db
+        case pred2: Pred2[_, _, _] => new GroundAtom2Db
       }
-      case Atom(predicate, args) => formula :: Nil
-      case And(lhs, rhs) =>
-        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield And(l, r)
-      case Or(lhs, rhs) =>
-        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Or(l, r)
-      case Implies(lhs, rhs) =>
-        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Implies(l, r)
-      case Equivalence(lhs, rhs) =>
-        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Equivalence(l, r)
-      case MLNParser.Not(f) => for (x <- expandPlusVariable(f)) yield MLNParser.Not(x)
-      case _ => throw new Error("Unknown operator.")
-    }
-  }
 
-  private def buildGroundAtom(predDeclaration: Term[Any], args: Seq[Constant[Any]]): GroundAtom[Any] = {
-    predDeclaration match {
-      case Pred1(name, dom1, range) => {
-        val pred1: Pred1[Any, Any] = pred1Builder(name, dom1, range)
-        args match {
-          //todo: type check of the constant value!
-          case Seq(Constant(value)) => pred1.apply(Symbol(value.toString))
-          case _ => sys.error("predicate of arity 1 can not take more than one argument.")
+      val frontletCollection = new MongoFrontletCollection(coll, () => frontlet)
+      val atoms = frontletCollection.iterator
+      val state = atoms.map(x => {
+        val positive = x.get("positive").get
+        val args = frontlet match {
+          case f1: GroundAtom1Db => Seq(Constant(x.get("arg1").get))
+          case f2: GroundAtom2Db => Seq(Constant(x.get("arg1").get), Constant(x.get("arg2").get))
         }
-      }
-      case Pred2(name, dom1, dom2, range) => {
-        val pred2: Pred2[Any, Any, Any] = pred2Builder(name, dom1, dom2, range)
-        args match {
-          case Seq(Constant(value1), Constant(value2)) => pred2.apply(Symbol(value1.toString), Symbol(value2.toString))
-          case _ => sys.error("predicate of arity 2 can take only two arguments.")
-        }
-      }
-    }
+        buildGroundAtom2(predicate.name, args) -> positive
+      }).toMap
+      fullState ++= state
+    })
+
+    fullState
+
+    //memory-based:
+    //fullState ++= db.map(x => (buildGroundAtom2(x._1, x._2) -> x._3)).toMap
   }
 
   //create MLN sufficient statistics formulae
@@ -232,21 +141,27 @@ class MLNEmbeddedTranslator {
     case set => Set(set)
   })
 
-
-  /*
-  *  A .mln file consists of two basic parts: declarations and formulas.
-    The declaration section must contain at least one predicate,
-    while the formulas section contains 0 or more formulas.
-    Optionally, one can enumerate the constants of each type used in the .mln and .db files;
-    if there is no enumeration, the set of constants is implied from all constants present in both files.
-  *
-  * */
+  /**
+   * Processing of the (Alchemy) MLN file.
+   * A .mln file consists of two basic parts: declarations and formulas.
+   * The declaration section must contain at least one predicate,
+   * while the formulas section contains 0 or more formulas.
+   * Optionally, one can enumerate the constants of each type used in the .mln and .db files;
+   * if there is no enumeration, the set of constants is implied from all constants present in both files.
+   * @param file a path to the .mln file
+   */
   def translateMLNFromFile(file: String) = {
-    val mln_file = scala.io.Source.fromFile(file)
-    val filtered: Iterator[String] = mln_file.getLines().filter(nonMLNElements(_))
-    val expressions = filtered map (MLNParser.parse(MLNParser.expression, _))
+    LoanResourceManager.withFileIteratorForMLN(file) {
+      line => {
+        val parse = MLNParser.parse(MLNParser.expression, line)
+        processMLNEntry(parse)
+      }
+    }
+  }
 
-    expressions foreach (expr => expr.get match {
+
+  private def processMLNEntry(expr: MLNParser.ParseResult[MLNParser.Expression]) {
+    expr.get match {
 
       /*Types and constants can be declared in an .mln file
       Each declared type must have at least one constant.
@@ -267,6 +182,7 @@ class MLNEmbeddedTranslator {
       //a unary/binary predicate declaration: might have a default domain,
       // witch will be injected after database atoms are processed.
       case MLNParser.Atom(predicate, args) => {
+        //todo: !-predicate identification. (provided in the declaration part of mln)
         val types = args map (x => dom.getOrElseUpdate(x.toString, defaultDomain(x.toString)))
 
         val predicateDeclaration = types match {
@@ -300,17 +216,15 @@ class MLNEmbeddedTranslator {
 
       case formula: MLNParser.Formula => addFormula(0.0, formula)
       case _ => println(" more in progress... " + expr.get.toString)
-    })
-
-    mln_file.close()
+    }
   }
 
   /* When predicates in a formula are preceded by *, consider all possible ways in which * can be replaced by !
-   * e.g *student(x) ^ *professor(x) is expanded into four formulas:
-        student(x) ^ professor(x)
-        !student(x) ^ professor(x)
-        student(x) ^ !professor(x)
-        !student(x) ^ !professor(x)    */
+     * e.g *student(x) ^ *professor(x) is expanded into four formulas:
+          student(x) ^ professor(x)
+          !student(x) ^ professor(x)
+          student(x) ^ !professor(x)
+          !student(x) ^ !professor(x)    */
   private def expandAsterisk(formula: Formula): List[Formula] = {
     val expandedFormula = formula match {
       case AsteriskAtom(predicate, args) => Atom(predicate, args) :: MLNParser.Not(Atom(predicate, args)) :: Nil
@@ -396,19 +310,35 @@ class MLNEmbeddedTranslator {
     atoms(Symbol(predicate.toString))
   }
 
-  /*
-      * A .db file consists of a set of ground atoms, one per line.
-        Evidence predicates are assumed by default to be closed-world,
-        meaning that if they are not present in the .db file, they are assumed false.
-        (closed-world assumption: a ground atom not in the database is assumed to be false)
-        Non-evidence predicates, on the other hand, are assumed open-world by default.
-      * */
-  def translateDatabaseFromFile(file: String) = {
-    val db_file = scala.io.Source.fromFile(file)
-    val filtered: Iterator[String] = db_file.getLines().filter(nonMLNElements(_))
-    val expressions = filtered map (MLNParser.parse(MLNParser.db, _))
+  private def generateNameFrom(s: String): String = {
+    Paths.get(s).toFile.getName
+  }
 
-    expressions foreach (expr => expr.get match {
+  /**
+   * Processing of the (Alchemy) database file.
+   * A .db file consists of a set of ground atoms, one per line.
+   * Evidence predicates are assumed by default to be closed-world,
+   * meaning that if they are not present in the .db file, they are assumed false.
+   * (closed-world assumption: a ground atom not in the database is assumed to be false)
+   * Non-evidence predicates, on the other hand, are assumed open-world by default.
+   *
+   * @param file path to a .db file
+   */
+  //todo: ACHTUNG! this method does a lot of things !
+  def translateDatabaseFromFile(file: String) = {
+    dbName = generateNameFrom(file)
+    LoanResourceManager.withFileIteratorForMLN(file) {
+      line => {
+        val parse = MLNParser.parse(MLNParser.db, line)
+        processDBEntry(parse)
+      }
+    }
+    fullDomainFormulae
+  }
+
+
+  private def processDBEntry(expr: MLNParser.ParseResult[Any]) = {
+    expr.get match {
       //    DatabaseAtom(Friends,List(Constant(Anna), Constant(Gary)),true)
       //    DatabaseAtom(Smokes,List(Constant(Anna)),true)
       case MLNParser.DatabaseAtom(predicate, args, positive) => {
@@ -418,9 +348,12 @@ class MLNEmbeddedTranslator {
             args.head match {
               case MLNParser.Constant(value) => {
                 enhanceDomain(dom1, value)
-                /*here we just collect the information about the database atoms
-                in order to use this later when we know the full domain.*/
-                databaseAtoms += Tuple3(predicateDeclaration, Seq(Constant(value)), positive)
+                //todo: strategy: persist or in memory
+                //                db += Tuple3(predicate, Seq(Constant(value)), positive)
+                //todo: POC, but this is somehow ugly. still need to figure out how to work with frontlets efficiently
+                val coll = MongoFactory.forDB(dbName).getCollection(predicate)
+                val atoms1 = new MongoFrontletCollection(coll, () => new GroundAtom1Db)
+                atoms1 += new GroundAtom1Db().arg1(value).positive(positive)
               }
             }
           }
@@ -429,7 +362,12 @@ class MLNEmbeddedTranslator {
               case (MLNParser.Constant(value1), MLNParser.Constant(value2)) => {
                 enhanceDomain(dom1, value1)
                 enhanceDomain(dom2, value2)
-                databaseAtoms += Tuple3(predicateDeclaration, Seq(Constant(value1), Constant(value2)), positive)
+                //todo: strategy: persist or in memory
+                //                db += Tuple3(predicate, Seq(Constant(value1), Constant(value2)), positive)
+                //todo: POC, but this is somehow ugly. still need to figure out how to work with frontlets efficiently
+                val coll = MongoFactory.forDB(dbName).getCollection(predicate)
+                val atoms2 = new MongoFrontletCollection(coll, () => new GroundAtom2Db)
+                atoms2 += new GroundAtom2Db().arg1(value1).arg2(value2).positive(positive)
               }
             }
           }
@@ -437,10 +375,15 @@ class MLNEmbeddedTranslator {
       }
       case MLNParser.DatabaseFunction(returnValue, name, values) => throw new Error("DB function in progress..")
       case _ => println("Not a database element...")
-    })
+    }
+  }
 
-    db_file.close()
 
+  private def fullDomainFormulae = {
+    mlnFormulae ++= expandPlusVars
+    val fullFormulae: ListBuffer[(Double, Term[Boolean])] = mlnFormulae.map(x => (x._1, injectDomain(x._2)))
+    mlnFormulae.clear()
+    mlnFormulae ++= fullFormulae
   }
 
   private def injectDomain(formula: Term[Any]): Term[Boolean] = {
@@ -472,6 +415,85 @@ class MLNEmbeddedTranslator {
     groundedFormula.asInstanceOf[Term[Boolean]]
   }
 
+  private def expandPlusVars: List[(Double, Term[Boolean])] = {
+    /*we can expand plus variables if domains are known.*/
+    val expandedPlusFormulae: List[(Double, Formula)] = mlnPlusFormulae.flatMap(x => {
+      for (v <- expandPlusVariable(x._2)) yield (x._1, v)
+    }).toList
+
+    val plusFormulae = expandedPlusFormulae.map(x => (x._1, formula(x._2)))
+    plusFormulae.toList
+  }
+
+  private def expandPlusVariable(formula: Formula): List[Formula] = {
+    formula match {
+      case PlusAtom(name, args) => {
+        val predDef: Term[Any] = atoms.get(Symbol(name)).get
+        val expanded = args match {
+          case List(a1) => {
+            val dom1Name = predDef.asInstanceOf[Pred1[_, _]].dom1.name.name
+            val domainVals = dom.get(dom1Name).get.values
+            val instantiatedPlusVar = domainVals.map(value => Atom(name, List(MLNParser.Constant(value.toString))).asInstanceOf[Formula])
+            instantiatedPlusVar.toList
+          }
+          case List(a1, a2) => {
+            val pred2Def = predDef.asInstanceOf[Pred2[_, _, _]]
+            val firstArgValues: scala.collection.Seq[MLNParser.Term] = a1 match {
+              case PlusVariable(x) => {
+                val dom1name: String = pred2Def.dom1.name.name
+                val dom1values = dom.get(dom1name).get.values
+                dom1values.map(v => MLNParser.Constant(v.toString))
+              }
+              case _ => Seq(a1)
+            }
+            val secondArgValues: scala.collection.Seq[MLNParser.Term] = a2 match {
+              case PlusVariable(x) => {
+                val dom2name: String = pred2Def.dom2.name.name
+                val dom2values = dom.get(dom2name).get.values
+                dom2values.map(v => MLNParser.Constant(v.toString))
+              }
+              case _ => Seq(a2)
+            }
+            val reconstructedFormulas = for (arg1 <- firstArgValues; arg2 <- secondArgValues) yield {
+              Atom(name, List(arg1, arg2)).asInstanceOf[Formula]
+            }
+            reconstructedFormulas.toList
+          }
+        }
+        expanded
+      }
+      case Atom(predicate, args) => formula :: Nil
+      case And(lhs, rhs) =>
+        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield And(l, r)
+      case Or(lhs, rhs) =>
+        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Or(l, r)
+      case Implies(lhs, rhs) =>
+        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Implies(l, r)
+      case Equivalence(lhs, rhs) =>
+        for (l <- expandPlusVariable(lhs); r <- expandPlusVariable(rhs)) yield Equivalence(l, r)
+      case MLNParser.Not(f) => for (x <- expandPlusVariable(f)) yield MLNParser.Not(x)
+      case _ => throw new Error("Unknown operator.")
+    }
+  }
+
+  private def buildGroundAtom2(predName: String, args: Seq[Constant[Any]]): GroundAtom[Any] = {
+    val predicateDeclaration: Term[Any] = predicate(predName).get
+    predicateDeclaration match {
+      case pred1@Pred1(name, dom1, range) => {
+        args match {
+          //todo: type check of the constant value!
+          case Seq(Constant(value)) => pred1.apply(Symbol(value.toString))
+          case _ => sys.error("predicate of arity 1 can not take more than one argument.")
+        }
+      }
+      case pred2@Pred2(name, dom1, dom2, range) => {
+        args match {
+          case Seq(Constant(value1), Constant(value2)) => pred2.apply(Symbol(value1.toString), Symbol(value2.toString))
+          case _ => sys.error("predicate of arity 2 can take only two arguments.")
+        }
+      }
+    }
+  }
 
   /*argument instantiation from the predicate with 2 parameters*/
   private def term2(pred2: Pred2[_, _, _], a: Term[Any]): Term[Any] = {
@@ -524,10 +546,16 @@ class MLNEmbeddedTranslator {
     val extendedDomain = initial.values :+ Symbol(value)
     dom.update(domainName, Dom(thisDom.name, extendedDomain.distinct))
   }
+}
 
-  def nonMLNElements(x: String): Boolean = {
-    !((x startsWith "//") || (x isEmpty))
-  }
+/*Frontlets for GroundAtoms artifacts*/
+class GroundAtom1Db extends Frontlet {
+  val arg1 = StringSlot("arg1")
+  val positive = BooleanSlot("positive")
+}
 
-
+class GroundAtom2Db extends Frontlet {
+  val arg1 = StringSlot("arg1")
+  val arg2 = StringSlot("arg2")
+  val positive = BooleanSlot("positive")
 }
