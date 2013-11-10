@@ -22,6 +22,7 @@ libraryDependencies ++= Seq(
   "net.sf.trove4j" % "trove4j" % "3.0.3",
   "com.nativelibs4java" %% "scalaxy-loops" % "0.3-SNAPSHOT" % "provided",
   "com.google.guava" % "guava" % "15.0",
-  "com.google.code.findbugs" % "jsr305" % "2.0.2"
+  "com.google.code.findbugs" % "jsr305" % "2.0.2",
+  "org.riedelcastro.frontlets" %% "frontlets" % "0.5.0-SNAPSHOT"
 )
 
