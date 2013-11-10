@@ -1,6 +1,6 @@
 package com.github.riedelcastro.theppl.parse
 
-import scala.collection.mutable.{Seq, ListBuffer, HashMap}
+import scala.collection.mutable.{ArrayBuffer, Seq, ListBuffer, HashMap}
 
 import com.github.riedelcastro.theppl.term._
 import com.github.riedelcastro.theppl.term.TermImplicits._
@@ -14,13 +14,14 @@ import scala._
 
 import com.github.riedelcastro.theppl.term.Term
 import com.github.riedelcastro.theppl.term.Not
-import com.github.riedelcastro.theppl.util.{MongoFactory, LoanResourceManager}
-import scala.AnyRef
-import scala.Error
+import com.github.riedelcastro.theppl.util.{FrontletsMongoCache, LoanResourceManager}
 
+import org.riedelcastro.frontlets.{MongoFrontletCollection, Frontlet}
+import java.nio.file.Paths
 import com.github.riedelcastro.theppl.parse.MLNParser.Atom
 import com.github.riedelcastro.theppl.term.FunApp1
 import com.github.riedelcastro.theppl.term.Pred2
+import scala.AnyRef
 import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
 import com.github.riedelcastro.theppl.parse.MLNParser.And
 import com.github.riedelcastro.theppl.term.Pred1
@@ -31,16 +32,14 @@ import com.github.riedelcastro.theppl.parse.MLNParser.PlusAtom
 import com.github.riedelcastro.theppl.term.Constant
 import com.github.riedelcastro.theppl.term.Dom
 import com.github.riedelcastro.theppl.term.QuantifiedVecSum
-import scala.Tuple3
 import com.github.riedelcastro.theppl.parse.MLNParser.ExclamationVariable
 import com.github.riedelcastro.theppl.util.SetUtil.Union
 import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
 import com.github.riedelcastro.theppl.term.FunApp2
 import scala.Tuple2
+import scala.Error
 import com.github.riedelcastro.theppl.parse.MLNParser.Implies
-import org.riedelcastro.frontlets.{MongoFrontletCollection, Frontlet}
-import com.mongodb.{DBCursor, DBCollection, DB}
-import java.nio.file.Paths
+import com.google.common.cache.LoadingCache
 
 
 /**
@@ -59,7 +58,9 @@ class MLNEmbeddedTranslator {
 
   private val uniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
   private val typedUniqueVarsDictionary = new HashMap[String, UniqueVar[Any]]
-  private val db = new ListBuffer[(String, Seq[Constant[Any]], Any)]
+
+  private val groundAtomsByPred = new HashMap[String, ArrayBuffer[Frontlet]]
+  private val cacheContainer = new HashMap[String, LoadingCache[String, MongoFrontletCollection[Frontlet]]]
   var dbName: String = ""
 
 
@@ -72,23 +73,14 @@ class MLNEmbeddedTranslator {
 
   def formulae2: List[(Double, Term[Boolean])] = mlnFormulae.toList
 
-  //todo: depending on selected strategy, create full state from memory or db.
   //todo: make this code beautiful.
   private def buildFullState = {
-    //db-based:
     val fullState = new HashMap[Variable[Any], Any]
     val predicateNames: collection.Set[Symbol] = predicates.keySet
-    val mongo: DB = MongoFactory.forDB(dbName)
+
     predicateNames foreach (predicate => {
-      val coll: DBCollection = mongo.getCollection(predicate.name)
-      val predDef: Option[Term[Any]] = predicates.get(predicate)
-
-      val frontlet: Frontlet = predDef.get match {
-        case pred1: Pred1[_, _] => new GroundAtom1Db
-        case pred2: Pred2[_, _, _] => new GroundAtom2Db
-      }
-
-      val frontletCollection = new MongoFrontletCollection(coll, () => frontlet)
+      val frontlet = getFrontletConstructorByName(predicate)
+      val frontletCollection = cacheContainer.get(frontlet.getClass.getSimpleName).get.get(predicate.name)
       val atoms = frontletCollection.iterator
       val state = atoms.map(x => {
         val positive = x.get("positive").get
@@ -102,9 +94,15 @@ class MLNEmbeddedTranslator {
     })
 
     fullState
+  }
 
-    //memory-based:
-    //fullState ++= db.map(x => (buildGroundAtom2(x._1, x._2) -> x._3)).toMap
+
+  private def getFrontletConstructorByName(predicate: Symbol): Frontlet = {
+    val predDef: Option[Term[Any]] = predicates.get(predicate)
+    predDef.get match {
+      case pred1: Pred1[_, _] => new GroundAtom1Db
+      case pred2: Pred2[_, _, _] => new GroundAtom2Db
+    }
   }
 
   //create MLN sufficient statistics formulae
@@ -311,7 +309,7 @@ class MLNEmbeddedTranslator {
   }
 
   private def generateNameFrom(s: String): String = {
-    Paths.get(s).toFile.getName
+    Paths.get(s).toFile.getName.split("\\.db").head
   }
 
   /**
@@ -333,27 +331,47 @@ class MLNEmbeddedTranslator {
         processDBEntry(parse)
       }
     }
+
     fullDomainFormulae
+
+    populateCache
+
+
   }
 
+
+  private def populateCache {
+    val predicateNames = predicates.keySet
+    predicateNames foreach (predicate => {
+      val frontlet: Frontlet = getFrontletConstructorByName(predicate)
+      val loadingCache: LoadingCache[String, MongoFrontletCollection[Frontlet]] =
+        cacheContainer.getOrElse(frontlet.getClass.getSimpleName,
+          FrontletsMongoCache.from(dbName, () => frontlet))
+
+      val frontletCollection: MongoFrontletCollection[Frontlet] =
+        loadingCache.get(predicate.name)
+      frontletCollection ++= groundAtomsByPred.get(predicate.name).get.iterator
+
+      cacheContainer.put(frontlet.getClass.getSimpleName, loadingCache)
+    })
+  }
 
   private def processDBEntry(expr: MLNParser.ParseResult[Any]) = {
     expr.get match {
       //    DatabaseAtom(Friends,List(Constant(Anna), Constant(Gary)),true)
       //    DatabaseAtom(Smokes,List(Constant(Anna)),true)
       case MLNParser.DatabaseAtom(predicate, args, positive) => {
+        //        val coll = MongoDBCache.from(dbName).get(predicate)
+        val atomsCollection = groundAtomsByPred.getOrElseUpdate(predicate, new ArrayBuffer)
         val predicateDeclaration = atoms(Symbol(predicate))
         predicateDeclaration match {
           case Pred1(name, dom1, range) => {
             args.head match {
               case MLNParser.Constant(value) => {
                 enhanceDomain(dom1, value)
-                //todo: strategy: persist or in memory
-                //                db += Tuple3(predicate, Seq(Constant(value)), positive)
-                //todo: POC, but this is somehow ugly. still need to figure out how to work with frontlets efficiently
-                val coll = MongoFactory.forDB(dbName).getCollection(predicate)
-                val atoms1 = new MongoFrontletCollection(coll, () => new GroundAtom1Db)
-                atoms1 += new GroundAtom1Db().arg1(value).positive(positive)
+                //                val atoms1 = new MongoFrontletCollection(coll, () => new GroundAtom1Db)
+                atomsCollection += new GroundAtom1Db().arg1(value).positive(positive)
+
               }
             }
           }
@@ -362,12 +380,8 @@ class MLNEmbeddedTranslator {
               case (MLNParser.Constant(value1), MLNParser.Constant(value2)) => {
                 enhanceDomain(dom1, value1)
                 enhanceDomain(dom2, value2)
-                //todo: strategy: persist or in memory
-                //                db += Tuple3(predicate, Seq(Constant(value1), Constant(value2)), positive)
-                //todo: POC, but this is somehow ugly. still need to figure out how to work with frontlets efficiently
-                val coll = MongoFactory.forDB(dbName).getCollection(predicate)
-                val atoms2 = new MongoFrontletCollection(coll, () => new GroundAtom2Db)
-                atoms2 += new GroundAtom2Db().arg1(value1).arg2(value2).positive(positive)
+                //                val atoms2 = new MongoFrontletCollection(coll, () => new GroundAtom2Db)
+                atomsCollection += new GroundAtom2Db().arg1(value1).arg2(value2).positive(positive)
               }
             }
           }

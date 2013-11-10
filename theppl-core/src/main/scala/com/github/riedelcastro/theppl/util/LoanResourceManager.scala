@@ -2,8 +2,10 @@ package com.github.riedelcastro.theppl.util
 
 import java.io.{InputStream, UnsupportedEncodingException, IOException}
 import scala.io.Source
-import com.mongodb.{DB, Mongo}
-import scala.util.Properties
+import com.mongodb.{DBCollection, DB, Mongo}
+import com.google.common.cache.{CacheBuilder, LoadingCache, CacheLoader}
+import java.util.concurrent.TimeUnit
+import org.riedelcastro.frontlets.{AbstractFrontlet, MongoFrontletCollection}
 
 /**
  * Resource Manager according to the Loan Pattern.
@@ -107,5 +109,44 @@ object MongoFactory {
 
   def forDB(name: String): DB = connection.getDB(name)
 }
+
+/**
+ * Cache for <code>MongoFrontletCollection</code> objects.
+ *
+ */
+object FrontletsMongoCache {
+
+  private def frontletsLoader[C <: AbstractFrontlet](dbName: String, constr: () => C): CacheLoader[String, MongoFrontletCollection[C]] =
+    new CacheLoader[String, MongoFrontletCollection[C]]() {
+      def load(p1: String): MongoFrontletCollection[C] = {
+        val coll: DBCollection = MongoFactory.forDB(dbName).getCollection(p1)
+        new MongoFrontletCollection(coll, constr)
+      }
+    }
+
+  def from[C <: AbstractFrontlet](dbName: String, constr: () => C): LoadingCache[String, MongoFrontletCollection[C]] =
+    CacheBuilder.newBuilder()
+      .maximumSize(100)
+      .expireAfterWrite(10, TimeUnit.MINUTES)
+      .build(frontletsLoader(dbName, constr))
+}
+
+object MongoDBCache {
+
+  private def collLoader(dbName: String): CacheLoader[String, DBCollection] = new CacheLoader[String, DBCollection] {
+    def load(key: String): DBCollection = {
+      MongoFactory.forDB(dbName).getCollection(key)
+    }
+  }
+
+  def from(dbName: String): LoadingCache[String, DBCollection] =
+    CacheBuilder.newBuilder()
+      .maximumSize(100)
+      .expireAfterWrite(10, TimeUnit.MINUTES)
+      .build(collLoader(dbName))
+
+}
+
+
 
 

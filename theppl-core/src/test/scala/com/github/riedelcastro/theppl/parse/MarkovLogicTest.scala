@@ -17,7 +17,7 @@ class MarkovLogicTest extends FunSpec {
       val result_file = "theppl-core/src/test/data/mln/social-network/smoking.result"
 
       /* prepare db for */
-      LoanResourceManager.withMongoConnector( Paths.get(db_file).toFile.getName) {
+      LoanResourceManager.withMongoConnector(Paths.get(db_file).toFile.getName.split("\\.db").head) {
         db => {
           val colls = db.getCollectionNames
           val iterator: util.Iterator[String] = colls.iterator()
