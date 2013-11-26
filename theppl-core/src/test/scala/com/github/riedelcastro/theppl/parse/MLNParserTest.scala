@@ -3,6 +3,21 @@ package com.github.riedelcastro.theppl.parse
 import org.scalatest._
 import org.scalatest.matchers.MustMatchers
 import com.github.riedelcastro.theppl.parse.MLNParser._
+import com.github.riedelcastro.theppl.parse.MLNParser.Or
+import com.github.riedelcastro.theppl.parse.MLNParser.PlusAtom
+import com.github.riedelcastro.theppl.parse.MLNParser.Constant
+import com.github.riedelcastro.theppl.parse.MLNParser.Atom
+import com.github.riedelcastro.theppl.parse.MLNParser.Not
+import com.github.riedelcastro.theppl.parse.MLNParser.ExclamationVariable
+import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskFormula
+import com.github.riedelcastro.theppl.parse.MLNParser.VariableOrType
+import com.github.riedelcastro.theppl.parse.MLNParser.AsteriskAtom
+import com.github.riedelcastro.theppl.parse.MLNParser.WeightedFormula
+import com.github.riedelcastro.theppl.parse.MLNParser.And
+import com.github.riedelcastro.theppl.parse.MLNParser.InternalPredicateAtom
+import com.github.riedelcastro.theppl.parse.MLNParser.PlusVariable
+import com.github.riedelcastro.theppl.parse.MLNParser.Implies
+import com.github.riedelcastro.theppl.parse.MLNParser.Include
 
 /**
  * Tests parsing the existing MLNs to theppl.
@@ -45,11 +60,9 @@ class MLNParserTest extends FunSpec with MustMatchers {
 
       val mln_exp = expression
 
-      val test = "10.0 Same(+hallo,!po) /* Hallo\nDu Igel */ ^ \n (Popel(du,igel)) => Same(du, nuss)"
+      val test = "10.0 Same(+hallo,po!) /* Hallo\nDu Igel */ ^ \n (Popel(du,igel)) => Same(du, nuss)"
       val parser = MLNParser.parse(mln_exp, test)
-      // parser = [3.36] parsed: WeightedFormula(10.0,Implies(And(Atom(Same,List(PlusVariable(hallo), ExclamationType(po))),Atom(Popel,List(du, igel))),Atom(Same,List(du, nuss))))
       parser.get must be(WeightedFormula(10.0, Implies(And(PlusAtom("Same", List(PlusVariable("hallo"), ExclamationVariable("po"))), Atom("Popel", List(VariableOrType("du"), VariableOrType("igel")))), Atom("Same", List(VariableOrType("du"), VariableOrType("nuss"))))))
-      // must be
       println("parser = " + parser)
 
       val include = "#include \"Blah.mln\""
@@ -66,7 +79,6 @@ class MLNParserTest extends FunSpec with MustMatchers {
       val parse2 = MLNParser.parse(mln_exp, f2)
       parse2.get must be(Or(Not(Atom("Cancer", List(VariableOrType("x")))), And(Atom("Smokes", List(VariableOrType("y"))), Not(Atom("Friends", List(VariableOrType("x"), VariableOrType("y")))))))
       //      println(f2 + " = " + parse2)
-
 
 
       val f3 = "(Cancer(x) ^ Smokes(y)) => !Friends(x,y)"
@@ -108,6 +120,48 @@ class MLNParserTest extends FunSpec with MustMatchers {
       val parse10 = MLNParser.parse(mln_exp, f10)
       parse10.get must be(Implies(And(Atom("Friends", List(VariableOrType("x"), Constant("Anna"))), Atom("Smokes", List(Constant("Anna")))), Atom("Smokes", List(VariableOrType("x")))))
       println(f10 + " = " + parse10)
+
+      val f11 = "Fd(title!, year!, length!)"
+      val parse11 = MLNParser.parse(mln_exp, f11)
+
+      parse11.get must be(Atom("Fd", List(ExclamationVariable("title"), ExclamationVariable("year"), ExclamationVariable("length"))))
+      println(f11 + "=" + parse11)
+
+      val f12 = "Inrelation(id1,t1) ^ Inrelation(id2,t2) => t1>2.3"
+      val parse12 = MLNParser.parse(mln_exp, f12)
+      parse12.get must be(Implies(And(Atom("Inrelation", List(VariableOrType("id1"), VariableOrType("t1"))), Atom("Inrelation", List(VariableOrType("id2"), VariableOrType("t2")))), InternalPredicateAtom(">", List(VariableOrType("t1"), Constant("2.3")))))
+      println(f12 + "= " + parse12)
+
+      val f13 = "Inrelation(id1,t1) ^ Inrelation(id2,t2) => t1=t2"
+      val parse13 = MLNParser.parse(mln_exp, f13)
+      parse13.get must be(Implies(And(Atom("Inrelation", List(VariableOrType("id1"), VariableOrType("t1"))), Atom("Inrelation", List(VariableOrType("id2"), VariableOrType("t2")))), InternalPredicateAtom("=", List(VariableOrType("t1"), VariableOrType("t2")))))
+      println(f13 + "= " + parse13)
+
+      val f14 = "Inrelation(id1,t1) ^ Inrelation(id2,t2) => substr(t1,t2)"
+      val parse14 = MLNParser.parse(mln_exp, f14)
+      parse14.get must be(Implies(And(Atom("Inrelation", List(VariableOrType("id1"), VariableOrType("t1"))), Atom("Inrelation", List(VariableOrType("id2"), VariableOrType("t2")))), InternalPredicateAtom("substr", List(VariableOrType("t1"), VariableOrType("t2")))))
+      println(f14 + "= " + parse14)
+
+
+      val f15 = "Inrelation(id1,t1) ^ Inrelation(id2,t2%2) "
+      val parse15 = MLNParser.parse(mln_exp, f15)
+      parse15.get must be(And(Atom("Inrelation", List(VariableOrType("id1"), VariableOrType("t1"))), Atom("Inrelation", List(VariableOrType("id2"), InternalFunction(VariableOrType("int"), "%", List(VariableOrType("t2"), Constant("2")))))))
+      println(f15 + "=" + parse15)
+
+      val f16 = "Word(j,i) ^ HasDot(c,succ(i)) => InRelation(c, concat(c,j))"
+      val parse16 = MLNParser.parse(mln_exp, f16)
+      parse16.get must be(Implies(And(Atom("Word", List(VariableOrType("j"), VariableOrType("i"))), Atom("HasDot", List(VariableOrType("c"), InternalFunction(VariableOrType("int"), "succ", List(VariableOrType("i")))))), Atom("InRelation", List(VariableOrType("c"), InternalFunction(VariableOrType("string"), "concat", List(VariableOrType("c"), VariableOrType("j")))))))
+      println(f16 + "=" + parse16)
+
+      val f17 = "Inrelation(id1,t1) ^ Inrelation(id2,t2+2) "
+      val parse17 = MLNParser.parse(mln_exp, f17)
+      parse17.get must be(And(Atom("Inrelation", List(VariableOrType("id1"), VariableOrType("t1"))), Atom("Inrelation", List(VariableOrType("id2"), InternalFunction(VariableOrType("int"), "+", List(VariableOrType("t2"), Constant("2")))))))
+      println(f17 + "=" + parse17)
+
+
+
+      /*Next(j,i) ^ !HasPunc(c,i) ^ InField(c,+f,i) ^ !(Exist c2 JntInfCandidate(c,i,c2) ^ SameBib(c,c2)) => InField(c,+f,j)
+      Next(j,i) ^ HasComma(c,i) ^ InField(c,+f,i) ^ !(Exist c2 JntInfCandidate(c,i,c2) ^ SameBib(c,c2)) => InField(c,+f,j)*/
     }
 
 

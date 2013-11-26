@@ -1,6 +1,7 @@
 package com.github.riedelcastro.theppl.parse
 
 import _root_.scala.util.parsing.combinator.{RegexParsers, JavaTokenParsers}
+import com.google.common.base.Strings
 
 
 /**
@@ -55,9 +56,10 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   def formula: Parser[Formula] = binary(minPrec) ||| atomic ||| negatedFormula
 
-  def atomic: Parser[Formula] = parenthesized ||| negatedAtom ||| plusAtom ||| /*asteriskAtom |||*/ atom
+  def atomic: Parser[Formula] = parenthesized ||| negatedAtom ||| plusAtom ||| atom ||| internalPredicateAtom
 
   def parenthesized: Parser[Formula] = "(" ~> formula <~ ")"
+
 
   def atom: Parser[Atom] = UpperCaseID ~ "(" ~ termList ~ ")" ^^ {
     case s ~ "(" ~ terms ~ ")" => Atom(s, terms)
@@ -66,6 +68,36 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
   def plusAtom: Parser[PlusAtom] = UpperCaseID ~ "(" ~ plusTermList ~ ")" ^^ {
     case s ~ "(" ~ terms ~ ")" => PlusAtom(s, terms)
   }
+
+  def internalPredicateAtom: Parser[InternalPredicateAtom] = comparisonPred ||| substr
+
+  def internalFunctions: Parser[InternalFunction] = internalFunc ||| succ ||| concat
+
+  def comparisonPred: Parser[InternalPredicateAtom] = (LowerCaseID | NumDouble | NumPosInt) ~ (">" | "<" | ">=" | "<=" | "=" | "!=") ~ (LowerCaseID | NumDouble | NumPosInt) ^^ {
+    case a1 ~ p ~ a2 =>
+      InternalPredicateAtom(p, List(determineTermType(a1), determineTermType(a2)))
+  }
+
+  def substr: Parser[InternalPredicateAtom] = "substr" ~ "(" ~ (LowerCaseID | StringLit) ~ "," ~ (LowerCaseID | StringLit) ~ ")" ^^ {
+    case _ ~ _ ~ s1 ~ _ ~ s2 ~ _ => InternalPredicateAtom("substr", List(determineTermType(s1), determineTermType(s2)))
+  }
+
+  def internalFunc: Parser[InternalFunction] = (LowerCaseID | NumPosInt) ~ ("+" | "-" | "*" | "/" | "%") ~ (LowerCaseID | NumPosInt) ^^ {
+    case a1 ~ o ~ a2 => InternalFunction(VariableOrType("int"), o, List(determineTermType(a1), determineTermType(a2)))
+  }
+
+  def succ: Parser[InternalFunction] = "succ" ~ "(" ~ (LowerCaseID | NumPosInt) ~ ")" ^^ {
+    case _ ~ _ ~ a ~ _ => InternalFunction(VariableOrType("int"), "succ", List(determineTermType(a)))
+  }
+
+  def concat: Parser[InternalFunction] = "concat" ~ "(" ~ (LowerCaseID | StringLit) ~ "," ~ (LowerCaseID | StringLit) ~ ")" ^^ {
+    case _ ~ _ ~ s1 ~ _ ~ s2 ~ _ => InternalFunction(VariableOrType("string"), "concat", List(determineTermType(s1), determineTermType(s2)))
+  }
+
+  private def determineTermType(arg: String): MLNParser.Term = {
+    if (arg.matches(LowerCaseID.toString)) VariableOrType(arg) else Constant(arg.toString)
+  }
+
 
   def asteriskAtom: Parser[AsteriskAtom] = "*" ~ atom ^^ {
     case _ ~ a => AsteriskAtom(a.predicate, a.args)
@@ -120,9 +152,9 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     case t => t
   }
 
-  def term: Parser[Term] = (variable | constant | exclType)
+  def term: Parser[Term] = variable ||| constant ||| exclType ||| internalFunctions
 
-  def plusTerm: Parser[Term] = (plusVariable | variable | constant | exclType)
+  def plusTerm: Parser[Term] = plusVariable ||| variable ||| constant ||| exclType
 
   def groundedTerm: Parser[Term] = (constant)
 
@@ -134,7 +166,7 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     s => Constant(s)
   }
 
-  def exclType: Parser[ExclamationVariable] = "!" ~> LowerCaseID ^^ {
+  def exclType: Parser[ExclamationVariable] = LowerCaseID <~ "!" ^^ {
     s => ExclamationVariable(s)
   }
 
@@ -215,6 +247,8 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
 
   case class FunctionDefinition(returnType: VariableOrType, name: String, types: List[VariableOrType]) extends Expression
 
+  case class InternalFunction(returnType: VariableOrType, name: String, types: List[Term]) extends Term
+
   trait Term extends Expression {
     def subterms: Seq[Term] = Seq()
 
@@ -269,7 +303,10 @@ object MLNParser extends JavaTokenParsers with RegexParsers {
     override def subformulas: Seq[Formula] = Seq(formula)
   }
 
+
   case class Atom(predicate: String, args: List[Term]) extends Formula
+
+  case class InternalPredicateAtom(predicate: String, args: List[Term]) extends Formula
 
   case class NegatedAtom(predicate: String, args: List[Term]) extends Formula
 
